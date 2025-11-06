@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quickpass Next",
-  description: "",
+  title: "Quick Pass | Scanne. Vérifie. Entre.",
+  description:
+    "Quick Pass - Système léger de billeterie QR pour événements. Génère, imprime et scanne des billets sécurisés avec audit, transferts et dashboard admin.",
 };
 
 export default function RootLayout({
