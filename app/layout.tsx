@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-// @ts-expect-error: allow side-effect global CSS import (no module declarations)
+import { Geist, Geist_Mono, Itim } from "next/font/google";
+
 import "@/app/styles/globals.css";
 
 const geistSans = Geist({
@@ -11,6 +11,11 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const itim = Itim({
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +33,7 @@ export default function RootLayout({
     <html lang="fr">
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased`}
       >
         {children}
       </body>
