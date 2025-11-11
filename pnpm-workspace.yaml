@@ -1,4 +1,5 @@
 onlyBuiltDependencies:
+  - '@heroui/shared-utils'
   - '@prisma/client'
   - sharp
   - unrs-resolver

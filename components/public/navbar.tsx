@@ -1,5 +1,10 @@
 "use client";
-import { PlusCircle, History } from "lucide-react";
+import {
+  // PlusCircle,
+  History,
+  // QrCode,
+  ListStartIcon,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,14 +17,14 @@ export const Navbar = () => {
   // const go = (route: string) => router.push(`/${eventId}/${route}`);
 
   return (
-    <nav className="w-full px-4 flex justify-center items-center fixed bottom-0 pb-10">
+    <nav className="w-full px-4 flex justify-center items-center fixed bottom-0 xs:pb-10 pb-4">
       <div className="left-0 w-full xs:w-fit m-auto bg-[#333] flex justify-center gap-40 xs:gap-52 py-4 px-8 rounded-2xl shadow-sm border-b-4 border-[#FDB623]">
         <Link
-          href={`/${eventId}/generate`}
+          href={`/${eventId}/stats`}
           className="flex flex-col items-center text-white"
         >
-          <PlusCircle className="size-8" />
-          <span className="text-xs">Générer</span>
+          <ListStartIcon className="size-8" />
+          <span className="text-xs">Stats</span>
         </Link>
         <Link
           href={`/${eventId}/scan`}

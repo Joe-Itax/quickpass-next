@@ -3,6 +3,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer utilities {
+  @media (max-height: 500px) {
+    .max-h-500\:shorty {
+      @apply size-44;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -123,7 +131,7 @@
 
   html,
   body {
-    @apply size-full;
+    @apply size-full scroll-smooth;
   }
 
   body {
