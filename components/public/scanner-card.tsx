@@ -14,7 +14,7 @@ export function ScannerCard({
   scannedAt: Date;
 }) {
   return (
-    <div className="flex items-center gap-1 w-full justify-between px-3 py-4  rounded-lg bg-black/30 shadow-md shadow-black">
+    <div className="flex items-center gap-1 w-full justify-between px-3 py-4 rounded-lg bg-black/30 shadow-md shadow-black">
       <div className="flex items-center justify-start gap-2">
         <div className="size-10">
           <Image

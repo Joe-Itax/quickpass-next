@@ -12,7 +12,7 @@ export default function HistoryPage() {
   const map = Array.from({ length: 10 }, (_, i) => i + 1);
 
   return (
-    <div className="flex flex-col items-center pt-8 pb-24 bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover bg-[#333333]/84">
+    <div className="flex flex-col items-center pt-8 pb-24 bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover bg-background">
       <div className="max-w-md p-2 min-[480px]:p-5 pb-0 space-y-4 flex flex-col items-center justify-center bg-transparent">
         <h1 className="text-3xl font-bold text-white self-start justify-self-start">
           Historique
