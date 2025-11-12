@@ -1,12 +1,13 @@
 "use client";
 
-// import { Trash2 } from "lucide-react";
 import Image from "next/image";
+import formatDateToCustom from "@/utils/format-date-to-custom";
+// import { Trash2 } from "lucide-react";
 
 export function ScannerCard({
   person,
-}: //   scannedAt,
-{
+  scannedAt,
+}: {
   person: {
     name: string;
   };
@@ -31,9 +32,7 @@ export function ScannerCard({
       <div className="flex flex-col items-end">
         {/* <Trash2 className="text-amber-400" size={20} /> */}
         <p className="text-sm text-muted-foreground text-end w-full">
-          {/* {scannedAt.toLocaleString("fr-FR", { timeZone: "UTC" })}
-           */}
-          16 Dec 2025, 14:30
+          {formatDateToCustom(scannedAt)}
         </p>
       </div>
     </div>

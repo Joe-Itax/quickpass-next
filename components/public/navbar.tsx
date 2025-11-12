@@ -17,7 +17,7 @@ export const Navbar = () => {
   // const go = (route: string) => router.push(`/${eventId}/${route}`);
 
   return (
-    <nav className="w-full px-4 flex justify-center items-center fixed bottom-0 xs:pb-10 pb-4">
+    <nav className="w-full xs:px-4 px-2 flex justify-center items-center fixed bottom-0 xs:pb-4 md:8 pb-2">
       <div className="left-0 w-full xs:w-fit m-auto bg-[#333] flex justify-center gap-40 xs:gap-52 py-4 px-8 rounded-2xl shadow-sm border-b-4 border-[#FDB623]">
         <Link
           href={`/${eventId}/stats`}

@@ -42,7 +42,7 @@ export default function RootPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-[#FDB623] text-center relative overflow-hidden text-[#333]">
+    <div className="flex flex-col px-4 items-center justify-center size-full bg-[#FDB623] text-center relative overflow-hidden text-[#333]">
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -115,7 +115,7 @@ export default function RootPage() {
         )}
       </AnimatePresence>
 
-      <footer className="absolute bottom-6 text-xs">
+      <footer className="absolute bottom-2 text-xs">
         powered by{" "}
         {/* <span className="font-semibold text-blue-700 pointer-events-none">
           QuickPass

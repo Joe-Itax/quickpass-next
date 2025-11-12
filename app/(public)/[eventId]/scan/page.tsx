@@ -62,13 +62,13 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center size-full  bg-[url(/image.jpg)] bg-center bg-no-repeat bg-cover">
+    <div className="flex flex-col items-center justify-center w-full h-screen  bg-[url(/image.jpg)] bg-center bg-no-repeat bg-cover">
       <div className="size-full bg-black/60 flex flex-col items-center">
         <h2 className="text-lg font-semibold mb-4 text-white">
           Scanner le billet
         </h2>
-
-        <div className="w-full mt-16 flex justify-center items-center">
+        
+        <div className="w- mt-16 flex justify-center items-center">
           {" "}
           <div className="size-56 xs:size-96 max-h-500:shorty rounded-md overflow-hidden relative bg-transparent">
             <Scanner
