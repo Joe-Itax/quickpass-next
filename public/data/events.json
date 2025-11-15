@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "EventId": "soiree_black_&_gold_1",
+    "name": "Soirée Black & Gold",
+    "description": "Une fête élégante pour célébrer la réussite.",
+    "date": "2025-11-20",
+    "location": "Kinshasa, Gombe",
+    "guestsCount": 58,
+    "status": "upcoming"
+  },
+  {
+    "id": 2,
+    "EventId": "afterwork_tech_2025_2",
+    "name": "Afterwork Tech 2025",
+    "description": "Networking pour les développeurs.",
+    "date": "2025-11-06",
+    "location": "Pullman Hôtel",
+    "guestsCount": 120,
+    "status": "ongoing"
+  },
+  {
+    "id": 3,
+    "EventId": "retro_party_3",
+    "name": "Retro Party",
+    "description": "Ambiance des années 80 !",
+    "date": "2025-10-01",
+    "location": "The Village Bar",
+    "guestsCount": 74,
+    "status": "past"
+  }
+]
