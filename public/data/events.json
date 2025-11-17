@@ -1,12 +1,14 @@
 [
   {
     "id": 1,
-    "EventId": "soiree_black_&_gold_1",
+    "eventId": "soiree_black_&_gold_1",
     "name": "Soirée Black & Gold",
     "description": "Une fête élégante pour célébrer la réussite.",
     "date": "2025-11-20",
     "location": "Kinshasa, Gombe",
-    "guestsCount": 58,
+    "totalInvitations": 58,
+    "totalCapacity": 75,
+    "totalScanned": 77,
     "status": "upcoming"
   },
   {
@@ -16,7 +18,9 @@
     "description": "Networking pour les développeurs.",
     "date": "2025-11-06",
     "location": "Pullman Hôtel",
-    "guestsCount": 120,
+    "totalInvitations": 120,
+    "totalCapacity": 130,
+    "totalScanned": 77,
     "status": "ongoing"
   },
   {
@@ -26,7 +30,9 @@
     "description": "Ambiance des années 80 !",
     "date": "2025-10-01",
     "location": "The Village Bar",
-    "guestsCount": 74,
+    "totalInvitations": 74,
+    "totalCapacity": 80,
+    "totalScanned": 24,
     "status": "past"
   }
 ]

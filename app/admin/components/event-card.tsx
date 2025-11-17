@@ -22,8 +22,10 @@ export function EventCard({ event }: { event: Event }) {
             {event.location ?? "Lieu inconnu"}
           </p>
           <p className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" /> {event.guestsCount ?? 0}{" "}
-            invités
+            <Users className="w-4 h-4 text-primary" />
+            {/* {event.guestsCount ?? 0}{" "} invités*/}
+            {event.totalInvitations} invitations — ({event.totalCapacity}{" "}
+            personnes)
           </p>
           <span
             className={`mt-2 px-2 py-1 text-xs rounded-full self-start ${
