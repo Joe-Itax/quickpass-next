@@ -14,8 +14,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
-// import { LinkIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
 
@@ -51,9 +51,12 @@ const data = {
   ],
 };
 
-export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AdminSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const { data: session, error, refetch } = authClient.useSession();
   const user = session?.user;
+  const { state } = useSidebar();
 
   React.useEffect(() => {
     if (error) {
@@ -69,21 +72,33 @@ export function AdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5! hover:bg-transparent hover:text-sidebar-foreground data-[slot=sidebar-menu-button]:w-full data-[slot=sidebar-menu-button]:h-16"
+              className={`data-[slot=sidebar-menu-button]:p-1.5! hover:bg-transparent hover:text-sidebar-foreground data-[slot=sidebar-menu-button]:w-full data-[slot=sidebar-menu-button]:h-14 ${
+                state === "collapsed" ? "size-24!" : "size-full"
+              }`}
             >
-              <div className="flex justify-start items-center">
-                {/* <LinkIcon className="size-6!" /> */}
-                {/* data-[state=close]:size6! data-[state=collapsed]:size!6 */}
-                <div className="size-10!  bg-[#FDB623] rounded-full flex items-center justify-center drop-shadow-[0_0_21px_#FDB623] p-1.5">
+              <div className={`flex justify-start items-center`}>
+                <div
+                  className={`bg-primary rounded-full flex items-center justify-center drop-shadow-[0_0_5px_#FDB623] shrink-0 p-1 ${
+                    state === "collapsed" ? "size-6! m-auto" : "size-10!"
+                  }`}
+                >
                   <Image
                     src="/logo-app/logo-white.svg"
                     alt="QuickPass"
                     width={100}
                     height={100}
-                    className="m-auto size-full"
+                    className="size-full"
                   />
                 </div>
-                <span className="text-base font-semibold ml-3">Quick Scan</span>
+                <span
+                  className={`text-base font-semibold ml-3 ${
+                    state === "collapsed"
+                      ? "opacity-0 w-0 overflow-hidden hidden"
+                      : "opacity-100 w-auto"
+                  }`}
+                >
+                  Quick Scan
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
