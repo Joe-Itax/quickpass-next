@@ -1,48 +1,33 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String? // hashed password if using email/password
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  // BetterAuth peut nécessiter d'autres tables — regarde leur migration générée.
-  tickets       Ticket[]  @relation("owner_tickets")
-  emailVerified Boolean   @default(false)
-  image         String?
-  sessions      Session[]
-  accounts      Account[]
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  password    String?
+  role        UserRole     @default(USER)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  invitations Invitation[]
+
+  emailVerified    Boolean           @default(false)
+  image            String?
+  sessions         Session[]
+  accounts         Account[]
+  eventAssignments EventAssignment[]
 
   @@map("user")
 }
 
-model Ticket {
-  id        String    @id @default(cuid())
-  code      String    @unique // le code encodé dans le QR (ex: TICKET-XXXX)
-  name      String? // nom du détenteur
-  email     String? // email du détenteur
-  phone     String?
-  createdBy String? // user id de l'admin qui a créé le billet
-  used      Boolean   @default(false)
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  owner User? @relation("owner_tickets", fields: [createdBy], references: [id])
+enum UserRole {
+  ADMIN
+  USER
 }
 
 model Session {
@@ -88,4 +73,95 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+//
+// Domain models for events / invitations
+//
+model Event {
+  id               Int          @id @default(autoincrement())
+  eventId          String       @unique // readable slug e.g. soiree_black_&_gold_1
+  name             String
+  description      String?
+  date             DateTime?
+  location         String?
+  status           EventStatus  @default(UPCOMING)
+  totalInvitations Int          @default(0)
+  totalCapacity    Int          @default(0) // sum of capacities of invitations
+  totalScanned     Int          @default(0) // sum of all scannedCount
+  tables           Table[]
+  invitations      Invitation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventAssignments EventAssignment[]
+}
+
+// status           String // "upcoming" | "ongoing" | "past"
+enum EventStatus {
+  UPCOMING
+  ONGOING
+  PAST
+}
+
+model Table {
+  id      Int    @id @default(autoincrement())
+  name    String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+
+  // a table can have many invitations (guests assigned)
+  invitations Invitation[]
+
+  @@unique([eventId, name])
+}
+
+model Invitation {
+  id           Int     @id @default(autoincrement())
+  event        Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId      Int
+  name         String
+  email        String?
+  table        Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableId      Int?
+  capacity     Int     @default(1) // how many persons this invitation permits
+  scannedCount Int     @default(0) // how many persons already scanned
+  qrPayload    String? // minified payload used in QR (e.g. base64 or token)
+  createdById  String? // user id who created the invite
+  createdBy    User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  scans Scan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Scan {
+  id           Int        @id @default(autoincrement())
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  invitationId Int
+  at           DateTime   @default(now())
+  deviceId     String? // optional: which scanner device
+  note         String?
+
+  @@index([invitationId])
+}
+
+model EventAssignment {
+  id      Int            @id @default(autoincrement())
+  eventId Int
+  userId  String
+  role    AssignmentRole @default(ADMIN_EVENT)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+enum AssignmentRole {
+  ADMIN_EVENT
 }

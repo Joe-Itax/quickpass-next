@@ -7,8 +7,16 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field";
+import { authClient } from "@/lib/auth-client";
 
 export default function RootPage() {
+  const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(true);
   const [eventId, setEventId] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -33,16 +41,20 @@ export default function RootPage() {
     };
   }, [router]);
 
-  const handleSubmit = () => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (!eventId.trim()) {
       return setErrorOnEventId("Veuillez entrer un ID d'événement valide.");
     }
+
+    // const form = e.currentTarget;
+    // const formData = new FormData(form);
+    // // const eventId = String(formData.get("eventId") ?? "").trim();
     localStorage.setItem("eventId", eventId);
     router.push(`/${eventId}/scan`);
   };
 
   return (
-    <div className="flex flex-col px-4 items-center justify-center size-full bg-[#FDB623] text-center relative overflow-hidden text-[#333]">
+    <div className="flex flex-col px-4 items-center justify-center size-full text-center relative overflow-hidden text-[#333] bg-[#FDB623] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover">
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -96,7 +108,7 @@ export default function RootPage() {
               Entrez l’identifiant de votre événement pour accéder à la zone de
               scannage.
             </p>
-            <div className="space-y-3 px-6 w-72 mx-auto">
+            {/* <div className="space-y-3 px-6 w-72 mx-auto">
               <div>
                 <Input
                   placeholder="Ex: EVENT-123ABC"
@@ -110,7 +122,53 @@ export default function RootPage() {
               <Button onClick={handleSubmit} className="w-full">
                 Continuer
               </Button>
-            </div>
+            </div> */}
+            <form onSubmit={onSubmit}>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="eventId" className="text-hite/90">
+                    Identifiant de l&apos;événement
+                  </FieldLabel>
+                  <Input
+                    id="eventId"
+                    name="eventId"
+                    type="text"
+                    placeholder="Ex: EVENT-123ABC"
+                    className="placeholder:tet-white/60 text-hite/80"
+                    onChange={(e) => setEventId(e.target.value)}
+                    required
+                  />
+                </Field>
+                {errorOnEventId && (
+                  <p className="mt-1 text-xs text-red-600">{errorOnEventId}</p>
+                )}
+                <Field>
+                  <Button
+                    type="submit"
+                    variant={"secondary"}
+                    disabled={loading}
+                  >
+                    {loading ? "Connexion..." : "Continuer"}
+                  </Button>
+                </Field>
+
+                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                  Ou
+                </FieldSeparator>
+                <p>
+                  {session
+                    ? "Acceder au panneau d'administration"
+                    : "Se connecter au panneau d'administration "}{" "}
+                  <Link
+                    href={`${!session ? "/login" : "/admin"}`}
+                    className="text-black font-bold underline"
+                  >
+                    Ici
+                  </Link>
+                  .
+                </p>
+              </FieldGroup>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
