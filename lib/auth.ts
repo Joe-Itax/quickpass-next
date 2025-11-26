@@ -18,4 +18,13 @@ export const auth = betterAuth({
     "https://quickpass-next.vercel.app",
     "https://quickpass-next-admin.vercel.app",
   ],
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: true,
+        defaultValue: "USER",
+      },
+    },
+  },
 });

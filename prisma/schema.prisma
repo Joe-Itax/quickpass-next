@@ -6,6 +6,9 @@ datasource db {
   provider = "postgresql"
 }
 
+// ----------------------------
+//          USER
+// ----------------------------
 model User {
   id          String       @id @default(cuid())
   email       String       @unique
@@ -16,11 +19,14 @@ model User {
   updatedAt   DateTime     @updatedAt
   invitations Invitation[]
 
-  emailVerified    Boolean           @default(false)
-  image            String?
-  sessions         Session[]
-  accounts         Account[]
-  eventAssignments EventAssignment[]
+  emailVerified Boolean @default(false)
+  image         String?
+
+  sessions       Session[]
+  accounts       Account[]
+  // eventAssignments EventAssignment[]
+  assignedEvents EventAssignment[]
+  createdEvents  Event[]           @relation("EventCreator")
 
   @@map("user")
 }
@@ -75,93 +81,107 @@ model Verification {
   @@map("verification")
 }
 
-//
-// Domain models for events / invitations
-//
+// ----------------------------
+//          EVENT
+// ----------------------------
 model Event {
-  id               Int          @id @default(autoincrement())
-  eventId          String       @unique // readable slug e.g. soiree_black_&_gold_1
-  name             String
-  description      String?
-  date             DateTime?
-  location         String?
-  status           EventStatus  @default(UPCOMING)
-  totalInvitations Int          @default(0)
-  totalCapacity    Int          @default(0) // sum of capacities of invitations
-  totalScanned     Int          @default(0) // sum of all scannedCount
-  tables           Table[]
-  invitations      Invitation[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  eventAssignments EventAssignment[]
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String
+  date        DateTime
+  location    String
+  eventCode   String            @unique // event_name_bdIdEvent
+  status      EventStatus       @default(UPCOMING)
+  createdById String
+  createdBy   User              @relation("EventCreator", fields: [createdById], references: [id])
+  assignments EventAssignment[]
+  tables      Table[]
+  invitations Invitation[]
+  stats       EventStats?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
-// status           String // "upcoming" | "ongoing" | "past"
 enum EventStatus {
   UPCOMING
   ONGOING
-  PAST
+  FINISHED
 }
 
-model Table {
-  id      Int    @id @default(autoincrement())
-  name    String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId Int
+// ----------------------------
+//      EVENT ASSIGNMENT
+// ----------------------------
+model EventAssignment {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  eventId    Int
+  user       User     @relation(fields: [userId], references: [id])
+  event      Event    @relation(fields: [eventId], references: [id])
+  assignedAt DateTime @default(now())
 
-  // a table can have many invitations (guests assigned)
-  invitations Invitation[]
+  @@unique([userId, eventId])
+}
+
+// ----------------------------
+//           TABLE
+// ----------------------------
+model Table {
+  id          Int               @id @default(autoincrement())
+  name        String
+  capacity    Int // max number of seats
+  eventId     Int
+  event       Event             @relation(fields: [eventId], references: [id])
+  allocations TableAllocation[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@unique([eventId, name])
+  @@map("table")
 }
 
+// ----------------------------
+//   TABLE <-> INVITATION LINK
+// ----------------------------
+model TableAllocation {
+  id            Int @id @default(autoincrement())
+  invitationId  Int
+  tableId       Int
+  seatsAssigned Int // how many seats used for this invitation on this table
+
+  invitation Invitation @relation(fields: [invitationId], references: [id])
+  table      Table      @relation(fields: [tableId], references: [id])
+
+  @@unique([invitationId, tableId])
+}
+
+// ----------------------------
+//          INVITATION
+// ----------------------------
 model Invitation {
-  id           Int     @id @default(autoincrement())
-  event        Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id           Int               @id @default(autoincrement())
+  label        String // ex: "Joe Itax" ou "Couple Mutombo" ou "École Le Savoir"
+  peopleCount  Int // ex: 1, 2, 14 ...
   eventId      Int
-  name         String
-  email        String?
-  table        Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  tableId      Int?
-  capacity     Int     @default(1) // how many persons this invitation permits
-  scannedCount Int     @default(0) // how many persons already scanned
-  qrPayload    String? // minified payload used in QR (e.g. base64 or token)
-  createdById  String? // user id who created the invite
-  createdBy    User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
-
-  scans Scan[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  event        Event             @relation(fields: [eventId], references: [id])
+  qrCode       String?           @unique // encrypted AES string
+  scannedCount Int               @default(0)
+  allocations  TableAllocation[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User?             @relation(fields: [userId], references: [id])
+  userId       String?
 }
 
-model Scan {
-  id           Int        @id @default(autoincrement())
-  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
-  invitationId Int
-  at           DateTime   @default(now())
-  deviceId     String? // optional: which scanner device
-  note         String?
-
-  @@index([invitationId])
-}
-
-model EventAssignment {
-  id      Int            @id @default(autoincrement())
-  eventId Int
-  userId  String
-  role    AssignmentRole @default(ADMIN_EVENT)
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([eventId, userId])
-}
-
-enum AssignmentRole {
-  ADMIN_EVENT
+// ----------------------------
+//        EVENT STATS
+// ----------------------------
+model EventStats {
+  id               Int      @id @default(autoincrement())
+  eventId          Int      @unique
+  event            Event    @relation(fields: [eventId], references: [id])
+  totalInvitations Int      @default(0)
+  totalCapacity    Int      @default(0) // sum of all table capacities
+  totalPeople      Int      @default(0)
+  totalScanned     Int      @default(0)
+  updatedAt        DateTime @updatedAt
 }
