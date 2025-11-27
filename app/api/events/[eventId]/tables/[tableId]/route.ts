@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 interface EventContext {
   params: Promise<{
-    eventId: number;
-    tableId: number;
+    eventId: string;
+    tableId: string;
   }>;
 }
 

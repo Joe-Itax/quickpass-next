@@ -6,7 +6,7 @@ import { requireEventAccess } from "@/lib/auth-guards";
 export const dynamic = "force-dynamic";
 
 interface EventContext {
-  params: Promise<{ eventId: number }>;
+  params: Promise<{ eventId: string }>;
 }
 
 export async function POST(req: NextRequest, context: EventContext) {
