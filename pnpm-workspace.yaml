@@ -2,6 +2,7 @@ onlyBuiltDependencies:
   - '@heroui/shared-utils'
   - '@prisma/client'
   - '@prisma/engines'
+  - esbuild
   - prisma
   - sharp
   - unrs-resolver

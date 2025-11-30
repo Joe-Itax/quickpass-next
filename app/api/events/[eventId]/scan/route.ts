@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, context: EventContext) {
   const eventId = Number(params.eventId);
 
   const user = await requireEventAccess(req, eventId);
-  if (user instanceof NextResponse) return user;
+  // if (user instanceof NextResponse) return user;
 
   try {
     const { qr } = await req.json();

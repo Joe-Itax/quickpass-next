@@ -23,3 +23,97 @@ export interface Guest {
 
   status: "valid" | "full";
 }
+
+export interface Table {
+  id: number;
+  name: string;
+  capacity: number;
+  eventId: number;
+  createdAt: string;
+  updatedAt: string;
+  allocations?: TableAllocation[];
+}
+
+export interface TableAllocation {
+  id: number;
+  tableId: number;
+  invitationId: number;
+  seatsAssigned: number;
+  createdAt: string;
+  updatedAt: string;
+  table: Table;
+}
+
+export interface Invitation {
+  id: number;
+  label: string;
+  email: string;
+  peopleCount: number;
+  eventId: number;
+  event?: Event2;
+  qrCode: string;
+  table: string;
+  scannedCount: number;
+  createdAt: string;
+  updatedAt: string;
+  userId?: string | null;
+  allocations?: TableAllocation[];
+}
+
+export interface EventAssignment {
+  id: number;
+  userId: string;
+  eventId: number;
+  assignedAt: string;
+}
+
+export interface Stat {
+  id: number;
+  eventId: number;
+  totalInvitations: number;
+  totalCapacity: number;
+  totalPeople: number;
+  totalScanned: number;
+  totalAssignedSeats: number;
+  availableSeats: number;
+  updatedAt: string;
+}
+
+export interface Event2 {
+  id: number;
+  name: string;
+  description: string;
+  date: string;
+  location: string;
+  eventCode: string;
+  status: "FINISHED" | "ONGOING" | "UPCOMING";
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  tables: Table[];
+  invitations: Invitation[];
+  assignments: EventAssignment[];
+  stats: Stat;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  password: string | null;
+  role: string;
+  isActive: boolean;
+  searchableName: string;
+  createdAt: string;
+  updatedAt: string;
+  emailVerified: boolean;
+  image: string | null;
+}
+
+export interface EventAssignment {
+  id: number;
+  userId: string;
+  eventId: number;
+  assignedAt: string;
+  user?: User;
+}

@@ -12,6 +12,52 @@ interface EventContext {
   }>;
 }
 
+export async function GET(req: NextRequest, context: EventContext) {
+  const params = await context.params;
+  const eventId = Number(params.eventId);
+  const invitationId = Number(params.invitationId);
+
+  const user = await requireEventAccess(req, eventId);
+  if (user instanceof NextResponse) return user;
+
+  try {
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        allocations: {
+          select: {
+            table: {
+              select: {
+                name: true,
+                capacity: true,
+              },
+            },
+            seatsAssigned: true,
+          },
+        },
+        event: {
+          select: {
+            eventCode: true,
+          },
+        },
+      },
+    });
+    if (!invitation) {
+      return NextResponse.json(
+        { error: "Invitation not found" },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(invitation);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Error fetching invitation", details: String(err) },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(req: NextRequest, context: EventContext) {
   const params = await context.params;
   const eventId = Number(params.eventId);
@@ -22,9 +68,19 @@ export async function PATCH(req: NextRequest, context: EventContext) {
 
   try {
     const body = await req.json();
-    const { label, peopleCount, allocations } = body;
+    const { label, peopleCount, tableAssignments } = body;
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Récupérer l'invitation actuelle pour calculer les différences
+      const currentInvitation = await tx.invitation.findUnique({
+        where: { id: invitationId },
+        include: { allocations: true },
+      });
+
+      if (!currentInvitation) {
+        throw new Error("Invitation not found");
+      }
+
       const base: {
         label?: string;
         peopleCount?: number;
@@ -34,12 +90,24 @@ export async function PATCH(req: NextRequest, context: EventContext) {
 
       await tx.invitation.update({ where: { id: invitationId }, data: base });
 
-      // handle allocations: naive approach - delete existing and recreate
-      if (Array.isArray(allocations)) {
-        await tx.tableAllocation.deleteMany({
-          where: { invitationId },
-        });
-        for (const a of allocations) {
+      // Calculer les changements d'assignation
+      let oldTotalSeats = 0;
+      let newTotalSeats = 0;
+
+      // Calculer les sièges actuels
+      oldTotalSeats = currentInvitation.allocations.reduce(
+        (sum, alloc) => sum + alloc.seatsAssigned,
+        0
+      );
+
+      // Supprimer les assignations existantes
+      await tx.tableAllocation.deleteMany({
+        where: { invitationId },
+      });
+
+      // Créer les nouvelles assignations
+      if (Array.isArray(tableAssignments)) {
+        for (const a of tableAssignments) {
           await tx.tableAllocation.create({
             data: {
               invitationId,
@@ -47,8 +115,24 @@ export async function PATCH(req: NextRequest, context: EventContext) {
               seatsAssigned: a.seatsAssigned,
             },
           });
+          newTotalSeats += a.seatsAssigned;
         }
       }
+
+      // Mettre à jour les stats
+      const peopleCountDiff =
+        (peopleCount || currentInvitation.peopleCount) -
+        currentInvitation.peopleCount;
+      const seatsDiff = newTotalSeats - oldTotalSeats;
+
+      await tx.eventStats.update({
+        where: { eventId },
+        data: {
+          totalPeople: { increment: peopleCountDiff },
+          totalAssignedSeats: { increment: seatsDiff },
+          availableSeats: { decrement: seatsDiff },
+        },
+      });
 
       // regenerate QR after update
       const payload = { invitationId, eventId };
@@ -60,7 +144,7 @@ export async function PATCH(req: NextRequest, context: EventContext) {
 
       return tx.invitation.findUnique({
         where: { id: invitationId },
-        include: { allocations: true },
+        include: { allocations: { include: { table: true } } },
       });
     });
 
@@ -83,11 +167,31 @@ export async function DELETE(req: NextRequest, context: EventContext) {
 
   try {
     await prisma.$transaction(async (tx) => {
+      // Récupérer l'invitation avant suppression pour les stats
+      const invitation = await tx.invitation.findUnique({
+        where: { id: invitationId },
+        include: { allocations: true },
+      });
+
+      if (!invitation) return;
+
+      const totalSeats = invitation.allocations.reduce(
+        (sum, alloc) => sum + alloc.seatsAssigned,
+        0
+      );
+
       await tx.tableAllocation.deleteMany({ where: { invitationId } });
       await tx.invitation.delete({ where: { id: invitationId } });
+
+      // Mettre à jour les stats
       await tx.eventStats.update({
         where: { eventId },
-        data: { totalInvitations: { decrement: 1 } },
+        data: {
+          totalInvitations: { decrement: 1 },
+          totalPeople: { decrement: invitation.peopleCount },
+          totalAssignedSeats: { decrement: totalSeats },
+          availableSeats: { increment: totalSeats },
+        },
       });
     });
     return NextResponse.json({ ok: true });

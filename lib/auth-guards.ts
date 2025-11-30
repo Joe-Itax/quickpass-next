@@ -15,6 +15,7 @@ export async function requireAuth(req: NextRequest) {
   const session = await getSessionOrNull(req);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // return console.log("requireAuth: no session");
   return session.user;
 }
 
@@ -22,6 +23,7 @@ export async function requireAdmin(req: NextRequest) {
   const session = await getSessionOrNull(req);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // return console.log("requireAdmin: no session");
   if (session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -36,7 +38,7 @@ export async function requireEventAccess(req: NextRequest, eventId: number) {
   const session = await getSessionOrNull(req);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  //  return  console.log("requireEventAccess: no session");
+  // return console.log("requireEventAccess: no session");
   const user = session.user;
   if (user.role === "ADMIN") return user; // global admin ok
 

@@ -1,17 +1,17 @@
-import { Guest } from "@/types/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Invitation } from "@/types/types";
 
-export default function GuestCard({ guest }: { guest: Guest }) {
-  const isFull = guest.scannedCount >= guest.capacity;
+export default function GuestCard({ guest }: { guest: Invitation }) {
+  const isFull = guest.scannedCount >= guest.peopleCount;
   const isPartial =
-    guest.scannedCount > 0 && guest.scannedCount < guest.capacity;
+    guest.scannedCount > 0 && guest.scannedCount < guest.peopleCount;
 
   return (
     <Card className="hover:shadow-lg transition-all duration-200 border border-primary rounded-lg bg-black/30 shadow-md shadow-black text-foreground">
       <CardContent className="p-5 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">{guest.name}</h3>
+          <h3 className="font-semibold text-lg">{guest.label}</h3>
 
           <Badge
             className={`
@@ -25,10 +25,10 @@ export default function GuestCard({ guest }: { guest: Guest }) {
             `}
           >
             {isFull
-              ? `${guest.scannedCount}/${guest.capacity} - Complet`
+              ? `${guest.scannedCount}/${guest.peopleCount} - Complet`
               : isPartial
-              ? `${guest.scannedCount}/${guest.capacity} scannés`
-              : `0/${guest.capacity} - non scannés`}
+              ? `${guest.scannedCount}/${guest.peopleCount} scannés`
+              : `0/${guest.peopleCount} - non scannés`}
           </Badge>
         </div>
 

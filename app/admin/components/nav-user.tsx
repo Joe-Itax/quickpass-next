@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   IconDotsVertical,
   IconLogout,
-  IconNotification,
+  // IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react";
 
@@ -112,10 +112,10 @@ export function NavUser({
                   Compte
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <IconNotification />
                 Notifications
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

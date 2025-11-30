@@ -1,7 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { IconDashboard, IconSettings, IconCalendar } from "@tabler/icons-react";
+import {
+  IconDashboard,
+  // IconSettings,
+  IconCalendar,
+  IconUser,
+} from "@tabler/icons-react";
 
 import { NavMain } from "@/app/admin/components/nav-main";
 import { NavSecondary } from "@/app/admin/components/nav-secondary";
@@ -37,10 +42,15 @@ const data = {
       icon: IconCalendar,
     },
     {
-      title: "Paramètres",
-      url: "",
-      icon: IconSettings,
+      title: "Utilisateurs",
+      url: "/admin/users",
+      icon: IconUser,
     },
+    // {
+    //   title: "Paramètres",
+    //   url: "",
+    //   icon: IconSettings,
+    // },
   ],
   navSecondary: [
     // {

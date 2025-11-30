@@ -11,6 +11,31 @@ interface EventContext {
   }>;
 }
 
+export async function GET(req: NextRequest, context: EventContext) {
+  const params = await context.params;
+  const eventId = Number(params.eventId);
+  const tableId = Number(params.tableId);
+
+  const user = await requireEventAccess(req, eventId);
+  if (user instanceof NextResponse) return user;
+
+  try {
+    const table = await prisma.table.findUnique({
+      where: { id: tableId },
+    });
+    if (!table) {
+      return NextResponse.json({ error: "Table not found" }, { status: 404 });
+    }
+    return NextResponse.json(table);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Error fetching table", details: String(err) },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(req: NextRequest, context: EventContext) {
   const params = await context.params;
   const eventId = Number(params.eventId);

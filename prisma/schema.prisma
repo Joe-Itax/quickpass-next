@@ -10,21 +10,22 @@ datasource db {
 //          USER
 // ----------------------------
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String?
-  password    String?
-  role        UserRole     @default(USER)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  invitations Invitation[]
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String?
+  password       String?
+  role           UserRole     @default(USER)
+  searchableName String       @default("")
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  invitations    Invitation[]
 
   emailVerified Boolean @default(false)
   image         String?
 
   sessions       Session[]
   accounts       Account[]
-  // eventAssignments EventAssignment[]
   assignedEvents EventAssignment[]
   createdEvents  Event[]           @relation("EventCreator")
 
@@ -176,12 +177,14 @@ model Invitation {
 //        EVENT STATS
 // ----------------------------
 model EventStats {
-  id               Int      @id @default(autoincrement())
-  eventId          Int      @unique
-  event            Event    @relation(fields: [eventId], references: [id])
-  totalInvitations Int      @default(0)
-  totalCapacity    Int      @default(0) // sum of all table capacities
-  totalPeople      Int      @default(0)
-  totalScanned     Int      @default(0)
-  updatedAt        DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  eventId            Int      @unique
+  event              Event    @relation(fields: [eventId], references: [id])
+  totalInvitations   Int      @default(0)
+  totalCapacity      Int      @default(0) // sum of all table capacities
+  totalPeople        Int      @default(0)
+  totalScanned       Int      @default(0)
+  totalAssignedSeats Int      @default(0) // NEW: total seats already assigned
+  availableSeats     Int      @default(0) // NEW: totalCapacity - totalAssignedSeats
+  updatedAt          DateTime @updatedAt
 }

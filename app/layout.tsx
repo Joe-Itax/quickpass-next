@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Itim } from "next/font/google";
+import { ReactQueryProvider } from "@/providers/react-query-provider";
+import { NotificationManager } from "@/components/notification-manager";
 
 import "@/app/styles/globals.css";
 
@@ -35,7 +37,9 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased`}
       >
-        {children}
+        {" "}
+        <NotificationManager />
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   );

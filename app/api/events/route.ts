@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { requireAdmin } from "@/lib/auth-guards";
+import { requireAdmin, getSessionOrNull } from "@/lib/auth-guards";
 import { slugify } from "@/utils/slugify";
 
 export async function GET(req: NextRequest) {
-  const userCheck = await requireAdmin(req);
-  if (userCheck instanceof NextResponse) return userCheck;
-  const session = await auth.api.getSession({ headers: req.headers });
-  const user = session?.user;
+  const session = await getSessionOrNull(req);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const user = session.user;
 
-  const where = {
-    createdBy: {
-      id: user?.id,
-    },
-  };
+  // Si admin global -> voit tout
+  const where =
+    user.role === "ADMIN"
+      ? {}
+      : {
+          OR: [
+            { createdById: user.id }, // events créés par l'utilisateur
+            { assignments: { some: { userId: user.id } } }, // events où il est assigné
+          ],
+        };
 
   const events = await prisma.event.findMany({
+    where,
     orderBy: { date: "desc" },
     include: {
       tables: true,
@@ -24,14 +30,14 @@ export async function GET(req: NextRequest) {
       assignments: true,
       stats: true,
     },
-    where: user?.role === "ADMIN" ? {} : where,
   });
+
   return NextResponse.json(events);
 }
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin(req);
-  if (admin instanceof NextResponse) return admin;
+  if (!admin || admin instanceof NextResponse) return admin;
 
   try {
     const body = await req.json();

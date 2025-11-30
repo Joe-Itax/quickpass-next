@@ -1,10 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  type Icon,
-  // IconSearch
-} from "@tabler/icons-react";
+import { type Icon } from "@tabler/icons-react";
 
 import {
   SidebarGroup,
@@ -14,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import SearchInput from "@/app/admin/components/search-input";
+// import SearchInput from "@/app/admin/components/search-input";
 
 export function NavSecondary({
   items,
@@ -40,11 +37,11 @@ export function NavSecondary({
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton tooltip="Recherche" asChild>
               <SearchInput />
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

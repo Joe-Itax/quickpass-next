@@ -1,27 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, CheckCircle } from "lucide-react";
 import { StatCard } from "./components/stat-card";
-import { Event } from "@/types/types";
+import { Event2 } from "@/types/types";
 import Events from "./components/events";
+import { useEvents } from "@/hooks/use-event";
+import DataStatusDisplay from "@/components/data-status-display";
 
 export default function AdminDashboard() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const { data = [], isPending, isError, error, refetch } = useEvents();
+  const events = data as Event2[];
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      const res = await fetch("/data/events.json");
-      const data = await res.json();
-      setEvents(data);
-    };
-    fetchEvents();
-  }, []);
+  if (isPending || error || isError) {
+    return (
+      <DataStatusDisplay
+        isPending={isPending}
+        hasError={isError}
+        errorObject={error}
+        refetch={refetch}
+      />
+    );
+  }
 
   const total = events.length;
-  const ongoing = events.filter((e) => e.status === "ongoing").length;
-  const past = events.filter((e) => e.status === "past").length;
+  const ongoing = events.filter((e) => e.status === "ONGOING").length;
+  const past = events.filter((e) => e.status === "FINISHED").length;
+  // const upcoming = events.filter((e) => e.status === "UPCOMING").length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,9 +38,9 @@ export default function AdminDashboard() {
             Aperçu de vos événements et statistiques
           </p>
         </div>
-        <Button className="bg-primary text-white hover:bg-primary/90">
+        {/* <Button className="bg-primary text-white hover:bg-primary/90">
           + Nouvel événement
-        </Button>
+        </Button> */}
       </div>
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -46,6 +51,7 @@ export default function AdminDashboard() {
         />
         <StatCard title="En cours" value={ongoing} icon={<Clock />} />
         <StatCard title="Passés" value={past} icon={<CheckCircle />} />
+        {/* <StatCard title="À venir" value={upcoming} icon={<CalendarDays />} /> */}
       </div>
 
       {/* Filters & Event List*/}

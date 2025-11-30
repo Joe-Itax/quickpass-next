@@ -24,7 +24,15 @@ export async function GET(req: NextRequest, context: EventContext) {
     where: { id },
     include: {
       tables: true,
-      invitations: { include: { allocations: true } },
+      invitations: {
+        include: {
+          allocations: {
+            include: {
+              table: true,
+            },
+          },
+        },
+      },
       stats: true,
       assignments: { include: { user: true } },
     },
