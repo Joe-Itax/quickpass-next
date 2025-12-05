@@ -30,6 +30,7 @@ export default function StatsPage() {
     isError: isInvitationsError,
     error: invitationsError,
   } = useEventInvitationsByEventCode(eventCode as string);
+  const invitations = (invitationsData as Invitation[]) || [];
 
   const isPending = isEventPending || isInvitationsPending;
   const hasError = isEventError || isInvitationsError;
@@ -45,9 +46,6 @@ export default function StatsPage() {
       />
     );
   }
-
-  // Calculer les statistiques depuis les vraies données
-  const invitations = (invitationsData as Invitation[]) || [];
 
   // Invitations
   const invitationsTotal = invitations.length;

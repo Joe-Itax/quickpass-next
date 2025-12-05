@@ -27,7 +27,7 @@ export default function RootPage() {
     // Vérifie si un eventId existe déjà dans le localStorage
     const savedId = localStorage.getItem("eventId");
     if (savedId) {
-      router.replace(`/${savedId}/scan`);
+      router.replace(`/${savedId}`);
       return;
     }
 
@@ -41,7 +41,8 @@ export default function RootPage() {
     };
   }, [router]);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // e: React.FormEvent<HTMLFormElement>;
+  const onSubmit = async () => {
     if (!eventId.trim()) {
       return setErrorOnEventId("Veuillez entrer un ID d'événement valide.");
     }
@@ -50,7 +51,7 @@ export default function RootPage() {
     // const formData = new FormData(form);
     // // const eventId = String(formData.get("eventId") ?? "").trim();
     localStorage.setItem("eventId", eventId);
-    router.push(`/${eventId}/scan`);
+    router.push(`/${eventId}`);
   };
 
   return (

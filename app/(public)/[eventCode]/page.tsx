@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useParams } from "next/navigation";
-import { useScan, useScanByEventCode } from "@/hooks/use-event";
+import { useScanByEventCode } from "@/hooks/use-event";
 
 interface Point {
   x: number;

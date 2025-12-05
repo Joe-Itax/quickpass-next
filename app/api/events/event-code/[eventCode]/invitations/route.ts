@@ -29,7 +29,24 @@ export async function GET(req: NextRequest, context: EventContext) {
 
       const invitesS = await tx.invitation.findMany({
         where: { eventId: event.id },
-        include: { allocations: true },
+        select: {
+          allocations: {
+            select: {
+              id: true,
+              invitationId: true,
+              table: true,
+              seatsAssigned: true,
+            },
+          },
+          id: true,
+          label: true,
+          peopleCount: true,
+          scannedCount: true,
+          eventId: true,
+          createdAt: true,
+          updatedAt: true,
+          userId: true,
+        },
       });
 
       return invitesS;

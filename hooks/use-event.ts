@@ -23,6 +23,8 @@ export const EVENT_KEYS = {
   invitation: (id: number, invId: number) =>
     ["event", id, "invitation", invId] as const,
   tables: (id: number) => ["event", id, "tables"] as const,
+  tablesByEventCode: (eventCode: string) =>
+    ["event", eventCode, "tables"] as const,
   table: (id: number, tableId: number) =>
     ["event", id, "table", tableId] as const,
 };
@@ -249,6 +251,16 @@ export function useTables(eventId: number) {
     queryKey: EVENT_KEYS.tables(eventId),
     queryFn: () => fetcher(`/api/events/${eventId}/tables`),
     enabled: !!eventId,
+  });
+}
+
+// GET all tables by EventCode
+// tablesByEventCode
+export function useTablesByEventCode(eventCode: string) {
+  return useQuery({
+    queryKey: EVENT_KEYS.tablesByEventCode(eventCode),
+    queryFn: () => fetcher(`/api/events/event-code/${eventCode}/tables`),
+    enabled: !!eventCode,
   });
 }
 

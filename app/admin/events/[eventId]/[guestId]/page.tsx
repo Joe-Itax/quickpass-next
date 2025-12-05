@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   MoveLeftIcon,
   DownloadIcon,
-  EditIcon,
   Trash2Icon,
   Users,
   QrCode,
@@ -101,11 +100,6 @@ export default function GuestPage() {
     }
   };
 
-  const handleEdit = () => {
-    // Rediriger vers la page d'édition (à créer)
-    router.push(`/admin/events/${eventId}/${guestId}/edit`);
-  };
-
   //   Données à encoder dans le QR code
   // const qrCodeData = JSON.stringify({
   //   invitationId: invitation.id,
@@ -135,14 +129,6 @@ export default function GuestPage() {
         </div>
 
         <div className="flex gap-2">
-          {/* <Button
-            variant="outline"
-            onClick={handleEdit}
-            className="text-white/80 border-white/30 hover:bg-white/10 hover:text-white"
-          >
-            <EditIcon className="w-4 h-4 mr-2" />
-            Modifier
-          </Button> */}
           <ModifyGuest
             eventId={Number(eventId)}
             guest={invitation}

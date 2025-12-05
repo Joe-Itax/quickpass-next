@@ -1,48 +1,3 @@
-// "use client";
-
-// import { useParams, useRouter } from "next/navigation";
-// import { useEventByEventCode } from "@/hooks/use-event";
-// import DataStatusDisplay from "@/components/data-status-display";
-// import { Navbar } from "@/components/public/navbar";
-
-// export default function EventLayout({
-//   children,
-// }: {
-//   children: React.ReactNode;
-// }) {
-//   const { eventCode } = useParams();
-//   const router = useRouter();
-
-//   const { isPending, isError, error } = useEventByEventCode(
-//     eventCode as string
-//   );
-
-//   // Si l'EventCode n'est pas valide, rediriger vers la home
-//   if (isError) {
-//     router.push("/");
-//     return null;
-//   }
-
-//   if (isPending) {
-//     return (
-//       <DataStatusDisplay
-//         isPending={isPending}
-//         hasError={isError}
-//         errorObject={error}
-//         refetch={() => {}}
-//       />
-//     );
-//   }
-
-//   return (
-//     <div className="flex flex-col">
-//       <main className="size-full">
-//         {children}
-//         <Navbar />
-//       </main>
-//     </div>
-//   );
-// }
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -62,7 +17,7 @@ export default function EventLayout({
     : params.eventCode;
   const router = useRouter();
 
-  const { data, isPending, isError, error } = useEventByEventCode(
+  const { isPending, isError, error } = useEventByEventCode(
     eventCode as string
   );
 

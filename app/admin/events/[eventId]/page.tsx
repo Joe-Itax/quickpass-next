@@ -224,7 +224,7 @@ export default function EventPage() {
       {/* INVITATIONS */}
       <Card className="text-white/80">
         <CardHeader>
-          <CardTitle>Invitations ({event.invitations.length})</CardTitle>
+          <CardTitle>Invitationsss ({event.invitations.length})</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           {event.invitations.map((inv) => (
