@@ -21,9 +21,9 @@ const itim = Itim({
 });
 
 export const metadata: Metadata = {
-  title: "Quick Pass | Scanne. Vérifie. Entre.",
+  title: "LokaPass | Local Access Pass System",
   description:
-    "Quick Pass - Système léger de billeterie QR pour événements. Génère, imprime et scanne des billets sécurisés avec audit, transferts et dashboard admin.",
+    "LokaPass est un système de contrôle d'accès basé sur QR-code permettant de gérer l'admission des invités lors des événements physiques en assurant la validation, la traçabilité et la non-duplication des entrées.",
 };
 
 export default function RootLayout({
