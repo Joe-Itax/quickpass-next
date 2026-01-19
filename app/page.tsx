@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -9,18 +10,14 @@ import {
   ArrowRight,
   Users,
   Check,
-  Star,
   Mail,
   Phone,
   MapPin,
-  Instagram,
-  Facebook,
   Lock,
 } from "lucide-react";
 import { FaqItem } from "@/components/faq-item";
-import { ReactNode } from "react";
+import { authClient } from "@/lib/auth-client";
 
-// Variantes d'animation pour les apparitions successives
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -36,6 +33,8 @@ const staggerContainer = {
 };
 
 export default function LandingPage() {
+  const { data: session } = authClient.useSession();
+  const sess = session?.session;
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 font-sans overflow-x-hidden">
       {/* --- BACKGROUND EFFECTS --- */}
@@ -52,7 +51,7 @@ export default function LandingPage() {
       </div>
 
       {/* --- HEADER --- */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl">
+      <header className="fixed w-full top-0 z-50 border-b border-white/8 bg-black/60 backdrop-blur-xl">
         <div className="container mx-auto flex h-20 items-center justify-between px-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -84,7 +83,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
           >
             <Link
-              href="/login"
+              href={sess ? "/admin" : "/login"}
               className="group flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary border border-primary/20 px-4 py-2 rounded-lg hover:bg-primary/10 transition-all"
             >
               Accès Gérant
@@ -98,7 +97,7 @@ export default function LandingPage() {
       </header>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-24 pb-20">
+      <section className="relative pt-30 pb-20">
         <div className="container mx-auto px-6 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -142,7 +141,7 @@ export default function LandingPage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-6"
           >
             <Link
-              href="/scan-portal"
+              href="/scan-portail"
               className="group relative w-full sm:w-auto overflow-hidden rounded-2xl bg-primary px-10 py-5 text-lg font-black uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)]"
             >
               <div className="flex items-center justify-center gap-3">
@@ -333,7 +332,7 @@ export default function LandingPage() {
 
 // --- BENEFIT CARD ---
 interface BenefitCardProps {
-  icon: ReactNode; // On attend un composant déjà rendu comme <ShieldCheck />
+  icon: ReactNode;
   title: string;
   desc: string;
 }

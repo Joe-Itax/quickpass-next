@@ -55,10 +55,12 @@
   --radius: 0.625rem;
   --background: hsl(0 0 20 / 84%);
   --foreground: oklch(1 0 0);
-  --card: oklch(1 0 0);
+  --card: hsl(0 0 20 / 84%);
+  /* --card: oklch(1 0 0); */
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover: hsl(0 0 10 / 84%);
+  /* --popover: oklch(1 0 0); */
+  --popover-foreground: hsl(1 1 255 / 84%);
   --primary: hsl(40 98 36 / 100%);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);

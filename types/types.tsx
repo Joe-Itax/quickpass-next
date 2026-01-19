@@ -117,3 +117,27 @@ export interface EventAssignment {
   assignedAt: string;
   user?: User;
 }
+
+export interface Log {
+  id: number;
+  eventCode: string;
+  terminalCode?: string;
+  terminal?: Terminal;
+  invitationId?: number;
+  guestName?: string;
+  status: string;
+  errorMessage?: string;
+  scannedAt: Date;
+}
+
+export interface Terminal {
+  id: number;
+  name: string;
+  code: string;
+  eventId: number;
+  isActive: boolean;
+  deletedAt: Date | null;
+  logs: Log[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}

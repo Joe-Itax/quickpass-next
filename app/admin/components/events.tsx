@@ -53,7 +53,7 @@ export default function Events() {
 
         <div className="flex gap-2 flex-wrap justify-center items-center">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-45">
               <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
             <SelectContent>
@@ -67,6 +67,12 @@ export default function Events() {
           <AddEvent />
         </div>
       </div>
+
+      {filteredEvents.length <= 0 && (
+        <div className="flex justify-center items-center pt-32">
+          <p>Aucun événement à afficher. Créer votre premier événement.</p>
+        </div>
+      )}
 
       {/* Event List */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

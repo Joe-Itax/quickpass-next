@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, getSessionOrNull } from "@/lib/auth-guards";
+import { getSessionOrNull, requireAuth } from "@/lib/auth-guards";
 import { slugify } from "@/utils/slugify";
 
 export async function GET(req: NextRequest) {
@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin(req);
-  if (!admin || admin instanceof NextResponse) return admin;
+  const user = await requireAuth(req);
+  if (!user || user instanceof NextResponse) return user;
 
   try {
     const body = await req.json();
@@ -53,9 +53,19 @@ export async function POST(req: NextRequest) {
           date: new Date(date),
           location,
           eventCode: "tmp",
-          createdById: admin.id,
+          createdById: user.id,
         },
       });
+
+      if (user.role !== "ADMIN") {
+        // Auto assignment
+        await tx.eventAssignment.upsert({
+          where: { userId_eventId: { userId: user.id, eventId: temp.id } },
+          update: {},
+          create: { userId: user.id, eventId: temp.id },
+        });
+      }
+
       const code = `${slugify(name)}-${temp.id}`;
       const updated = await tx.event.update({
         where: { id: temp.id },

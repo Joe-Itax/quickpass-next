@@ -1,6 +1,5 @@
 "use client";
 
-// import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, CheckCircle } from "lucide-react";
 import { StatCard } from "./components/stat-card";
 import { Event2 } from "@/types/types";

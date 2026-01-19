@@ -1,52 +1,43 @@
-// import Link from "next/link";
-// import Image from "next/image";
-// import { MoveLeft } from "lucide-react";
-
-// import { LoginForm } from "@/app/admin/components/login-form";
-// import { Button } from "@/components/ui/button";
-
-// export default function LoginPage() {
-//   return (
-//     <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover bg-background">
-//       <div className="flex w-full max-w-sm flex-col gap-6">
-//         <div className="px-6">
-//           <Link href={"/"}>
-//             <Button className="" variant="outline">
-//               <MoveLeft />
-//               Accueil
-//             </Button>
-//           </Link>
-//         </div>
-//         <Link
-//           href="/"
-//           className="flex items-center gap-2 self-center font-medium text-3xl"
-//         >
-//           <div className="size-10 bg-[#FDB623] rounded-full flex items-center justify-center drop-shadow-[0_0_21px_#FDB623] p-1.5">
-//             <Image
-//               src="/logo-app/logo-white.svg"
-//               alt="QuickPass"
-//               width={100}
-//               height={100}
-//               className="m-auto w-full"
-//             />
-//           </div>
-//           Quick Scan
-//         </Link>
-//         <LoginForm />
-//       </div>
-//     </div>
-//   );
-// }
 "use client";
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoveLeft, Lock, ShieldCheck } from "lucide-react";
+import { MoveLeft, Lock, ShieldCheck, Loader2Icon } from "lucide-react";
 import { LoginForm } from "@/app/admin/components/login-form";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import DataStatusDisplay from "@/components/data-status-display";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  return (
+  const router = useRouter();
+  const { data: session, isPending, error, refetch } = authClient.useSession();
+  const sess = session?.session;
+
+  if (error) {
+    return (
+      <DataStatusDisplay
+        isPending={false}
+        errorObject={error}
+        refetch={refetch}
+      />
+    );
+  }
+
+  if (sess) {
+    router.replace(`/admin`);
+  }
+
+  return sess || isPending ? (
+    <div className="size-full">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-[#050505]">
+        <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[80%] h-[40%] bg-primary/10 blur-[120px] rounded-full"></div>
+        <div className="w-full absolute top-0 left-0 translate-y-1/2 translate-x-1/2 pt-40">
+          <Loader2Icon className="animate-spin text-primary size-10" />
+        </div>
+      </div>
+    </div>
+  ) : (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-6 md:p-10 bg-[#050505] overflow-hidden text-white">
       {/* --- EFFETS D'ARRIÈRE-PLAN --- */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

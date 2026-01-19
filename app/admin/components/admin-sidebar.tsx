@@ -3,9 +3,9 @@
 import * as React from "react";
 import {
   IconDashboard,
-  // IconSettings,
   IconCalendar,
   IconUser,
+  IconTerminal2,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/app/admin/components/nav-main";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
+import { Lock } from "lucide-react";
 
 const data = {
   user: {
@@ -42,15 +43,15 @@ const data = {
       icon: IconCalendar,
     },
     {
+      title: "Terminals",
+      url: "/admin/terminals",
+      icon: IconTerminal2,
+    },
+    {
       title: "Utilisateurs",
       url: "/admin/users",
       icon: IconUser,
     },
-    // {
-    //   title: "Paramètres",
-    //   url: "",
-    //   icon: IconSettings,
-    // },
   ],
   navSecondary: [
     // {
@@ -87,27 +88,17 @@ export function AdminSidebar({
               }`}
             >
               <div className={`flex justify-start items-center`}>
-                <div
-                  className={`bg-primary rounded-full flex items-center justify-center drop-shadow-[0_0_5px_#FDB623] shrink-0 p-1 ${
-                    state === "collapsed" ? "size-6! m-auto" : "size-10!"
-                  }`}
-                >
-                  <Image
-                    src="/logo-app/logo-white.svg"
-                    alt="QuickPass"
-                    width={100}
-                    height={100}
-                    className="size-full"
-                  />
+                <div className="size-10 rounded-xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
+                  <Lock className="text-white" size={22} />
                 </div>
                 <span
-                  className={`text-base font-semibold ml-3 ${
+                  className={`text-base font-semibold ${
                     state === "collapsed"
                       ? "opacity-0 w-0 overflow-hidden hidden"
                       : "opacity-100 w-auto"
                   }`}
                 >
-                  Quick Scan
+                  LokaPass
                 </span>
               </div>
             </SidebarMenuButton>
@@ -115,7 +106,7 @@ export function AdminSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} userRole={user?.role || ""} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

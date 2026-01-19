@@ -22,10 +22,16 @@ export async function requireAuth(req: NextRequest) {
 export async function requireAdmin(req: NextRequest) {
   const session = await getSessionOrNull(req);
   if (!session)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized", message: "Veuillez vous authentifié !" },
+      { status: 401 }
+    );
   // return console.log("requireAdmin: no session");
   if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Forbidden", message: "Accès uniquement aux ADMIN !" },
+      { status: 403 }
+    );
   }
   return session.user;
 }

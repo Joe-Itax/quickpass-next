@@ -101,6 +101,7 @@ model Event {
   stats       EventStats?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  terminals   Terminal[]
 }
 
 enum EventStatus {
@@ -184,7 +185,40 @@ model EventStats {
   totalCapacity      Int      @default(0) // sum of all table capacities
   totalPeople        Int      @default(0)
   totalScanned       Int      @default(0)
-  totalAssignedSeats Int      @default(0) // NEW: total seats already assigned
-  availableSeats     Int      @default(0) // NEW: totalCapacity - totalAssignedSeats
+  totalAssignedSeats Int      @default(0)
+  availableSeats     Int      @default(0)
   updatedAt          DateTime @updatedAt
+}
+
+// ----------------------------
+//          TERMINAL
+// ----------------------------
+model Terminal {
+  id        Int       @id @default(autoincrement())
+  name      String
+  code      String    @unique
+  eventId   Int
+  event     Event     @relation(fields: [eventId], references: [id])
+  isActive  Boolean   @default(true) // Pour désactivation manuelle
+  deletedAt DateTime? // Soft delete
+  logs      ScanLog[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ----------------------------
+//          SCAN LOG
+// ----------------------------
+model ScanLog {
+  id            Int       @id @default(autoincrement())
+  eventCode     String
+  invitationId  Int?
+  guestName     String?
+  status        String
+  errorMessage  String?
+  scannedAt     DateTime  @default(now())
+  terminalCode  String?
+  terminalId    Int?
+  terminal      Terminal? @relation(fields: [terminalId], references: [id])
+  assignedTable String?
 }

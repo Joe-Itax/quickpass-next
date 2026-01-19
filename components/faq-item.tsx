@@ -15,14 +15,11 @@ export function FaqItem({
   value: string;
 }) {
   return (
-    <Accordion
-      type="single"
-      collapsible
-      className="w-full"
-      defaultValue="item-1"
-    >
+    <Accordion type="single" collapsible className="w-full" defaultValue="q1">
       <AccordionItem value={value} className="border-b! border-white/50">
-        <AccordionTrigger className="hover:no-underline hover:text-primary cursor-pointer text-xl font-bold">{question}</AccordionTrigger>
+        <AccordionTrigger className="hover:no-underline hover:text-primary cursor-pointer text-xl font-bold">
+          {question}
+        </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-4 ">
           <p>{answer}</p>
         </AccordionContent>

@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import formatDateToCustom from "@/utils/format-date-to-custom";
-// import { Trash2 } from "lucide-react";
+import { motion } from "motion/react";
+import { ShieldCheck } from "lucide-react";
 
 export function ScannerCard({
   person,
@@ -14,27 +13,31 @@ export function ScannerCard({
   scannedAt: Date;
 }) {
   return (
-    <div className="flex items-center gap-1 w-full justify-between px-3 py-4 rounded-lg bg-black/30 shadow-md shadow-black">
-      <div className="flex items-center justify-start gap-2">
-        <div className="size-10">
-          <Image
-            src="/logo-app/logo-black.svg"
-            alt="QuickPass"
-            width={100}
-            height={100}
-            className="w-full"
-          />
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-4">
+        <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+          <ShieldCheck size={20} />
         </div>
-        <div className="">
-          <p className="font-semibold text-white">{person.name}</p>
+        <div>
+          <p className="font-bold text-white uppercase tracking-tight leading-none">
+            {person.name}
+          </p>
+          <p className="text-[10px] text-gray-500 font-mono mt-1">
+            {new Intl.DateTimeFormat("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }).format(scannedAt)}
+          </p>
         </div>
       </div>
-      <div className="flex flex-col items-end">
-        {/* <Trash2 className="text-amber-400" size={20} /> */}
-        <p className="text-sm text-muted-foreground text-end w-full">
-          {formatDateToCustom(scannedAt)}
-        </p>
+      <div className="bg-green-500/10 text-green-500 text-[8px] font-black px-2 py-1 rounded-full border border-green-500/20 uppercase">
+        Vérifié
       </div>
-    </div>
+    </motion.div>
   );
 }

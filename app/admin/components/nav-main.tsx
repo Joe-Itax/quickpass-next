@@ -14,19 +14,30 @@ import { usePathname } from "next/navigation";
 
 export function NavMain({
   items,
+  userRole,
 }: {
   items: {
     title: string;
     url: string;
     icon?: Icon;
   }[];
+  userRole: string;
 }) {
   const pathname = usePathname();
+
+  const filteredItems = items.filter((item) => {
+    if (item.title === "Utilisateurs") {
+      return userRole === "ADMIN";
+    }
+
+    return true;
+  });
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <Link
               href={`${item.url}`}
               key={`${item.title} - ${item.url}`}

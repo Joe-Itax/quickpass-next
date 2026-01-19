@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Spinner } from "./ui/spinner";
 
 interface dataStatusDisplayProps {
-  isPending: boolean;
+  isPending?: boolean;
   hasError?: boolean;
   showContent?: boolean;
   errorObject?: Error | null;

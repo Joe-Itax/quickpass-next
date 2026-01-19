@@ -27,6 +27,7 @@ export const EVENT_KEYS = {
     ["event", eventCode, "tables"] as const,
   table: (id: number, tableId: number) =>
     ["event", id, "table", tableId] as const,
+  history: (eventCode: string) => [eventCode, "history"] as const,
 };
 
 // ===================================================================
@@ -68,7 +69,9 @@ export function useEventByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.oneByEventCode(eventCode),
     queryFn: () => fetcher(`/api/events/event-code/${eventCode}`),
+    // enabled: false,
     enabled: !!eventCode,
+    // retry: false,
   });
 }
 
@@ -222,12 +225,17 @@ export function useScan(eventId: string) {
 }
 
 export function useScanByEventCode(eventCode: string) {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (qr: string) =>
+    mutationFn: ({ qr, terminalCode }: { qr: string; terminalCode: string }) =>
       fetcher(`/api/events/event-code/${eventCode}/scan`, {
         method: "POST",
-        body: JSON.stringify({ qr }),
+        body: JSON.stringify({ qr, terminalCode }),
       }),
+    retry: false,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.history(eventCode) });
+    },
   });
 }
 
@@ -238,6 +246,7 @@ export function useReverseScan(eventId: number) {
         method: "POST",
         body: JSON.stringify({ qr }),
       }),
+    retry: false,
   });
 }
 
@@ -361,5 +370,49 @@ export function useEventAssignments(eventId: number) {
     queryKey: ["event", eventId, "assignments"],
     queryFn: () => fetcher(`/api/events/${eventId}/assign`),
     enabled: !!eventId,
+  });
+}
+
+// ===================================================================
+// 🟥 LOGS
+// ===================================================================
+// GET all logs
+
+export function useEventHistory(eventCode: string) {
+  return useQuery({
+    queryKey: [eventCode, "history"],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/event-code/${eventCode}/history`);
+      if (!res.ok) throw new Error("Failed to fetch history");
+      return res.json();
+    },
+  });
+}
+
+// ===================================================================
+// 🟥 TERMINALS
+// ===================================================================
+
+export function useCreateTerminal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { name: string; eventId: string }) => {
+      const res = await fetch("/api/events/terminals", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events-with-terminals"] });
+    },
+  });
+}
+
+export function useEventsWithTerminals() {
+  return useQuery({
+    queryKey: ["events-with-terminals"],
+    queryFn: () => fetch("/api/events/terminals").then((res) => res.json()),
   });
 }

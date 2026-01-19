@@ -65,10 +65,6 @@ export function Notification({
   const toastDuration = 5000;
   const { progress, start, pause, resume } = useProgressTimer({
     duration: toastDuration,
-    // onComplete: () => {
-    //   setOpen(false);
-    //   onClose?.();
-    // },
   });
 
   useEffect(() => {
