@@ -6,23 +6,12 @@ import { MoveLeft, Lock, ShieldCheck, Loader2Icon } from "lucide-react";
 import { LoginForm } from "@/app/admin/components/login-form";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import DataStatusDisplay from "@/components/data-status-display";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, isPending, error, refetch } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const sess = session?.session;
-
-  if (error) {
-    return (
-      <DataStatusDisplay
-        isPending={false}
-        errorObject={error}
-        refetch={refetch}
-      />
-    );
-  }
 
   if (sess) {
     router.replace(`/admin`);

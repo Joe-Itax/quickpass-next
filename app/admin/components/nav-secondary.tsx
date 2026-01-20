@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-// import SearchInput from "@/app/admin/components/search-input";
 
 export function NavSecondary({
   items,
@@ -37,11 +36,6 @@ export function NavSecondary({
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          {/* <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Recherche" asChild>
-              <SearchInput />
-            </SidebarMenuButton>
-          </SidebarMenuItem> */}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

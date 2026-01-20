@@ -14,25 +14,30 @@ export default async function AdminLayout({
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/login");
-  }
+  if (!session) redirect("/login");
+
   return (
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
+          "--sidebar-width": "18rem",
+          "--header-height": "4rem",
         } as React.CSSProperties
       }
     >
-      <AdminSidebar variant="inset" />
-      <SidebarInset>
-        <div className="flex min-h-screen bg-background text-foreground">
-          <div className="flex-1 flex flex-col">
-            <AdminNavbar />
-            <main className="flex-1 p-6">{children}</main>
-          </div>
+      {/* Sidebar avec effet de flou */}
+      <AdminSidebar
+        variant="inset"
+        className="bg-black/40 backdrop-blur-xl border-r border-white/5"
+      />
+
+      <SidebarInset className="bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover">
+        <div className="flex min-h-screen flex-col">
+          <AdminNavbar />
+
+          <main className="flex-1 p-2 sm:p-8 max-w-400 mx-auto w-full">
+            {children}
+          </main>
         </div>
       </SidebarInset>
     </SidebarProvider>

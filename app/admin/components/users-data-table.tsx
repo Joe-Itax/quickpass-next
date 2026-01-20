@@ -110,7 +110,7 @@ const columns: ColumnDef<User>[] = [
       const allActiveRowsSelected =
         activeRows.length > 0 && activeRows.every((row) => row.getIsSelected());
       const someActiveRowsSelected = activeRows.some((row) =>
-        row.getIsSelected()
+        row.getIsSelected(),
       );
 
       // Déterminer l'état de la checkbox du header
@@ -190,7 +190,7 @@ const columns: ColumnDef<User>[] = [
           "capitalize",
           row.original.role === "ADMIN" && "bg-green-400",
           row.original.role === "AGENT" && "bg-blue-300",
-          row.original.role === "PARENT" && "bg-white/10"
+          row.original.role === "PARENT" && "bg-white/10",
         )}
       >
         {row.original.role}
@@ -303,7 +303,7 @@ export default function UsersDataTable() {
   const handleFilterChange = (
     columnId: string,
     checked: boolean,
-    value: string
+    value: string,
   ) => {
     const filterValue = table.getColumn(columnId)?.getFilterValue() as string[];
     const newFilterValue = filterValue ? [...filterValue] : [];
@@ -338,7 +338,7 @@ export default function UsersDataTable() {
     } catch (error) {
       console.error(
         "Erreur lors de la désactivation multiple des users.",
-        error
+        error,
       );
     }
   };
@@ -355,7 +355,7 @@ export default function UsersDataTable() {
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9",
-                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
+                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9",
               )}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -464,10 +464,10 @@ export default function UsersDataTable() {
                     {column.id === "createdAt"
                       ? "Date de création"
                       : column.id === "role"
-                      ? "Rôle"
-                      : column.id === "email"
-                      ? "Email"
-                      : column.id}
+                        ? "Rôle"
+                        : column.id === "email"
+                          ? "Email"
+                          : column.id}
                   </DropdownMenuCheckboxItem>
                 );
               })}
@@ -555,14 +555,14 @@ export default function UsersDataTable() {
                             className: cn(
                               "flex items-center gap-1",
                               header.column.getCanSort() &&
-                                "cursor-pointer select-none"
+                                "cursor-pointer select-none",
                             ),
                             onClick: header.column.getToggleSortingHandler(),
                           }}
                         >
                           {flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                           {{
                             asc: (
@@ -599,7 +599,7 @@ export default function UsersDataTable() {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -668,9 +668,9 @@ export default function UsersDataTable() {
                     table.getState().pagination.pageIndex *
                       table.getState().pagination.pageSize +
                       table.getState().pagination.pageSize,
-                    0
+                    0,
                   ),
-                  totalItems
+                  totalItems,
                 )}
               </span>{" "}
               sur <span className="text-foreground">{totalItems}</span>

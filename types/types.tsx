@@ -94,6 +94,7 @@ export interface Event2 {
   invitations: Invitation[];
   assignments: EventAssignment[];
   stats: Stat;
+  terminals: Terminal[];
 }
 
 export interface User {

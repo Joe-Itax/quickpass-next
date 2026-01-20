@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
 import {
   IconDotsVertical,
   IconLogout,
-  // IconNotification,
+  IconQrcode,
   IconUserCircle,
 } from "@tabler/icons-react";
-
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,28 +29,19 @@ import { authClient } from "@/lib/auth-client";
 export function NavUser({
   user,
 }: {
-  user: {
-    name: string;
-    email: string;
-    avatar?: string;
-    role?: string;
-  };
+  user: { name: string; email: string; avatar?: string; role?: string };
 }) {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { signOut } = authClient;
+
   const handleLogout = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/login");
-        },
-      },
-    });
+    await signOut({ fetchOptions: { onSuccess: () => router.push("/login") } });
   };
+
   const avatarFallback = user.name
     .split(" ")
-    .map((name) => name[0])
+    .map((n) => n[0])
     .join("");
 
   return (
@@ -65,63 +51,78 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar hover:bg-white/10 data-[state=open]:text-white"
+              className="rounded-2xl hover:bg-white/5 transition-all group"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscal">
-                <AvatarFallback className="rounded-lg bg-primary">
+              <Avatar className="h-9 w-9 rounded-xl border border-white/10">
+                <AvatarFallback className="bg-primary text-white font-black text-xs">
                   {avatarFallback}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight text-white">
-                <span className="truncate font-medium text-inherit">
+              <div className="grid flex-1 text-left leading-tight ml-1">
+                <span className="truncate text-xs font-black uppercase italic text-white group-hover:text-primary transition-colors">
                   {user.name}
                 </span>
-                <span className="text-inherit truncate text-xs">
-                  {user.email}
+                <span className="truncate text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                  {user.role || "Opérateur"}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <IconDotsVertical
+                size={16}
+                className="text-gray-600 group-hover:text-white transition-colors"
+              />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg text-white bg-background shadow-md"
+            className="w-64 rounded-2xl bg-[#0a0a0a] border-white/10 text-white shadow-2xl backdrop-blur-xl"
             side={isMobile ? "bottom" : "right"}
             align="end"
-            sideOffset={4}
+            sideOffset={12}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg bg-transparent">
-                  <AvatarFallback className="rounded-lg bg-primary">
-                    {avatarFallback}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-white truncate text-xs">
-                    {user.email}
-                  </span>
-                </div>
+            <DropdownMenuLabel className="p-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-black text-primary tracking-[0.2em] uppercase">
+                  Connecté en tant que
+                </p>
+                <p className="text-sm font-bold truncate">{user.email}</p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+
+            <DropdownMenuSeparator className="bg-white/5" />
+
+            <DropdownMenuGroup className="p-2">
               <Link href="/admin/account">
-                <DropdownMenuItem>
-                  <IconUserCircle />
-                  Compte
+                <DropdownMenuItem className="rounded-xl focus:bg-white/5 focus:text-primary cursor-pointer gap-3 py-3">
+                  <IconUserCircle size={18} />
+                  <span className="text-xs font-bold uppercase tracking-widest">
+                    Mon Compte
+                  </span>
                 </DropdownMenuItem>
               </Link>
-              {/* <DropdownMenuItem>
-                <IconNotification />
-                Notifications
-              </DropdownMenuItem> */}
+
+              <Link href="/scan-portail">
+                <DropdownMenuItem className="rounded-xl focus:bg-white/5 focus:text-primary cursor-pointer gap-3 py-3">
+                  <IconQrcode size={18} />
+                  <span className="text-xs font-bold uppercase tracking-widest">
+                    Zone de scan
+                  </span>
+                </DropdownMenuItem>
+              </Link>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <IconLogout />
-              Se deconnecter
-            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="bg-white/5" />
+
+            <div className="p-2">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="rounded-xl focus:bg-red-500/10 focus:text-red-500 cursor-pointer gap-3 py-3 text-red-400"
+              >
+                <IconLogout size={18} />
+                <span className="text-xs font-bold uppercase tracking-widest">
+                  Déconnexion
+                </span>
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

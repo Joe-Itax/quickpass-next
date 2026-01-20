@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { Table2, Users, LayoutGrid, Info } from "lucide-react";
 
 import {
   Dialog,
@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useCreateTable } from "@/hooks/use-event";
 import { Table } from "@/types/types";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "motion/react";
 
 type TableFormData = {
   name: string;
@@ -42,17 +44,10 @@ export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof TableFormData, string>> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Le nom de la table est requis";
-    }
-
-    if (!formData.capacity || formData.capacity <= 0) {
-      newErrors.capacity = "La capacité doit être supérieure à 0";
-    }
-
-    if (formData.capacity > 100) {
-      newErrors.capacity = "La capacité ne peut pas dépasser 100 places";
-    }
+    if (!formData.name.trim()) newErrors.name = "IDENTIFIANT REQUIS";
+    if (!formData.capacity || formData.capacity <= 0)
+      newErrors.capacity = "MIN 1 SIÈGE";
+    if (formData.capacity > 100) newErrors.capacity = "MAX 100 SIÈGES";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -63,131 +58,160 @@ export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
 
     try {
       await createTable({
-        name: formData.name,
+        name: formData.name.toUpperCase(),
         capacity: formData.capacity,
       } as Table);
 
-      // Réinitialiser le formulaire et fermer le dialog
-      setFormData({
-        name: "",
-        capacity: 6,
-      });
+      setFormData({ name: "", capacity: 6 });
       setOpenDialog(false);
-      setErrors({});
-
-      if (onTableAdded) {
-        onTableAdded();
-      }
+      onTableAdded?.();
     } catch (error) {
       console.error("Error creating table:", error);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
+  const updateCapacity = (val: number) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "capacity" ? Number(value) : value,
+      capacity: Math.max(1, Math.min(100, prev.capacity + val)),
     }));
-
-    if (errors[name as keyof TableFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setOpenDialog(open);
-    if (!open) {
-      // Réinitialiser le formulaire quand le dialog se ferme
-      setTimeout(() => {
-        setFormData({
-          name: "",
-          capacity: 6,
-        });
-        setErrors({});
-      }, 300);
-    }
   };
 
   return (
-    <Dialog open={openDialog} onOpenChange={handleOpenChange}>
+    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <PlusIcon className="w-4 h-4 mr-2" />
-          Ajouter une table
+        <Button
+          variant="outline"
+          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
+        >
+          <LayoutGrid className="size-4 mr-2 text-primary" />
+          Nouvelle Table
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md text-white/80 bg-background">
-        <DialogHeader className="border-b border-white/10 px-6 py-4">
-          <DialogTitle className="text-white">Ajouter une table</DialogTitle>
+      <DialogContent className="sm:max-w-md bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+        {/* HEADER */}
+        <DialogHeader className="bg-white/5 p-8 border-b border-white/5 relative">
+          <div className="flex items-center gap-4">
+            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Table2 className="text-primary" size={24} />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">
+                Ressource Table
+              </DialogTitle>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                Initialisation de capacité
+              </p>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 px-6 py-4">
-          {/* Table Name */}
+        <div className="p-8 space-y-8">
+          {/* Nom de la table */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-white/80">
-              Nom de la table *
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2 ml-1">
+              <Info size={12} /> Désignation
             </Label>
             <input
-              id="name"
-              name="name"
-              type="text"
               value={formData.name}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded bg-white/5 border-white/20 text-white ${
-                errors.name ? "border-red-500" : "border-white/20"
-              } placeholder-white/40`}
-              placeholder="Ex: Table 1, VIP, Famille..."
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, name: e.target.value }))
+              }
+              className={cn(
+                "w-full h-14 px-4 rounded-2xl bg-white/5 border text-lg font-black italic text-white transition-all focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-gray-800",
+                errors.name ? "border-red-500" : "border-white/10",
+              )}
+              placeholder="EX: TABLE VIP 01"
             />
-            {errors.name && (
-              <p className="text-red-400 text-sm">{errors.name}</p>
-            )}
+            <AnimatePresence>
+              {errors.name && (
+                <motion.p
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-red-500 text-[9px] font-black italic uppercase tracking-widest ml-1"
+                >
+                  {errors.name}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Capacity */}
-          <div className="space-y-2">
-            <Label htmlFor="capacity" className="text-white/80">
-              Capacité (nombre de places) *
+          {/* Capacité avec contrôles rapides */}
+          <div className="space-y-4">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+              <Users size={12} /> Capacité Totale (Sièges)
             </Label>
-            <input
-              id="capacity"
-              name="capacity"
-              type="number"
-              min={1}
-              max={100}
-              value={formData.capacity}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded bg-white/5 border-white/20 text-white ${
-                errors.capacity ? "border-red-500" : "border-white/20"
-              }`}
-            />
+
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                <span className="text-2xl font-black italic text-white">
+                  {formData.capacity}
+                </span>
+                <span className="ml-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                  Places
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => updateCapacity(-1)}
+                  variant="outline"
+                  className="size-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-xl font-black"
+                >
+                  -
+                </Button>
+                <Button
+                  onClick={() => updateCapacity(1)}
+                  variant="outline"
+                  className="size-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-xl font-black text-primary hover:text-primary"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {[4, 6, 8, 12].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setFormData((p) => ({ ...p, capacity: val }))}
+                  className={cn(
+                    "py-2 rounded-lg border text-[10px] font-black transition-all",
+                    formData.capacity === val
+                      ? "bg-primary border-primary"
+                      : "bg-white/5 border-white/5 text-gray-500 hover:border-white/20",
+                  )}
+                >
+                  {val} PLACES
+                </button>
+              ))}
+            </div>
             {errors.capacity && (
-              <p className="text-red-400 text-sm">{errors.capacity}</p>
+              <p className="text-red-500 text-[9px] font-black italic uppercase ml-1">
+                {errors.capacity}
+              </p>
             )}
-            <p className="text-sm text-white/60">
-              Nombre maximum de personnes que cette table peut accueillir
-            </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-white/10 px-6 py-4 flex justify-end gap-2">
+        {/* FOOTER */}
+        <div className="p-8 bg-white/5 border-t border-white/5 flex items-center justify-between gap-4">
           <DialogClose asChild>
             <Button
-              variant="outline"
-              className="text-white/80 border-white/30 hover:bg-white/10 hover:text-white"
+              variant="ghost"
+              className="text-gray-500 font-bold uppercase text-[10px] tracking-widest hover:text-black"
             >
               Annuler
             </Button>
           </DialogClose>
+
           <Button
             onClick={handleSubmit}
             disabled={isPending}
-            className="bg-primary hover:bg-primary/90"
+            className="rounded-2xl bg-primary font-black uppercase italic text-xs px-10 h-14 hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(253,182,35,0.2)] border-none"
           >
-            {isPending ? "Création..." : "Créer la table"}
+            {isPending ? "Configuration..." : "Enregistrer Table"}
           </Button>
         </div>
       </DialogContent>

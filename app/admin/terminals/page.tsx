@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import AddTerminal from "./add-terminal";
 import {
   MoreVertical,
@@ -8,6 +9,8 @@ import {
   MonitorSmartphone,
   Search,
   FilterX,
+  Hash,
+  Activity,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useEventsWithTerminals } from "@/hooks/use-event";
-import { useMemo, useState } from "react";
 import ModifyTerminal from "./modify-terminal";
 import DeleteTerminal from "./delete-terminal";
 import DataStatusDisplay from "@/components/data-status-display";
@@ -36,19 +38,19 @@ interface Terminal {
 interface Event {
   id: string;
   name: string;
+  eventCode: string;
   terminals: Terminal[];
 }
 
 export default function TerminalsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(
-    null
+    null,
   );
   const [isModifyOpen, setIsModifyOpen] = useState(false);
-
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [terminalToDelete, setTerminalToDelete] = useState<Terminal | null>(
-    null
+    null,
   );
 
   const {
@@ -59,24 +61,18 @@ export default function TerminalsPage() {
     refetch,
   } = useEventsWithTerminals();
 
-  // Logique de filtrage performante
   const filteredEvents = useMemo(() => {
     if (!events) return [];
-
-    return (
-      events
-        .map((event: Event) => ({
-          ...event,
-          // On filtre les terminaux de chaque event selon la recherche
-          terminals: event.terminals.filter(
-            (t) =>
-              t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              t.code.toLowerCase().includes(searchQuery.toLowerCase())
-          ),
-        }))
-        // On ne garde que les events qui ont des terminaux correspondant à la recherche
-        .filter((event: Event) => event.terminals.length > 0)
-    );
+    return events
+      .map((event: Event) => ({
+        ...event,
+        terminals: event.terminals.filter(
+          (t) =>
+            t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.code.toLowerCase().includes(searchQuery.toLowerCase()),
+        ),
+      }))
+      .filter((event: Event) => event.terminals.length > 0);
   }, [events, searchQuery]);
 
   if (isPending || isError) {
@@ -91,37 +87,32 @@ export default function TerminalsPage() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      {/* <header className="flex justify-between items-center mb-12">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter italic">
-            Gestion des Terminaux
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Configurez vos points de contrôle par événement.
+    <div className="p-4 md:p-10 max-w-7xl mx-auto space-y-12">
+      {/* --- HEADER --- */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Activity className="text-primary" size={20} />
+            </div>
+            <h1 className="text-4xl font-black uppercase tracking-tighter italic text-white">
+              Terminaux
+            </h1>
+          </div>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">
+            Points de contrôle & Monitoring
           </p>
         </div>
-        <AddTerminal />
-      </header> */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter italic">
-            Gestion des Terminaux
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Configurez vos points de contrôle par événement.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          {/* BARRE DE RECHERCHE */}
-          <div className="relative w-full md:w-64">
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+          <div className="relative w-full sm:w-80 group">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors"
+              size={18}
             />
             <Input
-              placeholder="Rechercher un terminal..."
-              className="pl-9 bg-black/20 border-white/10"
+              placeholder="RECHERCHER UN POINT..."
+              className="h-12 pl-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold italic focus:border-primary transition-all placeholder:text-gray-600 text-xs"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -130,170 +121,189 @@ export default function TerminalsPage() {
         </div>
       </header>
 
-      <div className="space-y-10">
+      {/* --- CONTENT --- */}
+      <div className="space-y-16">
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event: Event) => (
-            <section key={event.id} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold uppercase tracking-widest text-primary">
+            <section key={event.id} className="space-y-6">
+              {/* Event Separator with Code */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-black uppercase italic tracking-tight text-white">
                     {event.name}
                   </h2>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] border-white/10 text-muted-foreground"
-                  >
-                    {event.terminals.length}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 border border-primary/20 rounded-lg">
+                    <Hash size={12} className="text-primary" />
+                    <span className="text-[15px] font-black text-primary">
+                      {event.eventCode}
+                    </span>
+                  </div>
                 </div>
-                <div className="h-px flex-1 bg-border/50" />
+                <Badge className="w-fit bg-white/5 text-gray-500 border-none font-black text-[10px]">
+                  {event.terminals.length} UNITÉS
+                </Badge>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Terminals Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {event.terminals.map((terminal: Terminal) => (
                   <div
                     key={terminal.id}
                     className={cn(
-                      "p-4 rounded-xl border flex justify-between items-center group transition-all duration-200 bg-black/30 text-white/90 border-none shadow-md shadow-black",
-                      (!terminal.isActive || terminal.deletedAt) &&
-                        "opacity-60 grayscale-[0.5]"
+                      "relative p-6 rounded-4xl border group transition-all duration-300",
+                      terminal.isActive && !terminal.deletedAt
+                        ? "bg-white/3 border-white/10 hover:border-primary/40 shadow-xl shadow-black/20"
+                        : "bg-black/40 border-white/5 opacity-60 grayscale-[0.8]",
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-white/85 flex items-center justify-center relative">
-                        <MonitorSmartphone
-                          size={20}
-                          className="text-muted-foreground"
-                        />
-                        {!terminal.isActive && !terminal.deletedAt && (
-                          <div
-                            className="absolute -top-1 -right-1 size-3 bg-yellow-500 rounded-full border-2 border-black"
-                            title="Désactivé"
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-bold leading-none">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "size-12 rounded-2xl flex items-center justify-center transition-all",
+                            terminal.isActive
+                              ? "bg-primary text-white"
+                              : "bg-white/5 text-gray-600",
+                          )}
+                        >
+                          <MonitorSmartphone size={24} />
+                        </div>
+                        <div>
+                          <p className="font-black uppercase italic text-white tracking-tight">
                             {terminal.name}
                           </p>
-                          {terminal.deletedAt ? (
-                            <Badge
-                              variant="destructive"
-                              className="text-[8px] px-1.5 py-0"
-                            >
-                              Archivé
-                            </Badge>
-                          ) : !terminal.isActive ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-[8px] px-1.5 py-0 bg-yellow-500/20 text-yellow-500 border-yellow-500/20"
-                            >
-                              Inactif
-                            </Badge>
-                          ) : (
-                            <Badge className="text-[8px] px-1.5 py-0 bg-green-500/20 text-green-500 border-green-500/20">
-                              En ligne
-                            </Badge>
-                          )}
+                          <p className="text-[12px] font-mono text-gray-500 tracking-widest mt-1">
+                            CODE: {terminal.code}
+                          </p>
                         </div>
-                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                          {terminal.code}
-                        </p>
                       </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          asChild
+                          disabled={!!terminal.deletedAt}
+                        >
+                          <Button
+                            variant="ghost"
+                            className="size-8 p-0 hover:bg-white/10 rounded-xl"
+                          >
+                            <MoreVertical size={18} className="text-gray-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-[#0f0f0f] border-white/10 rounded-2xl min-w-40"
+                        >
+                          <DropdownMenuItem
+                            className="gap-3 py-3 px-4 focus:bg-primary focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
+                            onClick={() => {
+                              setSelectedTerminal(terminal);
+                              setIsModifyOpen(true);
+                            }}
+                          >
+                            <Settings2 size={14} className="text-white" />{" "}
+                            Configurer
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="gap-3 py-3 px-4 text-red-500 focus:bg-red-500 focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
+                            onClick={() => {
+                              setTerminalToDelete(terminal);
+                              setIsDeleteOpen(true);
+                            }}
+                          >
+                            <Trash2 size={14} className="text-white" /> Révoquer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        asChild
-                        disabled={!!terminal.deletedAt}
-                      >
-                        <button
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
                           className={cn(
-                            "p-2 hover:bg-black/50 rounded-full cursor-pointer transition-colors",
-                            !!terminal.deletedAt &&
-                              "cursor-not-allowed opacity-20"
+                            "size-1.5 rounded-full animate-pulse",
+                            terminal.deletedAt
+                              ? "bg-red-500"
+                              : terminal.isActive
+                                ? "bg-emerald-500"
+                                : "bg-yellow-500",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "text-[9px] font-black uppercase tracking-widest",
+                            terminal.deletedAt
+                              ? "text-red-500"
+                              : terminal.isActive
+                                ? "text-emerald-500"
+                                : "text-yellow-500",
                           )}
                         >
-                          <MoreVertical size={16} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-[#151515] border-white/10 text-white"
-                      >
-                        <DropdownMenuItem
-                          className="gap-2 focus:bg-white/5 focus:text-white cursor-pointer"
-                          onClick={() => {
-                            setSelectedTerminal(terminal);
-                            setIsModifyOpen(true);
-                          }}
-                        >
-                          <Settings2 size={14} /> Modifier
-                        </DropdownMenuItem>
+                          {terminal.deletedAt
+                            ? "Archivé"
+                            : terminal.isActive
+                              ? "Opérationnel"
+                              : "Hors-Ligne"}
+                        </span>
+                      </div>
 
-                        <DropdownMenuItem
-                          className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
-                          onClick={() => {
-                            setTerminalToDelete(terminal);
-                            setIsDeleteOpen(true);
-                          }}
-                        >
-                          <Trash2 size={14} /> Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      {terminal.isActive && !terminal.deletedAt && (
+                        <div className="text-[8px] font-bold text-gray-600 uppercase border border-white/5 px-2 py-1 rounded-md">
+                          Ready to scan
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-white/5 rounded-3xl bg-black/10">
-            <div className="size-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <FilterX size={32} className="text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/2">
+            <div className="size-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
+              <FilterX size={40} className="text-gray-700" />
             </div>
-            <p className="text-lg font-medium text-white/50 italic">
+            <p className="text-xl font-black uppercase italic text-gray-600 tracking-tighter">
               Aucun terminal trouvé
             </p>
             {searchQuery && (
               <Button
                 variant="link"
                 onClick={() => setSearchQuery("")}
-                className="text-primary mt-2"
+                className="text-primary mt-4 font-bold uppercase text-[10px] tracking-widest"
               >
-                Effacer la recherche
+                Réinitialiser les filtres
               </Button>
             )}
           </div>
         )}
-        {/* MODAL DE MODIFICATION */}
-        {selectedTerminal && (
-          <ModifyTerminal
-            key={`modify-${selectedTerminal.id}`}
-            terminal={selectedTerminal}
-            open={isModifyOpen}
-            onOpenChange={(open) => {
-              setIsModifyOpen(open);
-              if (!open) setSelectedTerminal(null);
-            }}
-          />
-        )}
-
-        {/* MODAL DE SUPPRESSION (SOFT DELETE) */}
-        {terminalToDelete && (
-          <DeleteTerminal
-            key={`delete-${terminalToDelete.id}`}
-            terminalId={terminalToDelete.id}
-            terminalName={terminalToDelete.name}
-            open={isDeleteOpen}
-            onOpenChange={(open) => {
-              setIsDeleteOpen(open);
-              if (!open) setTerminalToDelete(null);
-            }}
-          />
-        )}
       </div>
+
+      {/* MODALS */}
+      {selectedTerminal && (
+        <ModifyTerminal
+          key={`modify-${selectedTerminal.id}`}
+          terminal={selectedTerminal}
+          open={isModifyOpen}
+          onOpenChange={(open) => {
+            setIsModifyOpen(open);
+            if (!open) setSelectedTerminal(null);
+          }}
+        />
+      )}
+
+      {terminalToDelete && (
+        <DeleteTerminal
+          key={`delete-${terminalToDelete.id}`}
+          terminalId={terminalToDelete.id}
+          terminalName={terminalToDelete.name}
+          open={isDeleteOpen}
+          onOpenChange={(open) => {
+            setIsDeleteOpen(open);
+            if (!open) setTerminalToDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 }

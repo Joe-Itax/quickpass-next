@@ -35,6 +35,7 @@ export async function GET(req: NextRequest, context: EventContext) {
       },
       stats: true,
       assignments: { include: { user: true } },
+      terminals: true,
     },
   });
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });

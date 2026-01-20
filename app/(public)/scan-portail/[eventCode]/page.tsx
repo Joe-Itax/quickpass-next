@@ -89,12 +89,9 @@ export default function ScanPage() {
   ) => {
     if (detectedCodes.length > 0 && viewState === "idle") {
       const qrValue = detectedCodes[0].rawValue as string;
-
-      // RÉCUPÉRATION DU CODE TERMINAL
       const terminalCode = localStorage.getItem("terminalCode");
 
       if (!terminalCode) {
-        // Sécurité : si le code a disparu, on renvoie au portail
         router.replace("/scan-portail");
         return;
       }
@@ -106,29 +103,43 @@ export default function ScanPage() {
           qr: qrValue,
           terminalCode: terminalCode,
         })) as ScanResult;
+
         setLastScanResult(res);
         setIsError(false);
         setViewState("result");
       } catch (err: unknown) {
         setIsError(true);
+
+        // 1. On récupère la string JSON.
+        // On retire le prefix "Error: " si présent pour ne garder que le JSON
+        let rawMessage =
+          (err instanceof Error ? err.message : String(err)) || String(err);
+        if (rawMessage.startsWith("Error: ")) {
+          rawMessage = rawMessage.replace("Error: ", "");
+        }
+
         try {
-          const errorMessage = err instanceof Error ? err.message : "{}";
-          const errorData = JSON.parse(errorMessage || "{}");
+          // 2. Tentative de parse du JSON d'erreur
+          const errorData = JSON.parse(rawMessage);
+
           setLastScanResult({
-            error: errorData.error,
+            error: errorData.error || "Erreur inconnue",
             label: errorData.invitation?.label,
             scannedCount: errorData.invitation?.scannedCount,
             peopleCount: errorData.invitation?.peopleCount,
             assignedTable: errorData.invitation?.assignedTable,
           });
-        } catch {
-          setLastScanResult({ error: "Code invalide ou erreur réseau" });
+        } catch (parseError) {
+          // 3. Fallback si le message n'était pas du JSON
+          setLastScanResult({
+            error: rawMessage || "Code invalide ou erreur réseau",
+          });
         }
+
         setViewState("result");
       }
     }
   };
-
   const resetScanner = () => {
     setLastScanResult(null);
     setViewState("idle");
@@ -265,6 +276,11 @@ export default function ScanPage() {
                       >
                         {isError ? "Accès Refusé" : lastScanResult?.label}
                       </h2>
+                      {isError && (
+                        <span className="text-white/40">
+                          Détail: {lastScanResult?.error}
+                        </span>
+                      )}
                       {!isError && (
                         <div className="flex items-center justify-center gap-2 text-green-400">
                           <UserPlus size={12} />
@@ -318,7 +334,7 @@ export default function ScanPage() {
                               </p>
                             </div>
                             {Number(lastScanResult.peopleCount) > 1 && (
-                              <div className="bg-white/10 px-1.5 py-0.5 rounded text-[7px] font-black uppercase">
+                              <div className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-black uppercase">
                                 Groupe
                               </div>
                             )}

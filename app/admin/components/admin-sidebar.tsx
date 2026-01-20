@@ -22,94 +22,66 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import Image from "next/image";
 import { Lock } from "lucide-react";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
-    {
-      title: "Dashboard",
-      url: "/admin",
-      icon: IconDashboard,
-    },
-    {
-      title: "Événements",
-      url: "/admin/events",
-      icon: IconCalendar,
-    },
-    {
-      title: "Terminals",
-      url: "/admin/terminals",
-      icon: IconTerminal2,
-    },
-    {
-      title: "Utilisateurs",
-      url: "/admin/users",
-      icon: IconUser,
-    },
+    { title: "Dashboard", url: "/admin", icon: IconDashboard },
+    { title: "Événements", url: "/admin/events", icon: IconCalendar },
+    { title: "Terminals", url: "/admin/terminals", icon: IconTerminal2 },
+    { title: "Utilisateurs", url: "/admin/users", icon: IconUser },
   ],
-  navSecondary: [
-    // {
-    //   title: "Paramètres",
-    //   url: "/admin/settings",
-    //   icon: IconSettings,
-    // },
-  ],
+  navSecondary: [],
 };
 
 export function AdminSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session, error, refetch } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const user = session?.user;
   const { state } = useSidebar();
 
-  React.useEffect(() => {
-    if (error) {
-      console.error(error);
-      refetch();
-    }
-  }, [error, refetch]);
-
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      collapsible="icon"
+      {...props}
+      className="border-r border-white/5 bg-black/40 backdrop-blur-xl"
+    >
+      <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className={`data-[slot=sidebar-menu-button]:p-1.5! hover:bg-transparent hover:text-sidebar-foreground data-[slot=sidebar-menu-button]:w-full data-[slot=sidebar-menu-button]:h-14 ${
-                state === "collapsed" ? "size-24!" : "size-full"
-              }`}
+              className="hover:bg-transparent h-12 transition-all"
             >
-              <div className={`flex justify-start items-center`}>
-                <div className="size-10 rounded-xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
-                  <Lock className="text-white" size={22} />
+              <div className="flex items-center gap-3">
+                <div className="size-10 shrink-0 rounded-2xl bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(253,182,35,0.4)]">
+                  <Lock className="text-black" size={20} strokeWidth={3} />
                 </div>
-                <span
-                  className={`text-base font-semibold ${
-                    state === "collapsed"
-                      ? "opacity-0 w-0 overflow-hidden hidden"
-                      : "opacity-100 w-auto"
+                <div
+                  className={`flex flex-col transition-opacity duration-300 ${
+                    state === "collapsed" ? "opacity-0 w-0" : "opacity-100"
                   }`}
                 >
-                  LokaPass
-                </span>
+                  <span className="text-lg font-black italic uppercase tracking-tighter text-white">
+                    LokaPass
+                  </span>
+                  <span className="text-[8px] font-bold text-primary tracking-[0.2em] uppercase leading-none">
+                    Admin Panel
+                  </span>
+                </div>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="px-2">
         <NavMain items={data.navMain} userRole={user?.role || ""} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="p-4 border-t border-white/5 bg-white/2">
         <NavUser
           user={
             user || { name: "Joe Itax", email: "itax@gmail.com", avatar: "" }

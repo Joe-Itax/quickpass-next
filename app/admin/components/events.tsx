@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "motion/react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -8,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search, Filter, CalendarPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EventCard } from "./event-card";
 import { useEvents } from "@/hooks/use-event";
@@ -17,7 +19,6 @@ import AddEvent from "../events/add-event";
 
 export default function Events() {
   const { data: events = [], isPending, isError, error, refetch } = useEvents();
-
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -29,7 +30,7 @@ export default function Events() {
     });
   }, [events, search, statusFilter]);
 
-  if (isPending || error || isError) {
+  if (isPending || isError) {
     return (
       <DataStatusDisplay
         isPending={isPending}
@@ -41,26 +42,35 @@ export default function Events() {
   }
 
   return (
-    <>
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <Input
-          placeholder="🔍 Rechercher un événement..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-1/2"
-        />
+    <div className="space-y-8">
+      {/* TOOLBAR FILTRES */}
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-white/2 border border-white/5 p-4 rounded-4xl backdrop-blur-md">
+        <div className="relative w-full lg:max-w-md">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+            size={18}
+          />
+          <Input
+            placeholder="Rechercher par nom d'événement..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-12 pl-12 bg-white/5 border-white/10 rounded-xl focus:border-primary transition-all text-white placeholder:text-gray-600"
+          />
+        </div>
 
-        <div className="flex gap-2 flex-wrap justify-center items-center">
+        <div className="flex max-sm:flex-wrap gap-3 w-full lg:w-auto items-center">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-45">
-              <SelectValue placeholder="Filtrer par statut" />
+            <SelectTrigger className="h-12 bg-white/5 border-white/10 rounded-xl text-gray-300 min-w-40">
+              <div className="flex items-center gap-2">
+                <Filter size={14} className="text-primary" />
+                <SelectValue placeholder="Statut" />
+              </div>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
+            <SelectContent className="bg-[#0f0f0f] border-white/10 text-white">
+              <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="UPCOMING">À venir</SelectItem>
               <SelectItem value="ONGOING">En cours</SelectItem>
-              <SelectItem value="FINISHED">Passés</SelectItem>
+              <SelectItem value="FINISHED">Terminés</SelectItem>
             </SelectContent>
           </Select>
 
@@ -68,18 +78,36 @@ export default function Events() {
         </div>
       </div>
 
-      {filteredEvents.length <= 0 && (
-        <div className="flex justify-center items-center pt-32">
-          <p>Aucun événement à afficher. Créer votre premier événement.</p>
-        </div>
-      )}
-
-      {/* Event List */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredEvents.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </div>
-    </>
+      {/* GRILLE D'ÉVÉNEMENTS */}
+      <AnimatePresence mode="popLayout">
+        {filteredEvents.length <= 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-white/5 rounded-[3rem]"
+          >
+            <CalendarPlus size={48} className="text-gray-700 mb-4" />
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+              Aucun événement détecté
+            </p>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event, i) => (
+              <motion.div
+                key={event.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <EventCard event={event} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

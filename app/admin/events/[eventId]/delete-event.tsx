@@ -8,43 +8,36 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Trash2, X, ShieldAlert } from "lucide-react";
+import { useDeleteEvent } from "@/hooks/use-event";
+import { useRouter } from "next/navigation";
+import { ShieldAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface DeleteTerminalProps {
-  terminalId: number;
-  terminalName: string;
+interface DeleteEventProps {
+  eventId: number;
+  eventName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function DeleteTerminal({
-  terminalId,
-  terminalName,
+export default function DeleteEvent({
+  eventId,
+  eventName,
   open,
   onOpenChange,
-}: DeleteTerminalProps) {
-  const queryClient = useQueryClient();
+}: DeleteEventProps) {
+  const router = useRouter();
+  const { mutateAsync: deleteEvent, isPending } = useDeleteEvent(eventId);
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/events/terminals/${terminalId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events-with-terminals"] });
-      queryClient.invalidateQueries({ queryKey: ["event"] });
+  const handleDelete = async () => {
+    try {
+      await deleteEvent(eventId);
       onOpenChange(false);
-      toast.success(`Le terminal "${terminalName}" a été archivé.`);
-    },
-    onError: () => {
-      toast.error("Erreur lors de la suppression.");
-    },
-  });
+      router.push("/admin/events");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -56,30 +49,29 @@ export default function DeleteTerminal({
           </div>
           <div>
             <AlertDialogTitle className="text-2xl font-black italic uppercase text-white tracking-tighter">
-              Confirmation
+              Alerte Critique
             </AlertDialogTitle>
             <p className="text-[10px] font-bold text-red-500/60 uppercase tracking-[0.2em]">
-              Action Irréversible
+              Suppression de l&apos;événement
             </p>
           </div>
         </div>
 
         <div className="p-8 space-y-6">
           <AlertDialogDescription className="text-center text-gray-400 font-medium leading-relaxed">
-            Vous êtes sur le point de désactiver le terminal <br />
+            Vous allez supprimer définitivement <br />
             <span className="text-white font-black italic uppercase bg-white/5 px-2 py-1 rounded-lg border border-white/10 mx-1">
-              {terminalName}
+              {eventName}
             </span>
             <br />
             <br />
-            <span className="text-[11px] uppercase font-bold tracking-tight">
-              Ce point de contrôle ne pourra plus scanner de billets. Les
-              données historiques resteront accessibles en lecture seule.
+            <span className="text-[11px] uppercase font-bold tracking-tight text-red-500/80">
+              Cette action effacera toutes les invitations, les tables et les
+              logs de scan associés.
             </span>
           </AlertDialogDescription>
         </div>
 
-        {/* FOOTER ACTIONS */}
         <div className="p-6 bg-black/40 flex items-center justify-between gap-4">
           <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-white/10 bg-white/5 text-gray-400 font-black uppercase italic text-[10px] tracking-widest hover:bg-white/10 hover:text-white transition-all">
             <X className="mr-2" size={14} /> Annuler
@@ -88,7 +80,7 @@ export default function DeleteTerminal({
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
-              mutate();
+              handleDelete();
             }}
             disabled={isPending}
             className={cn(
@@ -96,13 +88,7 @@ export default function DeleteTerminal({
               "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.2)]",
             )}
           >
-            {isPending ? (
-              "Archivage..."
-            ) : (
-              <>
-                <Trash2 className="mr-2" size={14} /> Désactiver
-              </>
-            )}
+            {isPending ? "Destruction..." : "Confirmer"}
           </AlertDialogAction>
         </div>
       </AlertDialogContent>
