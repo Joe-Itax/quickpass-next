@@ -8,6 +8,8 @@ import {
   AlignLeft,
   Info,
   Sparkles,
+  Clock,
+  Timer,
 } from "lucide-react";
 
 import {
@@ -23,11 +25,14 @@ import { Label } from "@/components/ui/label";
 import { useCreateEvent } from "@/hooks/use-event";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { Event2 } from "@/types/types";
 
 type EventFormData = {
   name: string;
   description: string;
   date: string;
+  startTime: string;
+  durationHours: number;
   location: string;
 };
 
@@ -37,27 +42,32 @@ export default function AddEvent() {
     name: "",
     description: "",
     date: "",
+    startTime: "12:00",
+    durationHours: 24,
     location: "",
   });
 
-  const [errors, setErrors] = useState<Partial<EventFormData>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof EventFormData, string>>
+  >({});
   const { mutateAsync: createEvent, isPending } = useCreateEvent();
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<EventFormData> = {};
+    const newErrors: Partial<Record<keyof EventFormData, string>> = {};
 
     if (!formData.name.trim()) newErrors.name = "NOM REQUIS";
     if (!formData.description.trim())
       newErrors.description = "DESCRIPTION REQUISE";
     if (!formData.date.trim()) newErrors.date = "DATE REQUISE";
+    if (!formData.startTime.trim()) newErrors.startTime = "HEURE REQUISE";
     if (!formData.location.trim()) newErrors.location = "LIEU REQUIS";
+    if (formData.durationHours <= 0) newErrors.durationHours = "DURÉE INVALIDE";
 
-    const selectedDate = new Date(formData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const combinedDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const now = new Date();
 
-    if (formData.date && selectedDate < today) {
-      newErrors.date = "DATE INVALIDE (PASSÉE)";
+    if (formData.date && combinedDateTime < now) {
+      newErrors.date = "DATE/HEURE INVALIDE (PASSÉE)";
     }
 
     setErrors(newErrors);
@@ -68,14 +78,24 @@ export default function AddEvent() {
     if (!validateForm()) return;
 
     try {
+      const finalDateTime = new Date(`${formData.date}T${formData.startTime}`);
+
       await createEvent({
         name: formData.name,
         description: formData.description,
-        date: formData.date,
+        date: finalDateTime.toISOString(),
+        durationHours: Number(formData.durationHours),
         location: formData.location,
-      } as Parameters<typeof createEvent>[0]);
+      } as unknown as Event2);
 
-      setFormData({ name: "", description: "", date: "", location: "" });
+      setFormData({
+        name: "",
+        description: "",
+        date: "",
+        startTime: "12:00",
+        durationHours: 24,
+        location: "",
+      });
       setOpenDialog(false);
     } catch (error) {
       console.error(error);
@@ -86,7 +106,10 @@ export default function AddEvent() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "durationHours" ? parseInt(value) || 0 : value,
+    }));
     if (errors[name as keyof EventFormData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -101,8 +124,7 @@ export default function AddEvent() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
-        {/* HEADER STYLISÉ */}
+      <DialogContent className="sm:max-w-2xl bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
         <DialogHeader className="bg-white/5 p-8 border-b border-white/5 relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent" />
           <div className="flex items-center gap-4">
@@ -137,35 +159,7 @@ export default function AddEvent() {
               )}
               placeholder="Ex: GALA DE CHARITÉ 2026"
             />
-            <AnimatePresence>
-              {errors.name && (
-                <motion.p
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-red-500 text-[9px] font-black italic uppercase tracking-widest ml-1"
-                >
-                  {errors.name}
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
-              <AlignLeft size={12} /> Briefing
-            </Label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={2}
-              className={cn(
-                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white/70 transition-all focus:outline-none focus:border-primary resize-none placeholder:text-gray-700",
-                errors.description ? "border-red-500" : "border-white/10",
-              )}
-              placeholder="Décrivez l'enjeu de cet événement..."
-            />
+            <ErrorMessage message={errors.name} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -186,11 +180,50 @@ export default function AddEvent() {
                     : "border-white/10",
                 )}
               />
-              {errors.date && (
-                <p className="text-red-500 text-[9px] font-black uppercase italic ml-1">
-                  {errors.date}
-                </p>
-              )}
+              <ErrorMessage message={errors.date} />
+            </div>
+
+            {/* Heure de début */}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+                <Clock size={12} /> Heure de Début
+              </Label>
+              <input
+                name="startTime"
+                type="time"
+                value={formData.startTime}
+                onChange={handleChange}
+                className={cn(
+                  "w-full h-12 px-4 rounded-xl bg-white/5 border text-sm font-bold text-white transition-all focus:outline-none focus:border-primary scheme-dark",
+                  errors.startTime
+                    ? "border-red-500 bg-red-500/5"
+                    : "border-white/10",
+                )}
+              />
+              <ErrorMessage message={errors.startTime} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Durée */}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+                <Timer size={12} /> Durée prévue (Heures)
+              </Label>
+              <input
+                name="durationHours"
+                type="number"
+                min="1"
+                value={formData.durationHours}
+                onChange={handleChange}
+                className={cn(
+                  "w-full h-12 px-4 rounded-xl bg-white/5 border text-sm font-bold text-white transition-all focus:outline-none focus:border-primary",
+                  errors.durationHours
+                    ? "border-red-500 bg-red-500/5"
+                    : "border-white/10",
+                )}
+              />
+              <ErrorMessage message={errors.durationHours} />
             </div>
 
             {/* Lieu */}
@@ -203,7 +236,7 @@ export default function AddEvent() {
                 type="text"
                 value={formData.location}
                 onChange={handleChange}
-                placeholder="Ex: Pullman Hotel, Hilton Hotel"
+                placeholder="Ex: Pullman Hotel"
                 className={cn(
                   "w-full h-12 px-4 rounded-xl bg-white/5 border text-sm font-bold text-white transition-all focus:outline-none focus:border-primary placeholder:text-gray-700",
                   errors.location
@@ -211,7 +244,29 @@ export default function AddEvent() {
                     : "border-white/10",
                 )}
               />
+              <ErrorMessage message={errors.location} />
             </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+              <AlignLeft size={12} /> Briefing
+            </Label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={2}
+              className={cn(
+                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white/70 transition-all focus:outline-none focus:border-primary resize-none placeholder:text-gray-700",
+                errors.description
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-white/10",
+              )}
+              placeholder="Décrivez l'enjeu de cet événement..."
+            />
+            <ErrorMessage message={errors.description} />
           </div>
         </div>
 
@@ -238,3 +293,19 @@ export default function AddEvent() {
     </Dialog>
   );
 }
+
+// Helper pour afficher l'erreur avec animation
+const ErrorMessage = ({ message }: { message?: string }) => (
+  <AnimatePresence mode="wait">
+    {message && (
+      <motion.p
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 10 }}
+        className="text-red-500 text-[9px] font-black italic uppercase tracking-widest ml-1 mt-1"
+      >
+        {message}
+      </motion.p>
+    )}
+  </AnimatePresence>
+);

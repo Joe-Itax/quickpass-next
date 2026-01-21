@@ -84,8 +84,11 @@ export function useUpdateEvent(eventId: number) {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.invitations(eventId) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.all });
+    },
   });
 }
 

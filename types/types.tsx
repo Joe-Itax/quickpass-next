@@ -86,7 +86,7 @@ export interface Event2 {
   date: string;
   location: string;
   eventCode: string;
-  status: "FINISHED" | "ONGOING" | "UPCOMING";
+  status: "FINISHED" | "ONGOING" | "UPCOMING" | "CANCELLED";
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +95,7 @@ export interface Event2 {
   assignments: EventAssignment[];
   stats: Stat;
   terminals: Terminal[];
+  durationHours: number;
 }
 
 export interface User {

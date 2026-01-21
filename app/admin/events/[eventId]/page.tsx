@@ -22,6 +22,8 @@ import {
   MoreVertical,
   Settings2,
   Trash2,
+  Clock,
+  Timer,
 } from "lucide-react";
 import { Event2, Terminal } from "@/types/types";
 import formatDateToCustom from "@/utils/format-date-to-custom";
@@ -32,7 +34,7 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import DeleteEvent from "./delete-event";
 import QuickAddTerminal from "./quick-add-terminal";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +49,6 @@ export default function EventPage() {
   const router = useRouter();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(
     null,
   );
@@ -57,9 +58,29 @@ export default function EventPage() {
     null,
   );
 
-  const { data, isPending, isError, error, refetch } = useEvent(
-    Number(eventId),
-  );
+  const {
+    data: dataEvent,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useEvent(Number(eventId));
+
+  const data = dataEvent as Event2;
+
+  // --- LOGIQUE DE CALCUL DU TEMPS ---
+  const timeInfo = useMemo(() => {
+    if (!data) return null;
+    const start = new Date(data.date);
+    const end = new Date(
+      start.getTime() + (data.durationHours || 24) * 60 * 60 * 1000,
+    );
+    return {
+      startStr: `${start.getHours()}h${start.getMinutes().toString().padStart(2, "0")}`,
+      endStr: `${end.getHours()}h${end.getMinutes().toString().padStart(2, "0")}`,
+      duration: data.durationHours,
+    };
+  }, [data]);
 
   if (isPending || isError || error) {
     return (
@@ -74,7 +95,6 @@ export default function EventPage() {
 
   const event = data as Event2;
 
-  // --- LOGIQUE DE CALCUL SÉCURISÉE ---
   const totalCapacity = event.stats.totalCapacity || 0;
   const totalAssigned = event.stats.totalAssignedSeats || 0;
   const occupancyRate =
@@ -90,15 +110,16 @@ export default function EventPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/events")}
+            className="hover:bg-white/5 hover:text-white text-gray-500 font-bold uppercase text-[10px] tracking-widest"
           >
-            <MoveLeftIcon className="mr-2 h-4 w-4" /> Retour
+            <MoveLeftIcon className="mr-2 h-4 w-4" /> Retour au Dashboard
           </Button>
 
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">
               {event.name}
             </h2>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 shadow-[0_0_10px_rgba(253,182,35,0.05)]">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10">
               <Hash size={14} className="text-primary" />
               <span className="text-sm font-mono font-bold text-primary tracking-tighter">
                 {event.eventCode}
@@ -106,24 +127,37 @@ export default function EventPage() {
             </div>
             <Badge
               className={cn(
-                "font-black italic uppercase text-[10px] px-3 py-1",
-                event.status === "UPCOMING"
-                  ? "bg-primary text-white"
-                  : event.status === "ONGOING"
-                    ? "bg-emerald-500 text-white animate-pulse"
-                    : "bg-red-500",
+                "font-black italic uppercase text-[10px] px-4 py-1.5 rounded-full border-none shadow-[0_0_15px_rgba(0,0,0,0.2)]",
+                event.status === "CANCELLED"
+                  ? "bg-red-500 text-white"
+                  : event.status === "UPCOMING"
+                    ? "bg-blue-600 text-white"
+                    : event.status === "ONGOING"
+                      ? "bg-emerald-500 text-white animate-pulse"
+                      : "bg-gray-600 text-white",
               )}
             >
+              {event.status === "ONGOING" && (
+                <span className="size-1.5 rounded-full bg-white mr-2 animate-ping inline-block" />
+              )}
               {event.status}
             </Badge>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-gray-500 text-xs font-bold uppercase tracking-widest">
-            <span className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
+            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Calendar size={14} className="text-primary" />{" "}
               {formatDateToCustom(event.date, false)}
             </span>
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+              <Clock size={14} className="text-primary" /> {timeInfo?.startStr}{" "}
+              — {timeInfo?.endStr}
+            </span>
+            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+              <Timer size={14} className="text-primary" /> Durée:{" "}
+              {timeInfo?.duration}H
+            </span>
+            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <MapPin size={14} className="text-primary" /> {event.location}
             </span>
           </div>
@@ -136,7 +170,7 @@ export default function EventPage() {
           <Button
             variant="destructive"
             onClick={() => setIsDeleteDialogOpen(true)}
-            className="rounded-xl font-black uppercase italic text-[10px] px-5"
+            className="rounded-xl font-black uppercase italic text-[10px] px-5 hover:scale-105 transition-transform"
           >
             <Trash2Icon className="w-4 h-4 mr-2" /> Supprimer
           </Button>
@@ -189,13 +223,13 @@ export default function EventPage() {
 
           {/* TABLES MONITORING */}
           <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden backdrop-blur-md">
-            <CardHeader className="border-b border-white/5 bg-white/2">
+            <CardHeader className="border-b border-white/5 bg-white/2 p-6">
               <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
                 <Table2Icon size={18} /> Monitoring des Tables (
                 {event.tables.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-6 max-sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               {event.tables.map((table) => {
                 const tableAssigned = event.invitations.reduce((total, inv) => {
                   const alloc = inv.allocations?.find(
@@ -238,201 +272,153 @@ export default function EventPage() {
           </Card>
         </div>
 
-        {/* COLONNE DROITE: Invitations & Terminals */}
+        {/* COLONNE DROITE: Terminals & Invitations */}
         <div className="space-y-8">
-          {/* TERMINALS MONITORING */}
+          {/* TERMINALS */}
           <Card className="bg-[#0a0a0a]/50 border-white/10 rounded-4xl border overflow-hidden">
-            <CardHeader className="bg-white/5 border-b border-white/5">
+            <CardHeader className="bg-white/5 border-b border-white/5 p-6">
               <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
-                  <Cpu size={18} /> Liste des Terminaux
+                  <Cpu size={18} /> Terminaux
                 </div>
                 <QuickAddTerminal eventId={event.id} />
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-2 space-y-3">
-              {event.terminals && event.terminals.length > 0 ? (
-                event.terminals.map((terminal) => (
-                  <div
-                    key={terminal.id}
-                    className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "size-10 rounded-xl flex items-center justify-center transition-colors",
-                          terminal.isActive
-                            ? "bg-emerald-500/10 text-emerald-500"
-                            : !terminal.deletedAt
-                              ? "bg-yellow-500/20 text-yellow-500"
-                              : "bg-red-500/10 text-red-500",
-                        )}
-                      >
-                        <MonitorSmartphone size={20} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black uppercase italic text-white group-hover:text-primary">
-                          {terminal.name}
-                        </span>
-                        <span className="text-[11px] text-gray-500 font-bold tracking-widest">
-                          {terminal.code}
-                        </span>
-                      </div>
+            <CardContent className="p-6 max-sm:p-4 space-y-3">
+              {event.terminals?.map((terminal) => (
+                <div
+                  key={terminal.id}
+                  className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "size-10 rounded-xl flex items-center justify-center transition-colors",
+                        terminal.isActive
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-red-500/10 text-red-500",
+                      )}
+                    >
+                      <MonitorSmartphone size={20} />
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge
-                        variant={
-                          terminal.deletedAt
-                            ? "destructive"
-                            : terminal.isActive
-                              ? "default"
-                              : "secondary"
-                        }
-                        className={cn(
-                          "text-[8px] font-black px-1.5 h-4",
-                          terminal.deletedAt
-                            ? "Archivé"
-                            : terminal.isActive
-                              ? "bg-green-500/20 text-green-500 border-green-500/20"
-                              : "bg-yellow-500/20 text-yellow-500 border-yellow-500/20",
-                        )}
-                      >
-                        {terminal.deletedAt
-                          ? "Archivé"
-                          : terminal.isActive
-                            ? "Opérationnel"
-                            : "Hors-Ligne"}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          asChild
-                          disabled={!!terminal.deletedAt}
-                        >
-                          <Button
-                            variant="ghost"
-                            className="size-8 p-0 hover:bg-white/10 rounded-xl"
-                          >
-                            <MoreVertical size={18} className="text-gray-500" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="bg-[#0f0f0f] border-white/10 rounded-2xl min-w-40"
-                        >
-                          <DropdownMenuItem
-                            className="gap-3 py-3 px-4 focus:bg-primary focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
-                            onClick={() => {
-                              setSelectedTerminal(terminal);
-                              setIsModifyOpen(true);
-                            }}
-                          >
-                            <Settings2 size={14} className="text-white" />{" "}
-                            Configurer
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="gap-3 py-3 px-4 text-red-500 focus:bg-red-500 focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
-                            onClick={() => {
-                              setTerminalToDelete(terminal);
-                              setIsDeleteOpen(true);
-                            }}
-                          >
-                            <Trash2 size={14} className="text-white" /> Révoquer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black uppercase italic text-white group-hover:text-primary">
+                        {terminal.name}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {terminal.code}
+                      </span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-[10px] font-black text-gray-600 uppercase italic">
-                    Aucun terminal lié
-                  </p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="size-8 p-0 hover:bg-white/10 rounded-xl"
+                      >
+                        <MoreVertical size={18} className="text-gray-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="bg-[#0f0f0f] border-white/10 rounded-2xl"
+                    >
+                      <DropdownMenuItem
+                        className="gap-3 py-3 px-4 font-bold uppercase italic text-[10px] cursor-pointer"
+                        onClick={() => {
+                          setSelectedTerminal(terminal);
+                          setIsModifyOpen(true);
+                        }}
+                      >
+                        <Settings2 size={14} /> Configurer
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="gap-3 py-3 px-4 text-red-500 font-bold uppercase italic text-[10px] cursor-pointer"
+                        onClick={() => {
+                          setTerminalToDelete(terminal);
+                          setIsDeleteOpen(true);
+                        }}
+                      >
+                        <Trash2 size={14} /> Révoquer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              )}
+              ))}
             </CardContent>
           </Card>
 
-          {/* INVITATIONS LIST */}
-          <Card className="bg-white/2 border-white/5 rounded-4xl">
-            <CardHeader className="border-b border-white/5">
+          {/* INVITATIONS */}
+          <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden">
+            <CardHeader className="border-b border-white/5 p-6">
               <CardTitle className="text-sm font-black uppercase italic text-primary">
-                Liste des Invitations
+                Invitations
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-2 space-y-3 max-h-100 overflow-y-auto custom-scrollbar">
-              {event.invitations.length === 0 && (
-                <p className="text-center py-8 text-[10px] font-bold text-gray-600 uppercase italic">
-                  Aucune donnée entrante
-                </p>
-              )}
+            <CardContent className="p-6 max-sm:p-4 space-y-3 max-h-100 overflow-y-auto custom-scrollbar">
               {event.invitations.map((inv) => (
                 <div
                   key={inv.id}
                   onClick={() =>
                     router.push(`/admin/events/${eventId}/${inv.id}`)
                   }
-                  className="p-3 rounded-xl border border-white/5 bg-white/1 hover:bg-white/5 transition-all cursor-pointer group"
+                  className="p-4 rounded-2xl border border-white/5 bg-white/1 hover:bg-white/5 transition-all cursor-pointer group flex justify-between items-center"
                 >
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold text-xs uppercase text-white group-hover:text-primary transition-colors">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold text-xs uppercase text-white group-hover:text-primary">
                       {inv.label}
                     </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] font-black border-primary/20 text-primary"
-                    >
-                      {inv.peopleCount} PERS.
-                    </Badge>
-                  </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] font-black text-gray-500 uppercase tracking-tighter">
-                    <div className="flex items-center gap-1">
-                      <QrCode size={10} className="text-emerald-500" />
-                      <span>Scans: {inv.scannedCount}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Table2Icon size={10} className="text-blue-500" />
-                      <span className="truncate">
-                        {inv.allocations?.map((a) => a.table.name).join(", ") ||
-                          "N/A"}
+                    <div className="flex items-center gap-3 text-[9px] font-black text-gray-500 uppercase">
+                      <span className="flex items-center gap-1">
+                        <QrCode size={10} className="text-emerald-500" />{" "}
+                        {inv.scannedCount} SCANS
+                      </span>
+                      <span className="flex items-center gap-1 text-blue-400">
+                        <Table2Icon size={10} /> TABLE{" "}
+                        {inv.allocations?.[0]?.table.name || "—"}
                       </span>
                     </div>
                   </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-black border-white/10 text-white group-hover:border-primary transition-colors"
+                  >
+                    {inv.peopleCount} PERS.
+                  </Badge>
                 </div>
               ))}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* MODALS */}
       <DeleteEvent
         eventId={event.id}
         eventName={event.name}
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       />
-
-      {/* MODALS */}
       {selectedTerminal && (
         <ModifyTerminal
-          key={`modify-${selectedTerminal.id}`}
+          key={`mod-${selectedTerminal.id}`}
           terminal={selectedTerminal}
           open={isModifyOpen}
-          onOpenChange={(open) => {
-            setIsModifyOpen(open);
-            if (!open) setSelectedTerminal(null);
+          onOpenChange={(o) => {
+            setIsModifyOpen(o);
+            if (!o) setSelectedTerminal(null);
           }}
         />
       )}
-
       {terminalToDelete && (
         <DeleteTerminal
-          key={`delete-${terminalToDelete.id}`}
+          key={`del-${terminalToDelete.id}`}
           terminalId={terminalToDelete.id}
           terminalName={terminalToDelete.name}
           open={isDeleteOpen}
-          onOpenChange={(open) => {
-            setIsDeleteOpen(open);
-            if (!open) setTerminalToDelete(null);
+          onOpenChange={(o) => {
+            setIsDeleteOpen(o);
+            if (!o) setTerminalToDelete(null);
           }}
         />
       )}
@@ -440,14 +426,7 @@ export default function EventPage() {
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  glow?: boolean;
-}
-
+// Composant StatCard inchangé mais avec design cohérent
 function StatCard({
   label,
   value,
@@ -458,17 +437,14 @@ function StatCard({
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="p-4 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group shadow-lg"
+      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group"
     >
       {glow && (
         <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors" />
       )}
       <Icon className={cn("w-5 h-5", color)} />
       <span
-        className={cn(
-          "text-2xl font-black italic tracking-tighter",
-          glow ? "text-emerald-400" : "text-white",
-        )}
+        className={cn("text-2xl font-black italic tracking-tighter text-white")}
       >
         {value}
       </span>
@@ -477,4 +453,12 @@ function StatCard({
       </span>
     </motion.div>
   );
+}
+
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  glow?: boolean;
 }

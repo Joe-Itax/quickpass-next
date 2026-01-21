@@ -86,23 +86,24 @@ model Verification {
 //          EVENT
 // ----------------------------
 model Event {
-  id          Int               @id @default(autoincrement())
-  name        String
-  description String
-  date        DateTime
-  location    String
-  eventCode   String            @unique // event_name_bdIdEvent
-  status      EventStatus       @default(UPCOMING)
-  createdById String
-  createdBy   User              @relation("EventCreator", fields: [createdById], references: [id])
-  assignments EventAssignment[]
-  tables      Table[]
-  invitations Invitation[]
-  stats       EventStats?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  terminals   Terminal[]
-  deletedAt   DateTime?
+  id            Int               @id @default(autoincrement())
+  name          String
+  description   String
+  date          DateTime // Sera Date + Heure
+  durationHours Int               @default(24)
+  location      String
+  eventCode     String            @unique // event_name_bdIdEvent
+  status        EventStatus       @default(UPCOMING)
+  createdById   String
+  createdBy     User              @relation("EventCreator", fields: [createdById], references: [id])
+  assignments   EventAssignment[]
+  tables        Table[]
+  invitations   Invitation[]
+  stats         EventStats?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  terminals     Terminal[]
+  deletedAt     DateTime?
 }
 
 enum EventStatus {
@@ -120,7 +121,7 @@ model EventAssignment {
   userId     String
   eventId    Int
   user       User     @relation(fields: [userId], references: [id])
-  event      Event    @relation(fields: [eventId], references: [id])
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   assignedAt DateTime @default(now())
 
   @@unique([userId, eventId])
@@ -134,7 +135,7 @@ model Table {
   name        String
   capacity    Int // max number of seats
   eventId     Int
-  event       Event             @relation(fields: [eventId], references: [id])
+  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   allocations TableAllocation[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -152,8 +153,8 @@ model TableAllocation {
   tableId       Int
   seatsAssigned Int // how many seats used for this invitation on this table
 
-  invitation Invitation @relation(fields: [invitationId], references: [id])
-  table      Table      @relation(fields: [tableId], references: [id])
+  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  table      Table      @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   @@unique([invitationId, tableId])
 }
@@ -166,7 +167,7 @@ model Invitation {
   label        String // ex: "Joe Itax" ou "Couple Mutombo" ou "École Le Savoir"
   peopleCount  Int // ex: 1, 2, 14 ...
   eventId      Int
-  event        Event             @relation(fields: [eventId], references: [id])
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   qrCode       String?           @unique // encrypted AES string
   scannedCount Int               @default(0)
   allocations  TableAllocation[]
@@ -182,7 +183,7 @@ model Invitation {
 model EventStats {
   id                 Int      @id @default(autoincrement())
   eventId            Int      @unique
-  event              Event    @relation(fields: [eventId], references: [id])
+  event              Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   totalInvitations   Int      @default(0)
   totalCapacity      Int      @default(0) // sum of all table capacities
   totalPeople        Int      @default(0)
@@ -200,7 +201,7 @@ model Terminal {
   name      String
   code      String    @unique
   eventId   Int
-  event     Event     @relation(fields: [eventId], references: [id])
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   isActive  Boolean   @default(true) // Pour désactivation manuelle
   deletedAt DateTime? // Soft delete
   logs      ScanLog[]
@@ -221,6 +222,6 @@ model ScanLog {
   scannedAt     DateTime  @default(now())
   terminalCode  String?
   terminalId    Int?
-  terminal      Terminal? @relation(fields: [terminalId], references: [id])
+  terminal      Terminal? @relation(fields: [terminalId], references: [id], onDelete: Cascade)
   assignedTable String?
 }

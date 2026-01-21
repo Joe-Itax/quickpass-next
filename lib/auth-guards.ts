@@ -24,35 +24,76 @@ export async function requireAdmin(req: NextRequest) {
   if (!session)
     return NextResponse.json(
       { error: "Unauthorized", message: "Veuillez vous authentifié !" },
-      { status: 401 }
+      { status: 401 },
     );
   // return console.log("requireAdmin: no session");
   if (session.user.role !== "ADMIN") {
     return NextResponse.json(
       { error: "Forbidden", message: "Accès uniquement aux ADMIN !" },
-      { status: 403 }
+      { status: 403 },
     );
   }
   return session.user;
 }
 
 /**
- * requireEventAccess: checks that user is ADMIN (global) or assigned to event
- * returns user or NextResponse JSON on error.
+ * requireEventAccess:
+ * 1. Vérifie l'authentification.
+ * 2. Vérifie que l'événement n'est pas supprimé/annulé (sauf pour l'ADMIN).
+ * 3. Vérifie que l'utilisateur est ADMIN (global) ou assigné à l'événement.
  */
 export async function requireEventAccess(req: NextRequest, eventId: number) {
   const session = await getSessionOrNull(req);
-  if (!session)
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // return console.log("requireEventAccess: no session");
+  }
+
   const user = session.user;
-  if (user.role === "ADMIN") return user; // global admin ok
+
+  // 1. Récupérer l'événement pour vérifier son statut
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { status: true, deletedAt: true },
+  });
+
+  if (!event) {
+    return NextResponse.json(
+      { error: "Événement introuvable" },
+      { status: 404 },
+    );
+  }
+
+  // 2. Logique de blocage pour les événements CANCELLED ou Soft-Deleted
+  // Si l'event est annulé ou supprimé, seul l'ADMIN global peut encore y accéder
+  if (
+    (event.status === "CANCELLED" || event.deletedAt !== null) &&
+    user.role !== "ADMIN"
+  ) {
+    return NextResponse.json(
+      {
+        error: "Forbidden",
+        message: "Cet événement a été annulé ou supprimé.",
+      },
+      { status: 403 },
+    );
+  }
+
+  // 3. Vérification des permissions d'accès
+  if (user.role === "ADMIN") return user; // L'admin global passe toujours (après check status)
 
   const assign = await prisma.eventAssignment.findUnique({
     where: { userId_eventId: { userId: user.id, eventId } },
   });
 
-  if (!assign)
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!assign) {
+    return NextResponse.json(
+      {
+        error: "Forbidden",
+        message: "Vous n'avez pas la permission d'accéder à cet événement.",
+      },
+      { status: 403 },
+    );
+  }
+
   return user;
 }
