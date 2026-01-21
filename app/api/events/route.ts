@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrNull, requireAuth } from "@/lib/auth-guards";
 import { slugify } from "@/utils/slugify";
+import { EventStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getSessionOrNull(req);
@@ -9,6 +10,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const user = session.user;
+
+  const statusFilter =
+    user.role === "ADMIN"
+      ? {}
+      : {
+          status: { in: ["UPCOMING", "ONGOING", "FINISHED"] as EventStatus[] },
+          deletedAt: null,
+        };
 
   // Si admin global -> voit tout
   const where =
@@ -19,6 +28,7 @@ export async function GET(req: NextRequest) {
             { createdById: user.id }, // events créés par l'utilisateur
             { assignments: { some: { userId: user.id } } }, // events où il est assigné
           ],
+          ...statusFilter,
         };
 
   const events = await prisma.event.findMany({
@@ -88,7 +98,7 @@ export async function POST(req: NextRequest) {
     console.error(err);
     return NextResponse.json(
       { error: "Error creating event" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

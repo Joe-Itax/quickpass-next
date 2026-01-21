@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEventAccess, requireAdmin } from "@/lib/auth-guards";
-import { slugify } from "@/utils/slugify";
+// import { slugify } from "@/utils/slugify";
+import { EventStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,16 @@ export async function GET(req: NextRequest, context: EventContext) {
   const user = await requireEventAccess(req, id);
   if (user instanceof NextResponse) return user;
 
-  const event = await prisma.event.findUnique({
-    where: { id },
+  const statusFilter =
+    user.role === "ADMIN"
+      ? {}
+      : {
+          status: { in: ["UPCOMING", "ONGOING", "FINISHED"] as EventStatus[] },
+          deletedAt: null,
+        };
+
+  const event = await prisma.event.findFirst({
+    where: { id, ...statusFilter },
     include: {
       tables: true,
       invitations: {
@@ -38,13 +47,18 @@ export async function GET(req: NextRequest, context: EventContext) {
       terminals: true,
     },
   });
-  if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!event)
+    return NextResponse.json(
+      { error: "Événement introuvable ou archivé" },
+      { status: 404 },
+    );
   return NextResponse.json(event);
 }
 
 export async function PATCH(req: NextRequest, context: EventContext) {
   const { eventId } = await context.params;
   const id = Number(eventId);
+
   if (Number.isNaN(id))
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
@@ -52,53 +66,69 @@ export async function PATCH(req: NextRequest, context: EventContext) {
   if (user instanceof NextResponse) return user;
 
   try {
-    const data = await req.json();
-    // if name changed, regenerate code
-    const updatePayload = { ...data };
-    if (data.name) {
-      updatePayload.eventCode = `${slugify(data.name)}-${id}`;
+    const body = await req.json();
+
+    // 1. NETTOYAGE DU PAYLOAD
+    // On extrait uniquement les champs scalaires de l'Event pour éviter l'erreur Prisma
+    // On ignore les relations comme 'tables', 'invitations', 'stats', 'terminals'
+    const {
+      id: _id,
+      tables,
+      invitations,
+      stats,
+      assignments,
+      terminals,
+      createdAt,
+      updatedAt,
+      ...cleanData
+    } = body;
+
+    const updatePayload = { ...cleanData };
+
+    if (cleanData.name) {
+      // updatePayload.eventCode = `${slugify(cleanData.name)}-${id}`;
     }
+
     const updated = await prisma.event.update({
       where: { id },
       data: updatePayload,
     });
+
     return NextResponse.json(updated);
   } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { error: "Error updating", details: String(err) },
-      { status: 500 }
-    );
+    console.error("Update error:", err);
+    return NextResponse.json({ error: "Error updating" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest, context: EventContext) {
-  // only global ADMIN can delete
   const admin = await requireAdmin(req);
   if (admin instanceof NextResponse) return admin;
 
   const { eventId } = await context.params;
   const id = Number(eventId);
-  if (Number.isNaN(id))
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.tableAllocation.deleteMany({
-        where: { table: { eventId: id } },
-      });
-      await tx.table.deleteMany({ where: { eventId: id } });
-      await tx.invitation.deleteMany({ where: { eventId: id } });
-      await tx.eventAssignment.deleteMany({ where: { eventId: id } });
-      await tx.eventStats.deleteMany({ where: { eventId: id } });
-      await tx.event.delete({ where: { id } });
+    // LOGIQUE DE SOFT DELETE (30 JOURS)
+    // Au lieu de supprimer les lignes dans la DB, on marque l'event comme supprimé.
+    // Les terminaux, invitations etc. restent liés mais l'event n'apparaîtra plus.
+    await prisma.event.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: "CANCELLED",
+      },
     });
-    return NextResponse.json({ ok: true });
+
+    return NextResponse.json({
+      message:
+        "Evénement marqué pour suppression. Il sera définitivement supprimer dans 30 jours.",
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Delete error:", err);
     return NextResponse.json(
       { error: "Error deleting event" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

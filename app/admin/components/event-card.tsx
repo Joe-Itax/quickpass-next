@@ -11,6 +11,7 @@ export function EventCard({ event }: { event: Event2 }) {
     UPCOMING: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     ONGOING: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     FINISHED: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    CANCELLED: "bg-red-500 text-white/80 border-white/20",
   };
 
   return (

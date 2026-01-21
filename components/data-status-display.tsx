@@ -62,7 +62,7 @@ export default function DataStatusDisplay({
             Réinitialiser la requête
           </Button>
 
-          <p className="text-[9px] font-black text-gray-700 uppercase tracking-widest leading-relaxed">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
             Si l&apos;erreur persiste, vérifiez votre liaison <br /> ou
             contactez le support technique.
           </p>
@@ -80,7 +80,7 @@ export default function DataStatusDisplay({
         </div>
         <div className="flex flex-col items-center gap-1">
           <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">
-            Initialisation
+            Chargement
           </span>
           <span className="text-[8px] font-bold text-gray-600 uppercase tracking-widest">
             Accès au flux de données sécurisé...

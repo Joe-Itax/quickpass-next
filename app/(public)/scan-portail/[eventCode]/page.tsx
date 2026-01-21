@@ -14,6 +14,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LogoutDialog from "./logout";
 
 interface ScanResult {
   label?: string;
@@ -43,6 +44,8 @@ interface DetectedCode {
 export default function ScanPage() {
   const { eventCode } = useParams() as { eventCode: string };
   const router = useRouter();
+
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const [viewState, setViewState] = useState<"idle" | "loading" | "result">(
     "idle",
@@ -74,14 +77,12 @@ export default function ScanPage() {
     };
   }, [eventCode]);
 
-  const handleLogout = () => {
-    if (confirm("Voulez-vous déconnecter ce terminal ?")) {
-      localStorage.removeItem("eventCode");
-      localStorage.removeItem("terminalCode");
-      localStorage.removeItem("eventName");
-      localStorage.removeItem("terminalName");
-      router.push("/scan-portail");
-    }
+  const confirmLogout = () => {
+    localStorage.removeItem("eventCode");
+    localStorage.removeItem("terminalCode");
+    localStorage.removeItem("eventName");
+    localStorage.removeItem("terminalName");
+    router.push("/scan-portail");
   };
 
   const handleScan = async (
@@ -172,7 +173,11 @@ export default function ScanPage() {
     <div className="min-h-screen text-white flex flex-col bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover selection:bg-primary pb-40">
       {/* HEADER */}
       <div className="p-6 flex justify-between items-center bg-white/5 backdrop-blur-xl border-b border-white/10 z-30">
-        <Button onClick={handleLogout} variant="ghost" className="">
+        <Button
+          onClick={() => setIsLogoutDialogOpen(true)}
+          variant="ghost"
+          className=""
+        >
           <ChevronLeft size={24} className="size-6 rounded-full p-0" />{" "}
           Deconnexion
         </Button>
@@ -375,6 +380,12 @@ export default function ScanPage() {
           </p>
         </div>
       </div>
+      {/* Le Dialog de déconnexion */}
+      <LogoutDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }
