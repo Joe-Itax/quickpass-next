@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Settings2, Calendar, MapPin, AlignLeft, Info } from "lucide-react";
+import {
+  Settings2,
+  Calendar,
+  MapPin,
+  AlignLeft,
+  Info,
+} from "lucide-react";
 
 import {
   Dialog,
