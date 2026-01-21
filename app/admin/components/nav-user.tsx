@@ -28,8 +28,10 @@ import { authClient } from "@/lib/auth-client";
 
 export function NavUser({
   user,
+  state,
 }: {
   user: { name: string; email: string; avatar?: string; role?: string };
+  state: string;
 }) {
   const router = useRouter();
   const { isMobile } = useSidebar();
@@ -51,9 +53,11 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="rounded-2xl hover:bg-white/5 transition-all group"
+              className="rounded-2xl hover:bg-white/5 transition-all group bg-re-500! w-full flex"
             >
-              <Avatar className="h-9 w-9 rounded-xl border border-white/10">
+              <Avatar
+                className={`h-9 w-9 rounded-xl border border-white/10 ${state === "collapsed" ? "" : ""}`}
+              >
                 <AvatarFallback className="bg-primary text-white font-black text-xs">
                   {avatarFallback}
                 </AvatarFallback>
@@ -62,7 +66,7 @@ export function NavUser({
                 <span className="truncate text-xs font-black uppercase italic text-white group-hover:text-primary transition-colors">
                   {user.name}
                 </span>
-                <span className="truncate text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                <span className="truncate text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
                   {user.role || "Opérateur"}
                 </span>
               </div>
@@ -79,7 +83,7 @@ export function NavUser({
             align="end"
             sideOffset={12}
           >
-            <DropdownMenuLabel className="p-4">
+            <DropdownMenuLabel className="p-0">
               <div className="flex flex-col gap-1">
                 <p className="text-[10px] font-black text-primary tracking-[0.2em] uppercase">
                   Connecté en tant que

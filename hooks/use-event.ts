@@ -215,12 +215,21 @@ export function useDeleteInvitation(eventId: number, invitationId: number) {
 // ===================================================================
 
 export function useScan(eventId: string) {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (qr: string) =>
       fetcher(`/api/events/${eventId}/scan`, {
         method: "POST",
         body: JSON.stringify({ qr }),
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: EVENT_KEYS.invitations(Number(eventId)),
+      });
+      qc.invalidateQueries({
+        queryKey: EVENT_KEYS.tables(Number(eventId)),
+      });
+    },
   });
 }
 
