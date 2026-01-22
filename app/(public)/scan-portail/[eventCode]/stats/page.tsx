@@ -14,6 +14,7 @@ import TableOccupancy from "./table-occupancy";
 import DataStatusDisplay from "@/components/data-status-display";
 import { Event2, Invitation, Table } from "@/types/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 
 export default function StatsPage() {
   const { eventCode } = useParams() as { eventCode: string };
@@ -23,17 +24,33 @@ export default function StatsPage() {
     data: event,
     isPending: p1,
     isError: e1,
+    refetch: refetchEvent,
   } = useEventByEventCode(eventCode);
   const {
     data: invs,
     isPending: p2,
     isError: e2,
+    refetch: refetchInvitations,
   } = useEventInvitationsByEventCode(eventCode);
   const {
     data: tables,
     isPending: p3,
     isError: e3,
+    refetch: refetchTables,
   } = useTablesByEventCode(eventCode);
+
+  useRealtimeSync({
+    eventCode,
+    onUpdate: () => refetchEvent(),
+  });
+  useRealtimeSync({
+    eventCode,
+    onUpdate: () => refetchInvitations(),
+  });
+  useRealtimeSync({
+    eventCode,
+    onUpdate: () => refetchTables(),
+  });
 
   const invitations = (invs as Invitation[]) || [];
   const tablesData = (tables as Table[]) || [];

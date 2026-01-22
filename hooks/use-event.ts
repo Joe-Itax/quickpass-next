@@ -28,6 +28,7 @@ export const EVENT_KEYS = {
   table: (id: number, tableId: number) =>
     ["event", id, "table", tableId] as const,
   history: (eventCode: string) => [eventCode, "history"] as const,
+  historyEventId: (eventId: number) => [eventId, "history"] as const,
 };
 
 // ===================================================================
@@ -231,6 +232,9 @@ export function useScan(eventId: string) {
       });
       qc.invalidateQueries({
         queryKey: EVENT_KEYS.tables(Number(eventId)),
+      });
+      qc.invalidateQueries({
+        queryKey: EVENT_KEYS.historyEventId(Number(eventId)),
       });
     },
   });

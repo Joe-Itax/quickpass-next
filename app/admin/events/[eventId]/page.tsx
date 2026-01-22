@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import DeleteTerminal from "../../terminals/delete-terminal";
 import ModifyTerminal from "../../terminals/modify-terminal";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -67,6 +68,11 @@ export default function EventPage() {
   } = useEvent(Number(eventId));
 
   const data = dataEvent as Event2;
+
+  useRealtimeSync({
+    eventId: Number(eventId),
+    onUpdate: () => refetch(),
+  });
 
   // --- LOGIQUE DE CALCUL DU TEMPS ---
   const timeInfo = useMemo(() => {

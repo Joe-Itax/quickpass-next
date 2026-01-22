@@ -16,11 +16,14 @@ import { useEvents } from "@/hooks/use-event";
 import { Event2 } from "@/types/types";
 import DataStatusDisplay from "@/components/data-status-display";
 import AddEvent from "../events/add-event";
+import { useRealtimeList } from "@/hooks/use-realtime-list";
 
 export default function Events() {
   const { data: events = [], isPending, isError, error, refetch } = useEvents();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+
+  useRealtimeList(refetch);
 
   const filteredEvents = useMemo(() => {
     return (events as Event2[]).filter((e: Event2) => {

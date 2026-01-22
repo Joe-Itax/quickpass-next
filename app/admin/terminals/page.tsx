@@ -26,6 +26,7 @@ import DeleteTerminal from "./delete-terminal";
 import DataStatusDisplay from "@/components/data-status-display";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useRealtimeList } from "@/hooks/use-realtime-list";
 
 interface Terminal {
   id: number;
@@ -60,6 +61,8 @@ export default function TerminalsPage() {
     error,
     refetch,
   } = useEventsWithTerminals();
+
+  useRealtimeList(refetch);
 
   const filteredEvents = useMemo(() => {
     if (!events) return [];

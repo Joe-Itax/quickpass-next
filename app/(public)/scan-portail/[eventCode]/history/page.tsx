@@ -18,6 +18,7 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 
 export default function HistoryPage() {
   const { eventCode } = useParams() as { eventCode: string };
@@ -33,6 +34,11 @@ export default function HistoryPage() {
     error,
     refetch,
   } = useEventHistory(eventCode);
+
+  useRealtimeSync({
+    eventCode,
+    onUpdate: () => refetch(),
+  });
 
   // Extraction de la liste unique des terminaux pour le filtre
   const terminals = useMemo((): string[] => {

@@ -12,10 +12,13 @@ import { Event2 } from "@/types/types";
 import Events from "./components/events";
 import { useEvents } from "@/hooks/use-event";
 import DataStatusDisplay from "@/components/data-status-display";
+import { useRealtimeList } from "@/hooks/use-realtime-list";
 
 export default function AdminDashboard() {
   const { data = [], isPending, isError, error, refetch } = useEvents();
   const events = data as Event2[];
+
+  useRealtimeList(refetch);
 
   if (isPending || isError) {
     return (

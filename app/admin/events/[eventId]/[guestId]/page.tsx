@@ -20,6 +20,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Invitation } from "@/types/types";
 import ModifyGuest from "./modify-guest";
 import { cn } from "@/lib/utils";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 
 export default function GuestPage() {
   const { eventId, guestId } = useParams();
@@ -38,6 +39,11 @@ export default function GuestPage() {
     refetch,
   } = useInvitation(Number(eventId), Number(guestId));
   const invitation = invitationData as Invitation;
+
+  useRealtimeSync({
+    eventId: Number(eventId),
+    onUpdate: () => refetch(),
+  });
 
   const deleteMutation = useDeleteInvitation(Number(eventId), Number(guestId));
 
