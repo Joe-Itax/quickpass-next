@@ -4,122 +4,110 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  ShieldCheck,
-  Zap,
+  // ShieldCheck,
   QrCode,
   ArrowRight,
-  Users,
+  // Users,
   Check,
   Mail,
   Phone,
-  MapPin,
+  // MapPin,
   Lock,
+  Zap,
+  Star,
+  // Eye,
+  Smartphone,
+  Gem,
+  Rocket,
+  Activity,
+  // RefreshCw,
+  HelpCircle,
 } from "lucide-react";
 import { FaqItem } from "@/components/faq-item";
 import { authClient } from "@/lib/auth-client";
 
-const fadeIn = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6 },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
 export default function LandingPage() {
   const { data: session } = authClient.useSession();
   const sess = session?.session;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 font-sans overflow-x-hidden">
-      {/* --- BACKGROUND EFFECTS --- */}
+      {/* --- EFFETS DE FOND --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.15, 0.1],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute -top-[25%] -left-[10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full"
-        />
-        <div className="absolute bottom-0 -right-[5%] w-[40%] h-[40%] bg-accent/5 blur-[100px] rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
       </div>
 
-      {/* --- HEADER --- */}
-      <header className="fixed w-full top-0 z-50 border-b border-white/8 bg-black/60 backdrop-blur-xl">
+      {/* --- NAVIGATION --- */}
+      <header className="fixed w-full top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-2xl">
         <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2"
-          >
+          <div className="flex items-center gap-2">
             <div className="size-10 rounded-xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
-              <Lock className="text-white" size={22} />
+              <Lock className="text-white" size={20} />
             </div>
             <span className="text-2xl font-black tracking-tighter italic">
               LokaPass
             </span>
-          </motion.div>
+          </div>
 
-          <nav className="hidden md:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
-            {["Solutions", "Tarifs", "Contact"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                className="hover:text-white transition-colors"
-              >
-                {item}
-              </a>
-            ))}
+          <nav className="hidden md:flex gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">
+            <Link
+              href="#concept"
+              className="hover:text-primary transition-colors"
+            >
+              Le Concept
+            </Link>
+            <Link
+              href="#tarifs"
+              className="hover:text-primary transition-colors"
+            >
+              Tarifs
+            </Link>
+            <Link
+              href="#contact"
+              className="hover:text-primary transition-colors"
+            >
+              Contact
+            </Link>
           </nav>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+          <Link
+            href={sess ? "/admin" : "/login"}
+            className="group flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] bg-white text-black px-6 py-3 rounded-full hover:bg-primary hover:text-white transition-all shadow-xl"
           >
-            <Link
-              href={sess ? "/admin" : "/login"}
-              className="group flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary border border-primary/20 px-4 py-2 rounded-lg hover:bg-primary/10 transition-all"
-            >
-              Accès Gérant
-              <ArrowRight
-                size={16}
-                className="group-hover:translate-x-1 transition-transform"
-              />
-            </Link>
-          </motion.div>
+            {sess ? "Mon Dashboard" : "Accès Gérant"}
+            <ArrowRight
+              size={14}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
         </div>
       </header>
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-30 pb-20">
+      {/* --- HERO --- */}
+      <section className="relative pt-44 pb-32">
         <div className="container mx-auto px-6 text-center">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-accent mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-5 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-12"
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            Système Distribué v2.0
+            Solution Leader à Kinshasa
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8"
+            className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] mb-10 uppercase italic"
           >
-            VOTRE ÉVÉNEMENT, <br />
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary via-blue-400 to-accent">
-              ZÉRO FRAUDE.
+            L&apos;ENTRÉE SANS <br />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary via-blue-400 to-white text-not-italic">
+              SOUCIS.
             </span>
           </motion.h1>
 
@@ -127,105 +115,135 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="mx-auto max-w-2xl text-gray-400 text-lg md:text-xl mb-12 leading-relaxed"
+            className="mx-auto max-w-2xl text-gray-400 text-lg md:text-2xl mb-16 leading-relaxed font-medium"
           >
-            Fini les faux billets et les bousculades. LokaPass sécurise vos
-            accès en temps réel avec une technologie simple, rapide et
-            infaillible.
+            Éliminez les fraudes, les doublons et le désordre. Un système
+            intelligent qui synchronise vos entrées en temps réel.
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6"
-          >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
               href="/scan-portail"
-              className="group relative w-full sm:w-auto overflow-hidden rounded-2xl bg-primary px-10 py-5 text-lg font-black uppercase tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)]"
+              className="group w-full sm:w-auto rounded-full bg-primary px-12 py-6 text-lg font-black uppercase tracking-tighter hover:scale-105 transition-all shadow-[0_20px_50px_rgba(59,130,246,0.3)] flex items-center justify-center gap-3"
             >
-              <div className="flex items-center justify-center gap-3">
-                <QrCode size={24} />
-                Lancer le Scan
-              </div>
+              <QrCode size={20} /> Lancer le Scan
             </Link>
             <a
               href="#contact"
-              className="w-full sm:w-auto px-10 py-5 text-lg font-bold border border-white/10 rounded-2xl hover:bg-white/5 transition-colors"
+              className="w-full sm:w-auto px-12 py-6 text-lg font-black uppercase tracking-tighter border border-white/10 rounded-full hover:bg-white/5 transition-all"
             >
-              Réserver une démo
+              Parler à un expert
             </a>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* --- KEY BENEFITS --- */}
-      <motion.section
-        variants={staggerContainer}
-        initial="initial"
-        whileInView="animate"
-        viewport={{ once: true }}
-        id="solutions"
-        className="py-24 container mx-auto px-6 grid md:grid-cols-3 gap-8 text-center"
-      >
-        <BenefitCard
-          icon={<ShieldCheck className="text-primary" size={30} />}
-          title="Sécurité Totale"
-          desc="Chaque billet est unique. Une fois scanné, il devient invalide instantanément pour tout le réseau."
-        />
-        <BenefitCard
-          icon={<Users className="text-accent" size={30} />}
-          title="Gestion de Groupes"
-          desc="Un seul code pour toute une table VIP. Le système décompte les entrées automatiquement."
-        />
-        <BenefitCard
-          icon={<Zap className="text-blue-400" size={30} />}
-          title="Direct & Live"
-          desc="Suivez le taux de remplissage en temps réel depuis votre propre tableau de bord gérant."
-        />
-      </motion.section>
+      {/* --- SECTION MÉTRIQUES : LA PREUVE PAR LES CHIFFRES --- */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+            <MetricItem
+              value="10k+"
+              label="Scans réussis"
+              desc="Zéro faille détectée"
+            />
+            <MetricItem
+              value="250ms"
+              label="Temps de réponse"
+              desc="Validation instantanée"
+            />
+            <MetricItem
+              value="100%"
+              label="Anti-Fraude"
+              desc="Doublons impossibles"
+            />
+            <MetricItem
+              value="24/7"
+              label="Disponibilité"
+              desc="Système toujours actif"
+            />
+          </div>
+        </div>
+      </section>
 
-      {/* --- PRICING --- */}
-      <section id="tarifs" className="py-32 border-t border-white/5">
+      {/* --- SECTION CONCEPT --- */}
+      <section id="concept" className="py-32 bg-white/2">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-6xl font-black uppercase italic mb-6">
+              Comment ça marche ?
+            </h2>
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+              Trois étapes vers la tranquillité
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-12">
+            <ConceptCard
+              step="01"
+              icon={<Zap className="text-yellow-400" />}
+              title="Créez vos invitations"
+              desc="Générez des codes QR uniques pour vos invités ou vos tables VIP en quelques secondes."
+            />
+            <ConceptCard
+              step="02"
+              icon={<Smartphone className="text-primary" />}
+              title="Scannez à l'entrée"
+              desc="Vos agents utilisent leurs propres téléphones. Aucune application lourde à installer."
+            />
+            <ConceptCard
+              step="03"
+              icon={<Activity className="text-accent" />}
+              title="Suivez en direct"
+              desc="Visualisez le taux de remplissage et les arrivées en temps réel sur votre dashboard."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* --- TARIFS --- */}
+      <section id="tarifs" className="py-32">
         <div className="container mx-auto px-6 text-center">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            className="text-4xl md:text-6xl font-black mb-16 uppercase italic"
-          >
+          <h2 className="text-4xl md:text-6xl font-black mb-20 uppercase italic">
             Nos Forfaits
-          </motion.h2>
+          </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <PriceCard
-              title="Standard"
-              price="Sur Devis"
-              desc="Mariages et fêtes privées."
+              icon={<Rocket className="text-gray-400" />}
+              title="Starter"
+              price="Gratuit"
+              desc="Parfait pour découvrir la puissance de l'outil."
               features={[
-                "Jusqu'à 500 invités",
-                "Scanner illimité",
-                "Rapport post-event",
+                "1 Événement actif",
+                "1 Terminal de scan",
+                "Max 100 personnes attendues",
+                "Support Standard",
               ]}
             />
             <PriceCard
-              title="Business"
-              price="Populaire"
-              desc="Concerts et dîners de gala."
+              icon={<Star className="text-white" />}
+              title="Event Pro"
+              price="200$"
+              desc="Le choix préféré des mariages et soirées VIP."
               features={[
-                "Invitations illimitées",
-                "Gestion des tables",
-                "Support Live",
-                "Dashboard temps réel",
+                "3 Événements simultanés",
+                "5 Terminaux par événement",
+                "Max 300 personnes / événement",
+                "Dashboard Live & Statistiques",
+                "Gestion des plans de table",
               ]}
               featured
             />
             <PriceCard
-              title="Sur Mesure"
-              price="PRO"
-              desc="Festivals et grandes foires."
+              icon={<Gem className="text-primary" />}
+              title="Elite"
+              price="Sur Devis"
+              desc="Pour les festivals et grands rassemblements publics."
               features={[
+                "Événements illimités",
+                "Terminaux illimités",
+                "Capacité sur-mesure",
                 "Accompagnement terrain",
-                "Badges VIP",
-                "Multi-accès zones",
+                "Exportation complète des données",
               ]}
             />
           </div>
@@ -233,26 +251,29 @@ export default function LandingPage() {
       </section>
 
       {/* --- FAQ --- */}
-      <section className="py-32 bg-white/2">
-        <div className="container mx-auto px-6 max-w-3xl">
-          <h2 className="text-3xl font-black mb-12 text-center uppercase tracking-widest text-primary">
-            Aide & FAQ
-          </h2>
+      <section id="faq" className="py-32 bg-white/2">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="flex items-center gap-4 mb-16 justify-center">
+            <HelpCircle className="text-primary" size={40} />
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic">
+              Questions fréquentes
+            </h2>
+          </div>
           <div className="space-y-4">
             <FaqItem
               value="q1"
-              question="Ai-je besoin d'une connexion internet ?"
-              answer="Oui. LokaPass garantit qu'un billet ne soit pas dupliqué en vérifiant chaque scan en ligne en moins de 200ms."
+              question="Le nombre d'invitations est-il limité ?"
+              answer="Non. Ce qui compte, c'est la capacité totale de personnes attendues (peopleCount) définie par votre forfait."
             />
             <FaqItem
               value="q2"
-              question="Est-ce compatible avec mon téléphone ?"
-              answer="Absolument. Aucune application à installer, cela fonctionne directement dans votre navigateur mobile."
+              question="Puis-je avoir plusieurs entrées ?"
+              answer="Oui ! Avec le forfait Pro, vous pouvez connecter jusqu'à 5 téléphones en même temps sur différentes portes."
             />
             <FaqItem
               value="q3"
-              question="Comment envoyer les invitations ?"
-              answer="Générez vos codes sur le portail et envoyez-les en un clic par WhatsApp ou par mail."
+              question="Que se passe-t-il si un code est scanné deux fois ?"
+              answer="Le système alerte immédiatement le contrôleur avec un signal rouge 'Déjà Scanné', empêchant toute fraude."
             />
           </div>
         </div>
@@ -260,69 +281,56 @@ export default function LandingPage() {
 
       {/* --- CONTACT --- */}
       <section id="contact" className="py-32 relative">
-        <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-20">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-            >
-              <h2 className="text-5xl font-black mb-8 italic">
-                PRÊT À <br />
-                <span className="text-primary">SÉCURISER ?</span>
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="bg-linear-to-b from-gray-900 to-black rounded-[4rem] p-10 md:p-20 border border-white/10 shadow-3xl lg:flex gap-16">
+            <div className="lg:w-1/2 mb-12 lg:mb-0">
+              <h2 className="text-5xl font-black mb-8 italic uppercase leading-tight">
+                Besoin de <br />
+                <span className="text-primary">conseils ?</span>
               </h2>
-              <div className="space-y-6">
-                <ContactInfo icon={<Mail />} text="contact@lokapass.cd" />
-                <ContactInfo icon={<Phone />} text="+243 820 000 000" />
-                <ContactInfo icon={<MapPin />} text="Gombe, Kinshasa" />
+              <p className="text-gray-400 text-lg mb-10">
+                Nos experts vous aident à choisir la meilleure configuration
+                pour votre événement.
+              </p>
+              <div className="space-y-6 font-bold">
+                <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
+                  <Mail /> contact@lokapass.cd
+                </div>
+                <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
+                  <Phone /> +243 820 000 000
+                </div>
               </div>
-            </motion.div>
-
-            <motion.form
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              className="bg-white/5 p-10 rounded-[2.5rem] border border-white/10 space-y-4 shadow-2xl"
-            >
+            </div>
+            <form className="lg:w-1/2 space-y-4">
               <input
                 type="text"
-                placeholder="Votre Nom"
-                className="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:border-primary outline-none transition-colors"
+                placeholder="Nom Complet"
+                className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-primary outline-none transition-all font-bold"
               />
               <input
                 type="email"
-                placeholder="Email de contact"
-                className="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:border-primary outline-none transition-colors"
+                placeholder="Email"
+                className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-primary outline-none transition-all font-bold"
               />
               <textarea
-                placeholder="Détails de l'événement"
                 rows={4}
-                className="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:border-primary outline-none transition-colors"
+                placeholder="Votre message..."
+                className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl focus:border-primary outline-none transition-all font-bold"
               />
-              <button className="w-full py-5 bg-primary font-black uppercase tracking-widest rounded-xl hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all active:scale-95">
+              <button className="w-full py-6 bg-primary font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all">
                 Envoyer
               </button>
-            </motion.form>
+            </form>
           </div>
         </div>
       </section>
 
       {/* --- FOOTER --- */}
-      <footer className="py-12 border-t border-white/5 bg-black">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black italic">LokaPass</span>
-            <span className="text-gray-600 text-xs ml-4">© 2026 Kinshasa.</span>
-          </div>
-          <div className="text-gray-500 text-sm">
-            Made with ❤️ by{" "}
-            <Link
-              href="https://carmelcode.vercel.app"
-              target="_blank"
-              className="font-semibold text-blue-500 hover:underline"
-            >
-              Carmel Code
-            </Link>
-          </div>
-        </div>
+      <footer className="py-12 border-t border-white/5 text-center">
+        <div className="text-2xl font-black italic mb-4">LokaPass</div>
+        <p className="text-gray-600 text-[10px] font-black uppercase tracking-[0.4em]">
+          © 2026 Kinshasa • Crafted by Carmel Code
+        </p>
       </footer>
     </div>
   );
@@ -330,34 +338,36 @@ export default function LandingPage() {
 
 /* --- SUB-COMPONENTS --- */
 
-// --- BENEFIT CARD ---
-interface BenefitCardProps {
+const ConceptCard = ({
+  step,
+  icon,
+  title,
+  desc,
+}: {
+  step: string;
   icon: ReactNode;
   title: string;
   desc: string;
-}
-
-const BenefitCard = ({ icon, title, desc }: BenefitCardProps) => (
-  <motion.div
-    variants={fadeIn}
-    whileHover={{ y: -10 }}
-    className="p-10 rounded-[2.5rem] bg-white/2 border border-white/5 hover:border-white/10 transition-colors"
-  >
-    <div className="size-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
+}) => (
+  <div className="relative p-10 rounded-[3rem] bg-white/3 border border-white/5 group hover:border-primary/30 transition-all">
+    <div className="absolute -top-6 -right-6 text-7xl font-black text-white/5 group-hover:text-primary/10 transition-colors">
+      {step}
+    </div>
+    <div className="size-16 rounded-2xl bg-white/5 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
       {icon}
     </div>
     <h3 className="text-2xl font-bold mb-4">{title}</h3>
-    <p className="text-gray-400">{desc}</p>
-  </motion.div>
+    <p className="text-gray-400 leading-relaxed font-medium">{desc}</p>
+  </div>
 );
 
-// --- PRICE CARD ---
 interface PriceCardProps {
   title: string;
   price: string;
   desc: string;
   features: string[];
   featured?: boolean;
+  icon: ReactNode;
 }
 
 const PriceCard = ({
@@ -366,55 +376,67 @@ const PriceCard = ({
   desc,
   features,
   featured = false,
+  icon,
 }: PriceCardProps) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.9 }}
-    whileInView={{ opacity: 1, scale: 1 }}
-    viewport={{ once: true }}
-    whileHover={{ scale: featured ? 1.07 : 1.03 }}
-    className={`p-10 rounded-[3rem] border flex flex-col h-full ${
-      featured
-        ? "border-primary bg-primary/5 shadow-2xl"
-        : "border-white/10 bg-white/2"
-    } text-left relative`}
+  <div
+    className={`p-10 rounded-[3.5rem] border text-left flex flex-col transition-all hover:-translate-y-2.5 ${featured ? "bg-primary border-primary text-white shadow-2xl shadow-primary/20 scale-105" : "bg-white/2 border-white/10"}`}
   >
-    <h3 className="text-2xl font-black mb-2 uppercase">{title}</h3>
-    <div className="text-4xl font-black text-primary mb-4 tracking-tighter">
-      {price}
-    </div>
-    <p className="text-gray-400 mb-8 text-sm">{desc}</p>
-    <ul className="space-y-4 mb-10 flex-1">
-      {features.map((f: string, i: number) => (
-        <li key={i} className="flex items-center gap-3 text-sm">
-          <Check size={16} className="text-accent shrink-0" /> {f}
-        </li>
-      ))}
-    </ul>
-    <button
-      className={`w-full py-4 rounded-xl font-bold uppercase transition-all ${
-        featured
-          ? "bg-primary text-white shadow-lg"
-          : "border border-white/10 hover:bg-white/5"
-      }`}
+    <div
+      className={`size-14 rounded-2xl flex items-center justify-center mb-8 ${featured ? "bg-white/20" : "bg-white/5"}`}
     >
-      Commander
+      {icon}
+    </div>
+    <h3 className="text-xs font-black uppercase tracking-[0.3em] mb-4 opacity-70">
+      {title}
+    </h3>
+    <div className="text-5xl font-black mb-6 italic">{price}</div>
+    <p
+      className={`mb-10 text-sm font-medium ${featured ? "text-white/80" : "text-gray-400"}`}
+    >
+      {desc}
+    </p>
+    <div className="space-y-4 mb-12 flex-1">
+      {features.map((f: string, i: number) => (
+        <div key={i} className="flex items-center gap-3 text-[13px] font-bold">
+          <Check
+            size={14}
+            className={featured ? "text-white" : "text-primary"}
+          />{" "}
+          {f}
+        </div>
+      ))}
+    </div>
+    <button
+      className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest transition-all cursor-pointer ${featured ? "bg-white text-primary hover:bg-gray-100" : "bg-white/5 hover:bg-white/10"}`}
+    >
+      Démarrer
     </button>
-  </motion.div>
+  </div>
 );
 
-// --- CONTACT INFO ---
-interface ContactInfoProps {
-  icon: ReactNode;
-  text: string;
-}
-
-const ContactInfo = ({ icon, text }: ContactInfoProps) => (
-  <div className="flex items-center gap-4 text-xl group cursor-pointer">
-    <div className="size-12 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-      <div className="text-primary">{icon}</div>
+const MetricItem = ({
+  value,
+  label,
+  desc,
+}: {
+  value: string;
+  label: string;
+  desc: string;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className="text-center"
+  >
+    <div className="text-4xl md:text-6xl font-black text-primary mb-2 italic tracking-tighter">
+      {value}
     </div>
-    <span className="text-gray-300 group-hover:text-white transition-colors text-base md:text-xl">
-      {text}
-    </span>
-  </div>
+    <div className="text-sm md:text-base font-black uppercase tracking-widest mb-1">
+      {label}
+    </div>
+    <div className="text-xs text-gray-500 font-medium uppercase tracking-tighter">
+      {desc}
+    </div>
+  </motion.div>
 );
