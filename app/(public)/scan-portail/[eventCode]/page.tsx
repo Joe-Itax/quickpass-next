@@ -12,6 +12,8 @@ import {
   ShieldAlert,
   UserPlus,
   Info,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoutDialog from "./logout";
@@ -46,7 +48,9 @@ export default function ScanPage() {
   const router = useRouter();
 
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-
+  const [isOnline, setIsOnline] = useState(
+    typeof window !== "undefined" ? navigator.onLine : true,
+  );
   const [viewState, setViewState] = useState<"idle" | "loading" | "result">(
     "idle",
   );
@@ -55,19 +59,26 @@ export default function ScanPage() {
 
   const { mutateAsync: scan } = useScanByEventCode(eventCode);
 
-  // Chargement des infos et sécurité
+  // --- GESTION CONNECTIVITÉ ---
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
+  // --- SÉCURITÉ & INFOS ---
   useEffect(() => {
     const savedEvent = localStorage.getItem("eventCode");
-
-    // Sécurité : Redirection si l'event stocké ne correspond pas à l'URL
     if (!savedEvent || savedEvent !== eventCode) {
       router.replace("/scan-portail");
-      return;
     }
   }, [eventCode, router]);
 
-  // Récupération des infos d'affichage (eventName, etc)
-  // Utilisation de useMemo pour éviter de lire le localStorage à chaque render
   const displayInfo = useMemo(() => {
     if (typeof window === "undefined")
       return { eventName: "", terminalName: "" };
@@ -78,10 +89,9 @@ export default function ScanPage() {
   }, [eventCode]);
 
   const confirmLogout = () => {
-    localStorage.removeItem("eventCode");
-    localStorage.removeItem("terminalCode");
-    localStorage.removeItem("eventName");
-    localStorage.removeItem("terminalName");
+    ["eventCode", "terminalCode", "eventName", "terminalName"].forEach((k) =>
+      localStorage.removeItem(k),
+    );
     router.push("/scan-portail");
   };
 
@@ -100,29 +110,19 @@ export default function ScanPage() {
       setViewState("loading");
 
       try {
-        const res = (await scan({
-          qr: qrValue,
-          terminalCode: terminalCode,
-        })) as ScanResult;
-
+        const res = (await scan({ qr: qrValue, terminalCode })) as ScanResult;
         setLastScanResult(res);
         setIsError(false);
         setViewState("result");
       } catch (err: unknown) {
         setIsError(true);
-
-        // 1. On récupère la string JSON.
-        // On retire le prefix "Error: " si présent pour ne garder que le JSON
         let rawMessage =
-          (err instanceof Error ? err.message : String(err)) || String(err);
-        if (rawMessage.startsWith("Error: ")) {
+          (err instanceof Error ? err.message : String(err)) || "";
+        if (rawMessage.startsWith("Error: "))
           rawMessage = rawMessage.replace("Error: ", "");
-        }
 
         try {
-          // 2. Tentative de parse du JSON d'erreur
           const errorData = JSON.parse(rawMessage);
-
           setLastScanResult({
             error: errorData.error || "Erreur inconnue",
             label: errorData.invitation?.label,
@@ -130,17 +130,16 @@ export default function ScanPage() {
             peopleCount: errorData.invitation?.peopleCount,
             assignedTable: errorData.invitation?.assignedTable,
           });
-        } catch (parseError) {
-          // 3. Fallback si le message n'était pas du JSON
+        } catch {
           setLastScanResult({
-            error: rawMessage || "Code invalide ou erreur réseau",
+            error: rawMessage || "Erreur réseau ou code invalide",
           });
         }
-
         setViewState("result");
       }
     }
   };
+
   const resetScanner = () => {
     setLastScanResult(null);
     setViewState("idle");
@@ -170,36 +169,47 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen text-white flex flex-col bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover selection:bg-primary pb-40">
-      {/* HEADER */}
-      <div className="p-6 flex justify-between items-center bg-white/5 backdrop-blur-xl border-b border-white/10 z-30">
+    <div className="min-h-screen text-white flex flex-col bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover pb-20">
+      {/* HEADER AVEC SIGNAL DE CONNECTIVITÉ */}
+      <div className="p-6 flex justify-between items-center bg-black/40 backdrop-blur-2xl border-b border-white/10 z-30">
         <Button
           onClick={() => setIsLogoutDialogOpen(true)}
           variant="ghost"
-          className=""
+          className="hover:bg-white/5 hover:text-white"
         >
-          <ChevronLeft size={24} className="size-6 rounded-full p-0" />{" "}
-          Deconnexion
+          <ChevronLeft size={20} className="mr-1" /> Quitter
         </Button>
+
         <div className="text-center">
-          <p className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase">
-            Contrôleur • {displayInfo.terminalName}
+          <p className="text-[9px] font-black text-primary tracking-[0.2em] uppercase">
+            {displayInfo.terminalName}
           </p>
-          <h1 className="font-black italic uppercase tracking-tighter">
+          <h1 className="text-sm font-black italic uppercase tracking-tighter truncate max-w-37.5">
             {displayInfo.eventName}
           </h1>
         </div>
-        <div className="size-10 flex items-center justify-center">
+
+        <div className="flex flex-col items-end gap-1">
           <div
-            className={`size-2 rounded-full ${
-              viewState === "idle" ? "bg-green-500 animate-pulse" : "bg-red-500"
-            }`}
+            className={`size-3 rounded-full shadow-[0_0_12px] transition-all duration-500 ${isOnline ? "bg-green-500 shadow-green-500/50 animate-pulse" : "bg-red-500 shadow-red-500/50"}`}
           />
+          <span className="text-[7px] font-black uppercase tracking-widest text-gray-500">
+            {isOnline ? "Live" : "Offline"}
+            {isOnline ? (
+              <>
+                <Wifi className="text-green-500 shadow-green-500/50 animate-pulse" />
+              </>
+            ) : (
+              <>
+                <WifiOff className="text-red-500 shadow-red-500/50" />
+              </>
+            )}
+          </span>
         </div>
       </div>
 
       <div className="flex-1 relative flex flex-col items-center justify-center p-6 gap-8">
-        {/* CONTAINER DU SCANNER */}
+        {/* CONTAINER DU SCANNER / RÉSULTAT */}
         <div className="relative w-full max-w-sm min-h-87.5 aspect-square rounded-[3rem] overflow-hidden border-2 border-white/10 shadow-2xl bg-black">
           {viewState === "idle" && (
             <Scanner
@@ -359,28 +369,27 @@ export default function ScanPage() {
           </AnimatePresence>
         </div>
 
-        {/* BOUTON D'ACTION */}
-        <div className="w-full max-w-sm">
+        {/* ACTIONS */}
+        <div className="w-full max-w-sm space-y-4">
           <Button
             onClick={resetScanner}
             disabled={viewState === "loading" || viewState === "idle"}
-            className={`w-full h-16 rounded-2xl text-lg font-black uppercase tracking-widest transition-all shadow-xl
-              ${
-                viewState === "result"
-                  ? "bg-primary hover:bg-primary/90 scale-105"
-                  : "bg-white/5 text-gray-600"
-              }`}
+            className={`w-full h-20 rounded-3xl text-xl font-black uppercase tracking-widest transition-all ${
+              viewState === "result"
+                ? "bg-primary hover:bg-primary/90 scale-105 shadow-2xl shadow-primary/20"
+                : "bg-white/5 text-gray-700"
+            }`}
           >
-            {viewState === "idle" ? "En attente d'un QR..." : "Scan Suivant"}
+            {viewState === "idle" ? "Scan en cours..." : "Suivant"}
           </Button>
-          <p className="text-center text-[10px] text-gray-600 uppercase mt-4 tracking-[0.2em]">
+          <p className="text-center text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]">
             {viewState === "idle"
-              ? "Pointez la caméra vers un code"
-              : "Vérification terminée"}
+              ? "Alignez le QR Code dans le cadre"
+              : "Appuyez pour continuer"}
           </p>
         </div>
       </div>
-      {/* Le Dialog de déconnexion */}
+
       <LogoutDialog
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
