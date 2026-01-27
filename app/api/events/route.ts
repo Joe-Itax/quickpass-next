@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, description, date, location } = body;
+    const { name, description, date, location, durationHours } = body;
     if (!name || !description || !date || !location)
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
           description,
           date: new Date(date),
           location,
+          durationHours: durationHours || 24,
           eventCode: "tmp",
           createdById: user.id,
         },

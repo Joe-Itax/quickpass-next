@@ -13,22 +13,24 @@ import {
   AlertCircle,
   Hash,
   Table2,
+  Mail,
+  MessageCircle,
 } from "lucide-react";
-import { useInvitation, useDeleteInvitation } from "@/hooks/use-event";
+import { useInvitation } from "@/hooks/use-event";
 import DataStatusDisplay from "@/components/data-status-display";
 import { QRCodeSVG } from "qrcode.react";
 import { Invitation } from "@/types/types";
 import ModifyGuest from "./modify-guest";
 import { cn } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import DeleteGuest from "./delete-guest";
 
 export default function GuestPage() {
   const { eventId, guestId } = useParams();
   const router = useRouter();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
-  // Remplace cette URL par ton vrai logo (chemin relatif ou base64)
   const LOGO_URL = "/logo-app/logo-white.png";
 
   const {
@@ -44,8 +46,6 @@ export default function GuestPage() {
     eventId: Number(eventId),
     onUpdate: () => refetch(),
   });
-
-  const deleteMutation = useDeleteInvitation(Number(eventId), Number(guestId));
 
   if (isPending || isError || error) {
     return (
@@ -69,40 +69,27 @@ export default function GuestPage() {
     const img = new Image();
     const logo = new Image();
 
-    // Définition la source du logo
     logo.src = LOGO_URL;
     logo.crossOrigin = "anonymous";
 
     img.onload = () => {
-      // Attendre que le logo soit aussi chargé
       logo.onload = () => {
         const padding = 80;
         canvas.width = img.width + padding;
         canvas.height = img.height + padding + 60;
 
         if (ctx) {
-          // 1. Fond blanc
           ctx.fillStyle = "white";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          // 2. Dessiner le QR Code
           const qrX = padding / 2;
           const qrY = padding / 2;
           ctx.drawImage(img, qrX, qrY);
-
-          // 3. Dessiner le LOGO au centre du QR Code
-          // On calcule la taille du logo (environ 20% du QR code)
           const logoSize = img.width * 0.2;
           const logoX = qrX + (img.width - logoSize) / 2;
           const logoY = qrY + (img.height - logoSize) / 2;
-
           ctx.fillStyle = "white";
           ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
-
-          // Dessiner le logo
           ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-
-          // 4. Dessiner le Nom de l'invité
           ctx.fillStyle = "black";
           ctx.font = "bold 24px Inter, Arial, sans-serif";
           ctx.textAlign = "center";
@@ -111,8 +98,6 @@ export default function GuestPage() {
             canvas.width / 2,
             img.height + padding / 2 + 30,
           );
-
-          // 5. Mention LOKAPASS
           ctx.font = "900 10px Inter, sans-serif";
           ctx.fillStyle = "#999999";
           ctx.fillText(
@@ -120,37 +105,14 @@ export default function GuestPage() {
             canvas.width / 2,
             canvas.height - 15,
           );
-
-          // Exporter
           const link = document.createElement("a");
           link.download = `LOKAPASS_${invitation.id}_${invitation.label.replace(/\s+/g, "_")}.png`;
           link.href = canvas.toDataURL("image/png");
           link.click();
         }
       };
-
-      // Si le logo échoue à charger, on télécharge quand même le QR sans logo
-      logo.onerror = () => {
-        console.error("Logo non chargé pour le téléchargement");
-      };
     };
-
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
-  };
-
-  const handleDelete = async () => {
-    if (
-      confirm("Supprimer définitivement cet invité et libérer ses places ?")
-    ) {
-      setIsDeleting(true);
-      try {
-        await deleteMutation.mutateAsync();
-        router.push(`/admin/events/${eventId}`);
-      } catch (error) {
-        console.error(error);
-        setIsDeleting(false);
-      }
-    }
   };
 
   return (
@@ -187,12 +149,11 @@ export default function GuestPage() {
           />
           <Button
             variant="destructive"
-            onClick={handleDelete}
-            disabled={isDeleting}
+            onClick={() => setIsDeleteGuestDialogOpen(true)}
             className="rounded-xl font-black uppercase italic text-[10px] h-11 px-6 border border-red-500/20 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
           >
             <Trash2Icon className="w-4 h-4 mr-2" />
-            {isDeleting ? "Suppression..." : "Bannir"}
+            Bannir
           </Button>
         </div>
       </div>
@@ -244,6 +205,51 @@ export default function GuestPage() {
             </div>
           </div>
 
+          {/* --- NOUVEAU BLOC : CONTACT INFO --- */}
+          {(invitation.email || invitation.whatsapp) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {invitation.whatsapp && (
+                <a
+                  href={`https://wa.me/${invitation.whatsapp.replace(/\+/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/5 border border-white/10 rounded-4xl p-6 flex items-center gap-5 hover:bg-green-500/5 hover:border-green-500/20 transition-all group"
+                >
+                  <div className="size-12 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MessageCircle size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                      WhatsApp
+                    </p>
+                    <p className="text-sm font-bold text-white tracking-tight">
+                      {invitation.whatsapp}
+                    </p>
+                  </div>
+                </a>
+              )}
+
+              {invitation.email && (
+                <a
+                  href={`mailto:${invitation.email}`}
+                  className="bg-white/5 border border-white/10 rounded-4xl p-6 flex items-center gap-5 hover:bg-blue-500/5 hover:border-blue-500/20 transition-all group"
+                >
+                  <div className="size-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Mail size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                      Email
+                    </p>
+                    <p className="text-sm font-bold text-white tracking-tight break-all">
+                      {invitation.email}
+                    </p>
+                  </div>
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="bg-white/2 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Table2 size={120} className="text-white" />
@@ -285,18 +291,19 @@ export default function GuestPage() {
         {/* --- QR CODE AVEC LOGO --- */}
         <div className="space-y-6">
           <div className="bg-primary rounded-[2.5rem] p-1 shadow-[0_0_50px_rgba(253,182,35,0.15)]">
-            <div className="bg-[#0a0a0a] rounded-[2.3rem] p-8 flex flex-col items-center">
+            <div className="bg-[#0a0a0a] rounded-[2.3rem] p-6 sm:p-8 flex flex-col items-center">
               <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 text-center">
                 Digital Access Pass
               </p>
 
               <div
                 ref={qrCodeRef}
-                className="bg-white p-6 rounded-4xl shadow-inner mb-6 flex flex-col items-center border-4 border-white"
+                className="bg-white p-6 rounded-4xl shadow-inner mb-6 flex flex-col items-center border-4 border-white max-[400px]:w-full w-60"
               >
                 <QRCodeSVG
                   value={invitation.qrCode}
-                  size={200}
+                  size={undefined}
+                  style={{ height: "100%", width: "100%" }}
                   level="H"
                   includeMargin={false}
                   imageSettings={{
@@ -305,7 +312,7 @@ export default function GuestPage() {
                     y: undefined,
                     height: 40,
                     width: 40,
-                    excavate: true, // Ceci "coupe" les pixels du QR derrière le logo pour qu'il soit propre
+                    excavate: true,
                   }}
                 />
                 <p className="mt-4 text-black font-black text-sm uppercase italic tracking-tighter">
@@ -313,10 +320,10 @@ export default function GuestPage() {
                 </p>
               </div>
 
-              <div className="w-full space-y-4">
+              <div className="w-full space-y-4 flex flex-col items-center">
                 <Button
                   onClick={handleDownloadQRCode}
-                  className="w-full bg-primary hover:bg-white text-white hover:text-black font-black uppercase italic rounded-2xl h-14 transition-all"
+                  className="w-full self-center bg-primary hover:bg-white text-white hover:text-black font-black uppercase italic rounded-2xl h-14 transition-all"
                 >
                   <DownloadIcon className="w-5 h-5 mr-2" />
                   Exporter PNG
@@ -349,6 +356,13 @@ export default function GuestPage() {
           </div>
         </div>
       </div>
+      <DeleteGuest
+        eventId={invitation.eventId}
+        guestId={invitation.id}
+        guestLabel={invitation.label}
+        open={isDeleteGuestDialogOpen}
+        onOpenChange={setIsDeleteGuestDialogOpen}
+      />
     </section>
   );
 }

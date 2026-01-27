@@ -209,8 +209,9 @@ export function useDeleteInvitation(eventId: number, invitationId: number) {
       fetcher(`/api/events/${eventId}/invitations/${invitationId}`, {
         method: "DELETE",
       }),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: EVENT_KEYS.invitations(eventId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
+    },
   });
 }
 

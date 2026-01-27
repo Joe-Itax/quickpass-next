@@ -380,7 +380,7 @@ export default function EventPage() {
                         {inv.scannedCount} SCANS
                       </span>
                       <span className="flex items-center gap-1 text-blue-400">
-                        <Table2Icon size={10} /> TABLE{" "}
+                        <Table2Icon size={10} /> {" "}
                         {inv.allocations?.[0]?.table.name || "—"}
                       </span>
                     </div>

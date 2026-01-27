@@ -28,78 +28,6 @@ export async function GET(req: NextRequest, context: EventContext) {
   return NextResponse.json(invites);
 }
 
-// export async function POST(req: NextRequest, context: EventContext) {
-//   const params = await context.params;
-//   const eventId = Number(params.eventId);
-
-//   const user = await requireEventAccess(req, eventId);
-//   if (user instanceof NextResponse) return user;
-
-//   try {
-//     const { label, peopleCount, allocations } = await req.json();
-//     if (!label || typeof peopleCount !== "number")
-//       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-
-//     const result = await prisma.$transaction(async (tx) => {
-//       const inv = await tx.invitation.create({
-//         data: {
-//           label,
-//           peopleCount,
-//           eventId,
-//         },
-//       });
-
-//       // create allocations if any
-//       if (Array.isArray(allocations) && allocations.length > 0) {
-//         for (const a of allocations) {
-//           // a: { tableId, seatsAssigned }
-//           await tx.tableAllocation.create({
-//             data: {
-//               invitationId: inv.id,
-//               tableId: a.tableId,
-//               seatsAssigned: a.seatsAssigned,
-//             },
-//           });
-//         }
-//       }
-
-//       // update stats totalInvitations and totalPeople
-//       await tx.eventStats.update({
-//         where: { eventId },
-//         data: {
-//           totalInvitations: { increment: 1 },
-//           totalCapacity: { increment: peopleCount },
-//         },
-//       });
-
-//       // generate QR
-//       const payload = {
-//         invitationId: inv.id,
-//         eventId: inv.eventId,
-//         ts: Date.now(),
-//       };
-//       const qr = await qrEncode(payload);
-
-//       await tx.invitation.update({
-//         where: { id: inv.id },
-//         data: { qrCode: qr },
-//       });
-
-//       return tx.invitation.findUnique({
-//         where: { id: inv.id },
-//         include: { allocations: true },
-//       });
-//     });
-
-//     return NextResponse.json(result);
-//   } catch (err) {
-//     console.error(err);
-//     return NextResponse.json(
-//       { error: "Error creating invitation", details: String(err) },
-//       { status: 500 }
-//     );
-//   }
-// }
 export async function POST(req: NextRequest, context: EventContext) {
   const params = await context.params;
   const eventId = Number(params.eventId);
@@ -108,7 +36,8 @@ export async function POST(req: NextRequest, context: EventContext) {
   if (user instanceof NextResponse) return user;
 
   try {
-    const { label, peopleCount, tableAssignments } = await req.json();
+    const { label, peopleCount, tableAssignments, whatsapp, email } =
+      await req.json();
     if (!label || typeof peopleCount !== "number")
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
@@ -118,6 +47,8 @@ export async function POST(req: NextRequest, context: EventContext) {
           label,
           peopleCount,
           eventId,
+          whatsapp,
+          email,
         },
       });
 
@@ -173,7 +104,7 @@ export async function POST(req: NextRequest, context: EventContext) {
     console.error(err);
     return NextResponse.json(
       { error: "Error creating invitation", details: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

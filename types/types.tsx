@@ -47,7 +47,8 @@ export interface TableAllocation {
 export interface Invitation {
   id: number;
   label: string;
-  email: string;
+  email?: string;
+  whatsapp?: string;
   peopleCount: number;
   eventId: number;
   event?: Event2;

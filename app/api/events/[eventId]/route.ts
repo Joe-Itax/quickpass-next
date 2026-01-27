@@ -78,6 +78,8 @@ export async function PATCH(req: NextRequest, context: EventContext) {
       stats,
       assignments,
       terminals,
+      createdBy,
+      createdById: _createdById,
       createdAt,
       updatedAt,
       ...cleanData

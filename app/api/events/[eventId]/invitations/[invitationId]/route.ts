@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, context: EventContext) {
     if (!invitation) {
       return NextResponse.json(
         { error: "Invitation not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json(invitation);
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest, context: EventContext) {
     console.error(err);
     return NextResponse.json(
       { error: "Error fetching invitation", details: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, context: EventContext) {
 
   try {
     const body = await req.json();
-    const { label, peopleCount, tableAssignments } = body;
+    const { label, peopleCount, tableAssignments, whatsapp, email } = body;
 
     const updated = await prisma.$transaction(async (tx) => {
       // Récupérer l'invitation actuelle pour calculer les différences
@@ -84,9 +84,13 @@ export async function PATCH(req: NextRequest, context: EventContext) {
       const base: {
         label?: string;
         peopleCount?: number;
+        whatsapp?: string;
+        email?: string;
       } = {};
       if (label) base.label = label;
       if (typeof peopleCount === "number") base.peopleCount = peopleCount;
+      if (whatsapp !== undefined) base.whatsapp = whatsapp;
+      if (email !== undefined) base.email = email;
 
       await tx.invitation.update({ where: { id: invitationId }, data: base });
 
@@ -97,7 +101,7 @@ export async function PATCH(req: NextRequest, context: EventContext) {
       // Calculer les sièges actuels
       oldTotalSeats = currentInvitation.allocations.reduce(
         (sum, alloc) => sum + alloc.seatsAssigned,
-        0
+        0,
       );
 
       // Supprimer les assignations existantes
@@ -133,7 +137,7 @@ export async function PATCH(req: NextRequest, context: EventContext) {
           availableSeats: { decrement: seatsDiff },
         },
       });
-
+// <AddTable eventId={eventId} />
       // regenerate QR after update
       const payload = { invitationId, eventId };
       const qr = await qrEncode(payload);
@@ -153,7 +157,7 @@ export async function PATCH(req: NextRequest, context: EventContext) {
     console.error(err);
     return NextResponse.json(
       { error: "Error updating invitation", details: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -177,7 +181,7 @@ export async function DELETE(req: NextRequest, context: EventContext) {
 
       const totalSeats = invitation.allocations.reduce(
         (sum, alloc) => sum + alloc.seatsAssigned,
-        0
+        0,
       );
 
       await tx.tableAllocation.deleteMany({ where: { invitationId } });
@@ -199,7 +203,7 @@ export async function DELETE(req: NextRequest, context: EventContext) {
     console.error(err);
     return NextResponse.json(
       { error: "Error deleting invitation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
