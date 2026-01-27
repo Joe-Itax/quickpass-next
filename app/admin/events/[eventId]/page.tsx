@@ -24,6 +24,7 @@ import {
   Trash2,
   Clock,
   Timer,
+  Table2,
 } from "lucide-react";
 import { Event2, Terminal } from "@/types/types";
 import formatDateToCustom from "@/utils/format-date-to-custom";
@@ -44,6 +45,7 @@ import {
 import DeleteTerminal from "../../terminals/delete-terminal";
 import ModifyTerminal from "../../terminals/modify-terminal";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import Link from "next/link";
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -189,7 +191,7 @@ export default function EventPage() {
           {/* STATS REAL-TIME */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
-              label="Groupes / Invitations"
+              label="Invitations"
               value={event.stats.totalInvitations}
               icon={Users}
               color="text-primary"
@@ -230,9 +232,22 @@ export default function EventPage() {
           {/* TABLES MONITORING */}
           <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden backdrop-blur-md">
             <CardHeader className="border-b border-white/5 bg-white/2 p-6">
-              <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
-                <Table2Icon size={18} /> Monitoring des Tables (
-                {event.tables.length})
+              <CardTitle className="flex items-center justify-between">
+                <div className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
+                  <Table2Icon size={18} /> Monitoring des Tables (
+                  {event.tables.length})
+                </div>
+                <div className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
+                  <Button
+                    onClick={() =>
+                      router.push(`/admin/events/${eventId}/tables`)
+                    }
+                    variant="outline"
+                    className="rounded-xl border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
+                  >
+                    <Table2 className="size-4" /> Plan de Table
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 max-sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,28 +264,33 @@ export default function EventPage() {
                   <motion.div
                     key={table.id}
                     whileHover={{ scale: 1.02 }}
-                    className="p-4 rounded-2xl border border-white/5 bg-white/2 flex justify-between items-center group transition-all"
+                    className=""
                   >
-                    <div>
-                      <p className="font-black uppercase italic text-sm text-white group-hover:text-primary transition-colors">
-                        {table.name}
-                      </p>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                        {tableAssigned} / {table.capacity} PLACES
-                      </p>
-                    </div>
-                    <Badge
-                      className={cn(
-                        "rounded-lg font-black italic text-[9px]",
-                        isFull
-                          ? "bg-red-500/10 text-red-500 border-red-500/20"
-                          : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-                      )}
+                    <Link
+                      href={`/admin/events/${eventId}/tables/${table.id}`}
+                      className="size-full p-4 rounded-2xl border border-white/5 bg-white/2 flex justify-between items-center group transition-all"
                     >
-                      {isFull
-                        ? "COMPLET"
-                        : `${table.capacity - tableAssigned} LIBRES`}
-                    </Badge>
+                      <div>
+                        <p className="font-black uppercase italic text-sm text-white group-hover:text-primary transition-colors">
+                          {table.name}
+                        </p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                          {tableAssigned} / {table.capacity} PLACES
+                        </p>
+                      </div>
+                      <Badge
+                        className={cn(
+                          "rounded-lg font-black italic text-[9px]",
+                          isFull
+                            ? "bg-red-500/10 text-red-500 border-red-500/20"
+                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+                        )}
+                      >
+                        {isFull
+                          ? "COMPLET"
+                          : `${table.capacity - tableAssigned} LIBRES`}
+                      </Badge>
+                    </Link>
                   </motion.div>
                 );
               })}
@@ -380,7 +400,7 @@ export default function EventPage() {
                         {inv.scannedCount} SCANS
                       </span>
                       <span className="flex items-center gap-1 text-blue-400">
-                        <Table2Icon size={10} /> {" "}
+                        <Table2Icon size={10} />{" "}
                         {inv.allocations?.[0]?.table.name || "—"}
                       </span>
                     </div>
@@ -432,7 +452,7 @@ export default function EventPage() {
   );
 }
 
-// Composant StatCard inchangé mais avec design cohérent
+// Composant StatCard
 function StatCard({
   label,
   value,

@@ -1,212 +1,207 @@
 "use client";
 
-import { useEvent, useTable, useDeleteTable } from "@/hooks/use-event";
 import { useParams, useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Users, UserMinus, ChevronRight, Info } from "lucide-react";
+import { useTable, useEventInvitations } from "@/hooks/use-event";
+import { Table, Invitation } from "@/types/types";
 import DataStatusDisplay from "@/components/data-status-display";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoveLeftIcon, Trash2Icon, Users, Table2Icon } from "lucide-react";
-import { Event2, Table as TableType } from "@/types/types";
-import ModifyTable from "../modify-table";
+import ModifyTable from "./modify-table";
+import DeleteTable from "./delete-table";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import { useRealtimeList } from "@/hooks/use-realtime-list";
 
-export default function TablePage() {
+export default function TableDetailPage() {
   const { eventId, tableId } = useParams();
   const router = useRouter();
 
-  const { data: eventData, isPending: isEventPending } = useEvent(
-    Number(eventId)
-  );
   const {
     data: tableData,
-    isPending: isTablePending,
-    error,
-    refetch,
+    isPending: tPending,
+    isError: tError,
+    refetch: refetchT,
   } = useTable(Number(eventId), Number(tableId));
-  const { mutateAsync: deleteTable, isPending: isDeleting } = useDeleteTable(
-    Number(eventId)
+  const {
+    data: invsData,
+    isPending: iPending,
+    isError: iError,
+    refetch: refetchI,
+  } = useEventInvitations(Number(eventId));
+
+  // Synchronisation en temps réel
+  useRealtimeSync({
+    eventId: Number(eventId),
+    onUpdate: () => {
+      refetchT();
+      refetchI();
+    },
+  });
+  useRealtimeList(refetchT);
+  useRealtimeList(refetchI);
+
+  const table = tableData as Table;
+  const invitations = (invsData as Invitation[]) || [];
+
+  // Filtrer les invités qui ont une allocation sur cette table
+  const guestsAtTable = invitations
+    .filter((inv) =>
+      inv.allocations?.some((alloc) => alloc.tableId === Number(tableId)),
+    )
+    .map((inv) => {
+      const allocation = inv.allocations?.find(
+        (a) => a.tableId === Number(tableId),
+      );
+      return {
+        ...inv,
+        seatsAtThisTable: allocation?.seatsAssigned || 0,
+      };
+    });
+
+  const currentOccupied = guestsAtTable.reduce(
+    (sum, g) => sum + g.seatsAtThisTable,
+    0,
   );
 
-  const isPending = isEventPending || isTablePending;
-  const hasError = error !== null;
-
-  if (isPending || hasError) {
+  if (tPending || iPending)
     return (
       <DataStatusDisplay
-        isPending={isPending}
-        hasError={hasError}
-        errorObject={error}
-        refetch={refetch}
+        isPending
+        refetch={() => {
+          refetchT();
+          refetchI();
+        }}
       />
     );
-  }
-
-  const event = eventData as Event2;
-  const table = tableData as TableType;
-
-  // Calculer les invités assignés à cette table
-  const guestsAtTable =
-    event?.invitations.filter((invitation) =>
-      invitation.allocations?.some(
-        (allocation) => allocation.tableId === table.id
-      )
-    ) || [];
-
-  const totalSeatsAssigned = guestsAtTable.reduce((total, invitation) => {
-    const allocation = invitation.allocations?.find(
-      (a) => a.tableId === table.id
+  if (tError || iError)
+    return (
+      <DataStatusDisplay
+        hasError
+        refetch={() => {
+          refetchT();
+          refetchI();
+        }}
+      />
     );
-    return total + (allocation?.seatsAssigned || 0);
-  }, 0);
-
-  const handleDeleteTable = async () => {
-    if (
-      confirm(
-        `Êtes-vous sûr de vouloir supprimer la table "${table.name}" ? Cette action est irréversible.`
-      )
-    ) {
-      try {
-        await deleteTable(table.id);
-        router.push(`/admin/events/${eventId}`);
-      } catch (error) {
-        console.error("Error deleting table:", error);
-      }
-    }
-  };
 
   return (
-    <section className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/admin/events/${eventId}`)}
+    <section className="min-h-screen bg-[#050505] p-4 md:p-10 space-y-8">
+      {/* --- HEADER --- */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => router.push(`/admin/events/${eventId}/tables`)}
+            className="group size-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all cursor-pointer"
           >
-            <MoveLeftIcon />
-          </Button>
+            <ArrowLeft className="text-gray-500 group-hover:text-primary transition-colors" />
+          </button>
           <div>
-            <h2 className="text-3xl font-bold">{table.name}</h2>
-            <p className="text-white/60">
-              Table de l&apos;événement {event?.name}
+            <h1 className="text-4xl font-black italic uppercase text-white tracking-tighter">
+              {table.name}
+            </h1>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1">
+              Détails et liste des occupants
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-3">
           <ModifyTable
-            eventId={Number(eventId)}
             table={table}
-            onTableUpdated={refetch}
+            occupiedSeats={currentOccupied}
+            eventId={Number(eventId)}
           />
-          <Button
-            variant="outline"
-            onClick={handleDeleteTable}
-            disabled={isDeleting || totalSeatsAssigned > 0}
-            className="text-red-400 border-red-400/30 hover:bg-red-400/10 hover:text-red-300"
-          >
-            <Trash2Icon className="w-4 h-4 mr-2" />
-            {isDeleting ? "Suppression..." : "Supprimer"}
-          </Button>
+          <DeleteTable
+            tableId={table.id}
+            tableName={table.name}
+            eventId={Number(eventId)}
+            occupiedSeats={currentOccupied}
+          />
         </div>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="text-white/80">
-          <CardContent className="p-6 flex flex-col items-center gap-2">
-            <Table2Icon className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-bold">{table.capacity}</span>
-            <span className="text-sm text-white/60">Capacité totale</span>
-          </CardContent>
-        </Card>
-
-        <Card className="text-white/80">
-          <CardContent className="p-6 flex flex-col items-center gap-2">
-            <Users className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-bold">{totalSeatsAssigned}</span>
-            <span className="text-sm text-white/60">Places assignées</span>
-          </CardContent>
-        </Card>
-
-        <Card className="text-white/80">
-          <CardContent className="p-6 flex flex-col items-center gap-2">
-            <Table2Icon className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-bold">
-              {table.capacity - totalSeatsAssigned}
-            </span>
-            <span className="text-sm text-white/60">Places disponibles</span>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* STATUS */}
-      <Card className="text-white/80">
-        <CardHeader>
-          <CardTitle>Statut de la table</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            {totalSeatsAssigned === 0 ? (
-              <Badge className="bg-green-500">Libre</Badge>
-            ) : totalSeatsAssigned === table.capacity ? (
-              <Badge className="bg-red-500">Complète</Badge>
-            ) : (
-              <Badge className="bg-yellow-500">Partiellement occupée</Badge>
-            )}
-            <span className="text-sm text-white/60">
-              {totalSeatsAssigned === 0
-                ? "Aucune place n'est actuellement assignée à cette table."
-                : totalSeatsAssigned === table.capacity
-                ? "Toutes les places de cette table sont occupées."
-                : `${
-                    table.capacity - totalSeatsAssigned
-                  } places restantes sur cette table.`}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* GUESTS AT THIS TABLE */}
-      <Card className="text-white/80">
-        <CardHeader>
-          <CardTitle>Invités à cette table ({guestsAtTable.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {guestsAtTable.length === 0 ? (
-            <p className="text-white/60 text-center py-4">
-              Aucun invité n&apos;est actuellement assigné à cette table.
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* --- STATS DE LA TABLE --- */}
+        <div className="space-y-6">
+          <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6">
+              État de remplissage
             </p>
-          ) : (
-            guestsAtTable.map((invitation) => {
-              const allocation = invitation.allocations?.find(
-                (a) => a.tableId === table.id
-              );
-              const seatsAssigned = allocation?.seatsAssigned || 0;
+            <div className="flex items-end gap-2 mb-4">
+              <span className="text-6xl font-black text-white italic">
+                {currentOccupied}
+              </span>
+              <span className="text-2xl font-black text-gray-600 mb-2">
+                / {table.capacity} PAX
+              </span>
+            </div>
+            <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 border border-white/5">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-700"
+                style={{
+                  width: `${(currentOccupied / table.capacity) * 100}%`,
+                }}
+              />
+            </div>
+            <p className="text-[9px] font-bold text-gray-500 uppercase mt-4 text-center">
+              {table.capacity - currentOccupied} places encore disponibles
+            </p>
+          </div>
 
-              return (
+          <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex items-start gap-4">
+            <Info className="text-primary shrink-0" size={20} />
+            <p className="text-[10px] text-gray-400 font-medium leading-relaxed uppercase">
+              Pour déplacer un invité, rendez-vous sur sa fiche individuelle via
+              le bouton <ChevronRight className="inline size-3" />.
+            </p>
+          </div>
+        </div>
+
+        {/* --- LISTE DES INVITÉS --- */}
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="text-sm font-black uppercase italic text-white flex items-center gap-2 mb-2">
+            <Users size={16} className="text-primary" /> Invités assignés (
+            {guestsAtTable.length})
+          </h3>
+
+          <div className="grid gap-3">
+            {guestsAtTable.length === 0 ? (
+              <div className="py-20 flex flex-col items-center justify-center bg-white/2 border border-dashed border-white/10 rounded-4xl">
+                <UserMinus className="text-gray-700 mb-2" size={32} />
+                <p className="text-xs font-bold text-gray-500 uppercase">
+                  Aucun invité sur cette table
+                </p>
+              </div>
+            ) : (
+              guestsAtTable.map((guest) => (
                 <div
-                  key={invitation.id}
+                  key={guest.id}
                   onClick={() =>
-                    router.push(`/admin/events/${eventId}/${invitation.id}`)
+                    router.push(`/admin/events/${eventId}/${guest.id}`)
                   }
-                  className="p-3 rounded border border-white/10 bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors"
+                  className="group flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer"
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{invitation.label}</span>
-                    <Badge variant="outline">
-                      {seatsAssigned} {seatsAssigned > 1 ? "places" : "place"}
-                    </Badge>
+                  <div className="flex items-center gap-4">
+                    <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-xs italic">
+                      {guest.seatsAtThisTable}
+                    </div>
+                    <div>
+                      <p className="font-bold text-white uppercase italic group-hover:text-primary transition-colors">
+                        {guest.label}
+                      </p>
+                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">
+                        {guest.whatsapp || guest.email || "Pas de contact"}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-white/60 mt-1">
-                    {invitation.peopleCount} personne(s) au total • Scanné:{" "}
-                    {invitation.scannedCount}
-                  </p>
+                  <ChevronRight
+                    className="text-gray-700 group-hover:text-primary transition-colors"
+                    size={20}
+                  />
                 </div>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
