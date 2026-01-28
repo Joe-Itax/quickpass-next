@@ -56,9 +56,9 @@ export default function ModifyTable({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-[10px] font-black uppercase italic tracking-widest h-11 px-6 transition-all"
+          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
         >
-          <Edit3 className="w-4 h-4 mr-2 text-primary" /> Modifier Config
+          <Edit3 className="size-4 mr-2 text-primary" /> Modifier Config
         </Button>
       </DialogTrigger>
 

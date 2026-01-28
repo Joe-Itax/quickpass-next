@@ -7,6 +7,7 @@ import { Table, Invitation } from "@/types/types";
 import DataStatusDisplay from "@/components/data-status-display";
 import ModifyTable from "./modify-table";
 import DeleteTable from "./delete-table";
+import AssignGuests from "./assign-guests";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useRealtimeList } from "@/hooks/use-realtime-list";
 
@@ -61,6 +62,11 @@ export default function TableDetailPage() {
     0,
   );
 
+  let remainingCapacity = 0;
+  if (table) {
+    remainingCapacity = table.capacity - currentOccupied;
+  }
+
   if (tPending || iPending)
     return (
       <DataStatusDisplay
@@ -104,6 +110,11 @@ export default function TableDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <AssignGuests
+            eventId={Number(eventId)}
+            tableId={Number(tableId)}
+            remainingCapacity={remainingCapacity}
+          />
           <ModifyTable
             table={table}
             occupiedSeats={currentOccupied}

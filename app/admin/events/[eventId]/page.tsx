@@ -25,6 +25,7 @@ import {
   Clock,
   Timer,
   Table2,
+  AlertCircle,
 } from "lucide-react";
 import { Event2, Terminal } from "@/types/types";
 import formatDateToCustom from "@/utils/format-date-to-custom";
@@ -46,6 +47,7 @@ import DeleteTerminal from "../../terminals/delete-terminal";
 import ModifyTerminal from "../../terminals/modify-terminal";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
+import ImportGuests from "./import-guests";
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -90,6 +92,20 @@ export default function EventPage() {
     };
   }, [data]);
 
+  const event = data as Event2;
+
+  const unassignedGuests = useMemo(() => {
+    if (!event) return [];
+    return event.invitations.filter(
+      (inv) => !inv.allocations || inv.allocations.length === 0,
+    );
+  }, [event]);
+
+  const totalUnassignedPeople = unassignedGuests.reduce(
+    (sum, g) => sum + g.peopleCount,
+    0,
+  );
+
   if (isPending || isError || error) {
     return (
       <DataStatusDisplay
@@ -100,8 +116,6 @@ export default function EventPage() {
       />
     );
   }
-
-  const event = data as Event2;
 
   const totalCapacity = event.stats.totalCapacity || 0;
   const totalAssigned = event.stats.totalAssignedSeats || 0;
@@ -174,6 +188,7 @@ export default function EventPage() {
         <div className="flex flex-wrap gap-3">
           <ModifyEvent event={event} />
           <AddGuest eventId={event.id} />
+          <ImportGuests eventId={event.id} />
           <AddTable eventId={event.id} />
           <Button
             variant="destructive"
@@ -184,6 +199,84 @@ export default function EventPage() {
           </Button>
         </div>
       </div>
+
+      {/* --- ALERTE INVITÉS NON ASSIGNÉS --- */}
+      {unassignedGuests.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl"
+        >
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 size-80 bg-red-500/10 blur-[120px] animate-pulse" />
+
+          <div className="space-y-6 relative z-10">
+            {/* Header de l'alerte */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-red-500 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                  <AlertCircle className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter">
+                    Flux Critique
+                  </h3>
+                  <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">
+                    {totalUnassignedPeople} Invitations en attente de siège
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => router.push(`/admin/events/${eventId}/tables`)}
+                variant="outline"
+                className="border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase italic text-[10px] px-6"
+              >
+                Vue Plan de Table
+              </Button>
+            </div>
+
+            {/* Grille d'invités non assignés */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {unassignedGuests.slice(0, 8).map((guest) => (
+                <motion.div
+                  key={guest.id}
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() =>
+                    router.push(`/admin/events/${eventId}/${guest.id}`)
+                  }
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/10 transition-all cursor-pointer group"
+                >
+                  <div className="overflow-hidden">
+                    <p className="font-black uppercase italic text-[11px] text-white truncate group-hover:text-red-500 transition-colors">
+                      {guest.label}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Users size={10} className="text-gray-500" />
+                      <span className="text-[9px] font-bold text-gray-500 uppercase">
+                        {guest.peopleCount} Pax
+                      </span>
+                    </div>
+                  </div>
+                  <div className="size-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500 transition-colors">
+                    <MoveLeftIcon size={14} className="text-white rotate-180" />
+                  </div>
+                </motion.div>
+              ))}
+
+              {unassignedGuests.length > 8 && (
+                <button
+                  onClick={() =>
+                    router.push(`/admin/events/${eventId}/invitations`)
+                  } // Ou une page liste
+                  className="p-4 rounded-2xl border border-dashed border-white/10 flex items-center justify-center text-[10px] font-black uppercase italic text-gray-500 hover:border-white/20 hover:text-white transition-all"
+                >
+                  + {unassignedGuests.length - 8} autres invités
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* COLONNE GAUCHE: Stats & Tables */}

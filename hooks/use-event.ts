@@ -168,6 +168,22 @@ export function useCreateInvitation(eventId: number) {
   });
 }
 
+// CREATE MASSIVE INVITATION
+export function useCreateInvitations(eventId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (guests: Invitation[]) =>
+      fetcher(`/api/events/${eventId}/bulk-guests`, {
+        method: "POST",
+        body: JSON.stringify({ guests }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.invitations(eventId) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
+    },
+  });
+}
+
 // GET single invitation
 export function useInvitation(eventId: number, invitationId: number) {
   return useQuery({
@@ -310,6 +326,24 @@ export function useCreateTable(eventId: number) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: EVENT_KEYS.tables(eventId) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
+    },
+  });
+}
+
+// ALLOCATE GUESTS TO TABLE
+export function useUpdateTableAllocation(eventId: number, tableId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { guestIds: number[] }) =>
+      fetcher(`/api/events/${eventId}/tables/${tableId}/allocate`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      // On invalide tout ce qui touche aux tables et aux invitations
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.table(eventId, tableId) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.invitations(eventId) });
       qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
     },
   });
