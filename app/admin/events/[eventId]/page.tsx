@@ -19,49 +19,49 @@ import {
   Hash,
   Cpu,
   MonitorSmartphone,
-  MoreVertical,
-  Settings2,
-  Trash2,
   Clock,
-  Timer,
-  Table2,
   AlertCircle,
+  Mail,
+  MessageCircle,
+  Loader2,
+  CheckCircle2,
+  Info,
+  Table2,
 } from "lucide-react";
-import { Event2, Terminal } from "@/types/types";
+import { Event2 } from "@/types/types";
 import formatDateToCustom from "@/utils/format-date-to-custom";
 import AddGuest from "./add-guest";
 import AddTable from "./add-table";
 import ModifyEvent from "./modify-event";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import DeleteEvent from "./delete-event";
 import QuickAddTerminal from "./quick-add-terminal";
 import { useState, useMemo } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import DeleteTerminal from "../../terminals/delete-terminal";
-import ModifyTerminal from "../../terminals/modify-terminal";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
 import ImportGuests from "./import-guests";
+import { toast } from "sonner";
 
 export default function EventPage() {
   const { eventId } = useParams();
   const router = useRouter();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(
-    null,
-  );
-  const [isModifyOpen, setIsModifyOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [terminalToDelete, setTerminalToDelete] = useState<Terminal | null>(
-    null,
-  );
+  const [isBroadcasting, setIsBroadcasting] = useState<{
+    email: boolean;
+    whatsapp: boolean;
+  }>({
+    email: false,
+    whatsapp: false,
+  });
+
+  const [broadcastReport, setBroadcastReport] = useState<{
+    channel: "email" | "whatsapp";
+    sent: number;
+    eligible: number;
+    errors: string[];
+  } | null>(null);
 
   const {
     data: dataEvent,
@@ -71,28 +71,39 @@ export default function EventPage() {
     refetch,
   } = useEvent(Number(eventId));
 
-  const data = dataEvent as Event2;
+  const event = dataEvent as Event2;
 
   useRealtimeSync({
     eventId: Number(eventId),
     onUpdate: () => refetch(),
   });
 
-  // --- LOGIQUE DE CALCUL DU TEMPS ---
   const timeInfo = useMemo(() => {
-    if (!data) return null;
-    const start = new Date(data.date);
+    if (!event) return null;
+    const start = new Date(event.date);
     const end = new Date(
-      start.getTime() + (data.durationHours || 24) * 60 * 60 * 1000,
+      start.getTime() + (event.durationHours || 24) * 60 * 60 * 1000,
     );
     return {
       startStr: `${start.getHours()}h${start.getMinutes().toString().padStart(2, "0")}`,
       endStr: `${end.getHours()}h${end.getMinutes().toString().padStart(2, "0")}`,
-      duration: data.durationHours,
+      duration: event.durationHours,
     };
-  }, [data]);
+  }, [event]);
 
-  const event = data as Event2;
+  // --- LOGIQUE D'ÉLIGIBILITÉ SÉCURISÉE ---
+  const eligibility = useMemo(() => {
+    if (!event?.invitations) return { email: 0, whatsapp: 0 };
+    return {
+      email: event.invitations.filter(
+        (inv) => inv.email && inv.email.includes("@") && !inv.isSentEmail,
+      ).length,
+      whatsapp: event.invitations.filter(
+        (inv) =>
+          inv.whatsapp && inv.whatsapp.length >= 9 && !inv.isSentWhatsapp,
+      ).length,
+    };
+  }, [event]);
 
   const unassignedGuests = useMemo(() => {
     if (!event) return [];
@@ -105,6 +116,39 @@ export default function EventPage() {
     (sum, g) => sum + g.peopleCount,
     0,
   );
+
+  const handleBroadcast = async (channel: "email" | "whatsapp") => {
+    const totalToProcess =
+      channel === "email" ? eligibility.email : eligibility.whatsapp;
+
+    setIsBroadcasting((prev) => ({ ...prev, [channel]: true }));
+    setBroadcastReport(null);
+
+    try {
+      const res = await fetch(`/api/events/${eventId}/broadcast/${channel}`, {
+        method: "POST",
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        setBroadcastReport({
+          channel,
+          sent: result.count || 0,
+          eligible: totalToProcess,
+          errors: result.errors || [],
+        });
+
+        toast.success(`${result.count} invitations traitées par ${channel}`);
+        refetch();
+      } else {
+        toast.error(result.error || "Erreur lors de la diffusion");
+      }
+    } catch (err) {
+      toast.error("Erreur réseau");
+    } finally {
+      setIsBroadcasting((prev) => ({ ...prev, [channel]: false }));
+    }
+  };
 
   if (isPending || isError || error) {
     return (
@@ -125,7 +169,7 @@ export default function EventPage() {
 
   return (
     <section className="py-6 px-0! max-w-7xl mx-auto space-y-8">
-      {/* --- CYBER HEADER --- */}
+      {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
         <div className="space-y-4">
           <Button
@@ -149,19 +193,16 @@ export default function EventPage() {
             </div>
             <Badge
               className={cn(
-                "font-black italic uppercase text-[10px] px-4 py-1.5 rounded-full border-none shadow-[0_0_15px_rgba(0,0,0,0.2)]",
+                "font-black italic uppercase text-[10px] px-4 py-1.5 rounded-full border-none",
                 event.status === "CANCELLED"
-                  ? "bg-red-500 text-white"
+                  ? "bg-red-500"
                   : event.status === "UPCOMING"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600"
                     : event.status === "ONGOING"
-                      ? "bg-emerald-500 text-white animate-pulse"
-                      : "bg-gray-600 text-white",
+                      ? "bg-emerald-500 animate-pulse"
+                      : "bg-gray-600",
               )}
             >
-              {event.status === "ONGOING" && (
-                <span className="size-1.5 rounded-full bg-white mr-2 animate-ping inline-block" />
-              )}
               {event.status}
             </Badge>
           </div>
@@ -174,10 +215,6 @@ export default function EventPage() {
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Clock size={14} className="text-primary" /> {timeInfo?.startStr}{" "}
               — {timeInfo?.endStr}
-            </span>
-            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-              <Timer size={14} className="text-primary" /> Durée:{" "}
-              {timeInfo?.duration}H
             </span>
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <MapPin size={14} className="text-primary" /> {event.location}
@@ -193,95 +230,195 @@ export default function EventPage() {
           <Button
             variant="destructive"
             onClick={() => setIsDeleteDialogOpen(true)}
-            className="rounded-xl font-black uppercase italic text-[10px] px-5 hover:scale-105 transition-transform"
+            className="rounded-xl font-black uppercase italic text-[10px] px-5"
           >
             <Trash2Icon className="w-4 h-4 mr-2" /> Supprimer
           </Button>
         </div>
       </div>
 
-      {/* --- ALERTE INVITÉS NON ASSIGNÉS --- */}
-      {unassignedGuests.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl"
-        >
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 size-80 bg-red-500/10 blur-[120px] animate-pulse" />
-
-          <div className="space-y-6 relative z-10">
-            {/* Header de l'alerte */}
+      {/* --- ALERTE FLUX CRITIQUE --- */}
+      <AnimatePresence>
+        {unassignedGuests.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl space-y-6"
+          >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
-                <div className="size-12 rounded-2xl bg-red-500 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                <div className="size-12 rounded-2xl bg-red-500 flex items-center justify-center">
                   <AlertCircle className="text-white" size={24} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter">
+                  <h3 className="text-2xl font-black italic uppercase text-white">
                     Flux Critique
                   </h3>
                   <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">
-                    {totalUnassignedPeople} Invitations en attente de siège
+                    {totalUnassignedPeople} Pax sans siège assigné
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => router.push(`/admin/events/${eventId}/tables`)}
                 variant="outline"
-                className="border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase italic text-[10px] px-6"
+                className="border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase italic text-[10px]"
               >
-                Vue Plan de Table
+                Résoudre dans le Plan de Table
               </Button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Grille d'invités non assignés */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {unassignedGuests.slice(0, 8).map((guest) => (
-                <motion.div
-                  key={guest.id}
-                  whileHover={{ scale: 1.02, x: 5 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() =>
-                    router.push(`/admin/events/${eventId}/${guest.id}`)
-                  }
-                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/10 transition-all cursor-pointer group"
-                >
-                  <div className="overflow-hidden">
-                    <p className="font-black uppercase italic text-[11px] text-white truncate group-hover:text-red-500 transition-colors">
-                      {guest.label}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Users size={10} className="text-gray-500" />
-                      <span className="text-[9px] font-bold text-gray-500 uppercase">
-                        {guest.peopleCount} Pax
-                      </span>
-                    </div>
-                  </div>
-                  <div className="size-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500 transition-colors">
-                    <MoveLeftIcon size={14} className="text-white rotate-180" />
-                  </div>
-                </motion.div>
-              ))}
+      {/* --- BROADCAST CENTER --- */}
+      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-black italic uppercase text-white">
+              Centre de Diffusion
+            </h3>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+              {unassignedGuests.length > 0
+                ? "⚠️ Placement incomplet : Diffusion bloquée"
+                : "Canaux de transmission prêts"}
+            </p>
+          </div>
+          {unassignedGuests.length === 0 && (
+            <div className="flex items-center gap-2 text-emerald-500 px-4 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <CheckCircle2 size={16} />
+              <span className="text-[10px] font-black uppercase italic">
+                Audit Placement OK
+              </span>
+            </div>
+          )}
+        </div>
 
-              {unassignedGuests.length > 8 && (
-                <button
-                  onClick={() =>
-                    router.push(`/admin/events/${eventId}/invitations`)
-                  } // Ou une page liste
-                  className="p-4 rounded-2xl border border-dashed border-white/10 flex items-center justify-center text-[10px] font-black uppercase italic text-gray-500 hover:border-white/20 hover:text-white transition-all"
-                >
-                  + {unassignedGuests.length - 8} autres invités
-                </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* WhatsApp */}
+          <div className="space-y-4">
+            <Button
+              onClick={() => handleBroadcast("whatsapp")}
+              disabled={
+                isBroadcasting.whatsapp ||
+                unassignedGuests.length > 0 ||
+                eligibility.whatsapp === 0
+              }
+              className={cn(
+                "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
+                unassignedGuests.length > 0 || eligibility.whatsapp === 0
+                  ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
+                  : "bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white text-[#25D366]",
               )}
+            >
+              {isBroadcasting.whatsapp ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <MessageCircle />
+              )}
+              <span className="font-black uppercase italic text-[11px]">
+                Diffuser WhatsApp
+              </span>
+            </Button>
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-[9px] font-black text-gray-500 uppercase">
+                En attente d&apos;envoi (WhatsApp)
+              </span>
+              <span className="text-xs font-mono text-emerald-500 font-bold">
+                {eligibility.whatsapp}
+              </span>
             </div>
           </div>
-        </motion.div>
-      )}
 
+          {/* Email */}
+          <div className="space-y-4">
+            <Button
+              onClick={() => handleBroadcast("email")}
+              disabled={
+                isBroadcasting.email ||
+                unassignedGuests.length > 0 ||
+                eligibility.email === 0
+              }
+              className={cn(
+                "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
+                unassignedGuests.length > 0 || eligibility.email === 0
+                  ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
+                  : "bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500 hover:text-white text-blue-400",
+              )}
+            >
+              {isBroadcasting.email ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Mail />
+              )}
+              <span className="font-black uppercase italic text-[11px]">
+                Diffuser Email
+              </span>
+            </Button>
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-[9px] font-black text-gray-500 uppercase">
+                En attente d&apos;envoi (Email)
+              </span>
+              <span className="text-xs font-mono text-blue-400 font-bold">
+                {eligibility.email}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* --- RAPPORT POST-ENVOI SÉCURISÉ --- */}
+        <AnimatePresence>
+          {broadcastReport && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-4"
+            >
+              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Info size={20} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xs font-black uppercase text-white italic">
+                  Rapport de transmission : {broadcastReport.channel}
+                </h4>
+                <p className="text-[11px] text-gray-400">
+                  Succès :{" "}
+                  <span className="text-emerald-500 font-bold">
+                    {broadcastReport.sent}
+                  </span>
+                  {broadcastReport.eligible > broadcastReport.sent && (
+                    <>
+                      {" "}
+                      | Échecs techniques :{" "}
+                      <span className="text-red-500 font-bold">
+                        {broadcastReport.eligible - broadcastReport.sent}
+                      </span>
+                    </>
+                  )}
+                </p>
+                {broadcastReport.sent === broadcastReport.eligible &&
+                broadcastReport.sent > 0 ? (
+                  <p className="text-[9px] font-bold text-emerald-500 uppercase mt-2 italic">
+                    ✨ File d&apos;attente traitée avec succès.
+                  </p>
+                ) : (
+                  broadcastReport.sent < broadcastReport.eligible && (
+                    <p className="text-[9px] font-bold text-orange-500 uppercase mt-2">
+                      💡 Conseil : Vérifiez la validité des contacts pour les
+                      invitations restantes.
+                    </p>
+                  )
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* --- STATS ET CONTENU --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* COLONNE GAUCHE: Stats & Tables */}
         <div className="lg:col-span-2 space-y-8">
-          {/* STATS REAL-TIME */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               label="Invitations"
@@ -290,11 +427,17 @@ export default function EventPage() {
               color="text-primary"
             />
             <StatCard
-              label="Présences (Scans)"
+              label="Présences"
               value={event.stats.totalScanned}
               icon={QrCode}
               color="text-emerald-400"
               glow
+            />
+            <StatCard
+              label="Occupation"
+              value={`${occupancyRate}%`}
+              icon={Layers}
+              color="text-purple-400"
             />
             <StatCard
               label="Sièges Assignés"
@@ -314,36 +457,25 @@ export default function EventPage() {
               icon={Activity}
               color="text-orange-400"
             />
-            <StatCard
-              label="Occupation"
-              value={`${occupancyRate}%`}
-              icon={Layers}
-              color="text-purple-400"
-            />
           </div>
 
-          {/* TABLES MONITORING */}
-          <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden backdrop-blur-md">
-            <CardHeader className="border-b border-white/5 bg-white/2 p-6">
-              <CardTitle className="flex items-center justify-between">
-                <div className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
+          <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden">
+            <CardHeader className="border-b border-white/5 p-6">
+              <CardTitle className="flex items-center justify-between text-sm font-black uppercase italic text-primary">
+                <div className="flex items-center gap-2">
                   <Table2Icon size={18} /> Monitoring des Tables (
                   {event.tables.length})
                 </div>
-                <div className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
-                  <Button
-                    onClick={() =>
-                      router.push(`/admin/events/${eventId}/tables`)
-                    }
-                    variant="outline"
-                    className="rounded-xl border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
-                  >
-                    <Table2 className="size-4" /> Plan de Table
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => router.push(`/admin/events/${eventId}/tables`)}
+                  variant="outline"
+                  className="rounded-xl border-primary/20 text-primary text-[10px] uppercase italic"
+                >
+                  <Table2 className="size-4 mr-2" /> Voir Plan
+                </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               {event.tables.map((table) => {
                 const tableAssigned = event.invitations.reduce((total, inv) => {
                   const alloc = inv.allocations?.find(
@@ -352,67 +484,59 @@ export default function EventPage() {
                   return total + (alloc?.seatsAssigned || 0);
                 }, 0);
                 const isFull = tableAssigned >= table.capacity;
-
                 return (
-                  <motion.div
+                  <Link
                     key={table.id}
-                    whileHover={{ scale: 1.02 }}
-                    className=""
+                    href={`/admin/events/${eventId}/tables/${table.id}`}
+                    className="p-4 rounded-2xl border border-white/5 bg-white/2 flex justify-between items-center group hover:scale-[1.02] transition-transform"
                   >
-                    <Link
-                      href={`/admin/events/${eventId}/tables/${table.id}`}
-                      className="size-full p-4 rounded-2xl border border-white/5 bg-white/2 flex justify-between items-center group transition-all"
+                    <div>
+                      <p className="font-black uppercase italic text-sm text-white group-hover:text-primary">
+                        {table.name}
+                      </p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase">
+                        {tableAssigned} / {table.capacity} PLACES
+                      </p>
+                    </div>
+                    <Badge
+                      className={cn(
+                        "text-[9px] font-black",
+                        isFull
+                          ? "bg-red-500/10 text-red-500"
+                          : "bg-emerald-500/10 text-emerald-500",
+                      )}
                     >
-                      <div>
-                        <p className="font-black uppercase italic text-sm text-white group-hover:text-primary transition-colors">
-                          {table.name}
-                        </p>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                          {tableAssigned} / {table.capacity} PLACES
-                        </p>
-                      </div>
-                      <Badge
-                        className={cn(
-                          "rounded-lg font-black italic text-[9px]",
-                          isFull
-                            ? "bg-red-500/10 text-red-500 border-red-500/20"
-                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-                        )}
-                      >
-                        {isFull
-                          ? "COMPLET"
-                          : `${table.capacity - tableAssigned} LIBRES`}
-                      </Badge>
-                    </Link>
-                  </motion.div>
+                      {isFull
+                        ? "COMPLET"
+                        : `${table.capacity - tableAssigned} LIBRES`}
+                    </Badge>
+                  </Link>
                 );
               })}
             </CardContent>
           </Card>
         </div>
 
-        {/* COLONNE DROITE: Terminals & Invitations */}
         <div className="space-y-8">
-          {/* TERMINALS */}
           <Card className="bg-[#0a0a0a]/50 border-white/10 rounded-4xl border overflow-hidden">
             <CardHeader className="bg-white/5 border-b border-white/5 p-6">
-              <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center justify-between w-full">
+              <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Cpu size={18} /> Terminaux
                 </div>
                 <QuickAddTerminal eventId={event.id} />
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-4 space-y-3">
+            <CardContent className="p-6 space-y-3">
               {event.terminals?.map((terminal) => (
                 <div
                   key={terminal.id}
-                  className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group transition-colors hover:bg-white/5"
+                  className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className={cn(
-                        "size-10 rounded-xl flex items-center justify-center transition-colors",
+                        "size-10 rounded-xl flex items-center justify-center",
                         terminal.isActive
                           ? "bg-emerald-500/10 text-emerald-500"
                           : "bg-red-500/10 text-red-500",
@@ -429,52 +553,18 @@ export default function EventPage() {
                       </span>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="size-8 p-0 hover:bg-white/10 rounded-xl"
-                      >
-                        <MoreVertical size={18} className="text-gray-500" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="bg-[#0f0f0f] border-white/10 rounded-2xl"
-                    >
-                      <DropdownMenuItem
-                        className="gap-3 py-3 px-4 font-bold uppercase italic text-[10px] cursor-pointer"
-                        onClick={() => {
-                          setSelectedTerminal(terminal);
-                          setIsModifyOpen(true);
-                        }}
-                      >
-                        <Settings2 size={14} /> Configurer
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="gap-3 py-3 px-4 text-red-500 font-bold uppercase italic text-[10px] cursor-pointer"
-                        onClick={() => {
-                          setTerminalToDelete(terminal);
-                          setIsDeleteOpen(true);
-                        }}
-                      >
-                        <Trash2 size={14} /> Révoquer
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          {/* INVITATIONS */}
           <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden">
             <CardHeader className="border-b border-white/5 p-6">
               <CardTitle className="text-sm font-black uppercase italic text-primary">
-                Invitations
+                Dernières Invitations
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 max-sm:p-4 space-y-3 max-h-100 overflow-y-auto custom-scrollbar">
+            <CardContent className="p-6 space-y-3 max-h-125 overflow-y-auto custom-scrollbar">
               {event.invitations.map((inv) => (
                 <div
                   key={inv.id}
@@ -500,7 +590,7 @@ export default function EventPage() {
                   </div>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-black border-white/10 text-white group-hover:border-primary transition-colors"
+                    className="text-[10px] font-black border-white/10 text-white group-hover:border-primary"
                   >
                     {inv.peopleCount} PERS.
                   </Badge>
@@ -511,41 +601,16 @@ export default function EventPage() {
         </div>
       </div>
 
-      {/* MODALS */}
       <DeleteEvent
         eventId={event.id}
         eventName={event.name}
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       />
-      {selectedTerminal && (
-        <ModifyTerminal
-          key={`mod-${selectedTerminal.id}`}
-          terminal={selectedTerminal}
-          open={isModifyOpen}
-          onOpenChange={(o) => {
-            setIsModifyOpen(o);
-            if (!o) setSelectedTerminal(null);
-          }}
-        />
-      )}
-      {terminalToDelete && (
-        <DeleteTerminal
-          key={`del-${terminalToDelete.id}`}
-          terminalId={terminalToDelete.id}
-          terminalName={terminalToDelete.name}
-          open={isDeleteOpen}
-          onOpenChange={(o) => {
-            setIsDeleteOpen(o);
-            if (!o) setTerminalToDelete(null);
-          }}
-        />
-      )}
     </section>
   );
 }
 
-// Composant StatCard
 function StatCard({
   label,
   value,
@@ -562,9 +627,7 @@ function StatCard({
         <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors" />
       )}
       <Icon className={cn("w-5 h-5", color)} />
-      <span
-        className={cn("text-2xl font-black italic tracking-tighter text-white")}
-      >
+      <span className="text-2xl font-black italic tracking-tighter text-white">
         {value}
       </span>
       <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">

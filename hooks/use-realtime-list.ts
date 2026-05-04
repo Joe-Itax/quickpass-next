@@ -1,23 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase-client";
 
 export function useRealtimeList(onUpdate: () => void) {
+  const callbackRef = useRef(onUpdate);
+
   useEffect(() => {
-    // On crée un canal global pour la liste
+    callbackRef.current = onUpdate;
+  }, [onUpdate]);
+
+  useEffect(() => {
+    const channelName = `events-realtime-${Math.random().toString(36).substring(7)}`;
+
     const channel = supabase
-      .channel("global-events-changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
-        {
-          event: "*", // INSERT (nouvel event), UPDATE (statut), DELETE
-          schema: "public",
-          table: "Event",
-        },
+        { event: "*", schema: "public", table: "Event" },
         () => {
-          console.log(
-            "[REALTIME] Changement détecté dans la liste des événements",
-          );
-          onUpdate();
+          console.log("[REALTIME] Update triggered");
+          callbackRef.current(); // On appelle la ref
         },
       )
       .subscribe();
@@ -25,5 +26,5 @@ export function useRealtimeList(onUpdate: () => void) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [onUpdate]);
+  }, []); // Dépendances vides : on ne s'abonne qu'UNE SEULE FOIS au montage
 }

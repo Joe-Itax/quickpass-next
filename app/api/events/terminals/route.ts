@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { error: "Erreur lors de la récupération" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (!name || !eventId) {
       return NextResponse.json(
         { error: "Données manquantes" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof Object && "code" in error && error.code === "P2002") {
       return NextResponse.json(
         { error: "Un terminal avec ce nom existe déjà pour cet event" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

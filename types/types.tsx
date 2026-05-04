@@ -49,6 +49,8 @@ export interface Invitation {
   label: string;
   email?: string;
   whatsapp?: string;
+  isSentEmail: boolean;
+  isSentWhatsapp: boolean;
   peopleCount: number;
   eventId: number;
   event?: Event2;

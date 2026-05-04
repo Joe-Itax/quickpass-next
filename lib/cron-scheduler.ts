@@ -105,7 +105,7 @@ export const initCron = () => {
 
   try {
     globalForCron.eventJob = CronJob.from({
-      cronTime: "*/1 * * * *",
+      cronTime: "*/5 * * * *",
       onTick: async () => {
         await runEventSystemChecks();
       },
@@ -113,7 +113,7 @@ export const initCron = () => {
       timeZone: "Africa/Kinshasa",
     });
     console.log(
-      `${green}[CRON] 🚀 Scheduler started successfully (1min interval)${reset}`,
+      `${green}[CRON] 🚀 Scheduler started successfully (5min interval)${reset}`,
     );
   } catch (e) {
     console.error("[CRON_INIT_ERROR]", e);

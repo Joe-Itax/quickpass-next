@@ -136,13 +136,13 @@ export function EventCard({ event }: { event: Event2 }) {
           className={`h-full transition-all duration-1000 ${
             event.status === "ONGOING"
               ? "bg-primary animate-pulse shadow-[0_0_15px_#FDB623]"
-              : event.status === "FINISHED"
-                ? "bg-emerald-500"
+              : event.status === "FINISHED" || event.status === "CANCELLED"
+                ? ` ${event.status === "FINISHED" ? "bg-emerald-500" : "bg-red-500"}`
                 : "bg-white/10"
           }`}
           style={{
             width:
-              event.status === "FINISHED"
+              event.status === "FINISHED" || event.status === "CANCELLED"
                 ? "100%"
                 : event.status === "ONGOING"
                   ? "60%"

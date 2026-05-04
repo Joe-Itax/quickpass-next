@@ -167,9 +167,10 @@ model Invitation {
   label       String // ex: "Joe Itax" ou "Couple Mutombo" ou "École Le Savoir"
   peopleCount Int    @default(1) // ex: 1, 2, 14 ...
 
-  email    String? // Optionnel
-  whatsapp String? // Optionnel (Format international recommandé : +243...)
-  isSent   Boolean @default(false) // Pour suivre la distribution des Pass
+  email          String? // Optionnel
+  whatsapp       String? // Optionnel (Format international recommandé : +243...)
+  isSentEmail    Boolean @default(false)
+  isSentWhatsapp Boolean @default(false)
 
   eventId      Int
   event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
