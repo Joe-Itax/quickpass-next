@@ -19,14 +19,13 @@ export async function GET(req: NextRequest) {
           deletedAt: null,
         };
 
-  // Si admin global -> voit tout
   const where =
     user.role === "ADMIN"
       ? {}
       : {
           OR: [
-            { createdById: user.id }, // events créés par l'utilisateur
-            { assignments: { some: { userId: user.id } } }, // events où il est assigné
+            { createdById: user.id },
+            { assignments: { some: { userId: user.id } } },
           ],
           ...statusFilter,
         };
@@ -51,9 +50,33 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, description, date, location, durationHours } = body;
-    if (!name || !description || !date || !location)
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const {
+      name,
+      description,
+      date,
+      location,
+      fullLocation,
+      invitationMessage,
+      durationHours,
+    } = body;
+
+    // Validation
+    if (
+      !name ||
+      !description ||
+      !date ||
+      !location ||
+      !fullLocation ||
+      !invitationMessage
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Tous les champs, y compris l'adresse complète et le message d'invitation, sont requis.",
+        },
+        { status: 400 },
+      );
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const temp = await tx.event.create({
@@ -62,6 +85,8 @@ export async function POST(req: NextRequest) {
           description,
           date: new Date(date),
           location,
+          fullLocation,
+          invitationMessage,
           durationHours: durationHours || 24,
           eventCode: "tmp",
           createdById: user.id,
@@ -69,7 +94,6 @@ export async function POST(req: NextRequest) {
       });
 
       if (user.role !== "ADMIN") {
-        // Auto assignment
         await tx.eventAssignment.upsert({
           where: { userId_eventId: { userId: user.id, eventId: temp.id } },
           update: {},
@@ -82,7 +106,7 @@ export async function POST(req: NextRequest) {
         where: { id: temp.id },
         data: { eventCode: code },
       });
-      // create stats row
+
       await tx.eventStats.create({
         data: {
           eventId: temp.id,
@@ -96,9 +120,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(created);
   } catch (err) {
-    console.error(err);
+    console.error("Create error:", err);
     return NextResponse.json(
-      { error: "Error creating event" },
+      { error: "Erreur lors de la création de l'événement" },
       { status: 500 },
     );
   }

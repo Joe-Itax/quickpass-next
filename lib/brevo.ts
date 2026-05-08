@@ -14,11 +14,13 @@ interface EmailGuest {
   label: string;
   qrData: string;
   eventName: string;
+  eventDate: string;
+  eventLocation: string;
+  customMessage: string;
+  invitationUrl: string;
+  seats: number; // Le nombre de places
 }
 
-/**
- * Fonction helper pour découper un tableau en morceaux (chunks)
- */
 const chunkArray = <T>(array: T[], size: number): T[][] => {
   const chunks = [];
   for (let i = 0; i < array.length; i += size) {
@@ -28,16 +30,14 @@ const chunkArray = <T>(array: T[], size: number): T[][] => {
 };
 
 export async function sendBulkEventEmail(guests: EmailGuest[]) {
-  //   const templateId = Number(process.env.BREVO_TEMPLATE_ID);
   const templateId = parseInt(process.env.BREVO_TEMPLATE_ID || "0", 10);
   if (templateId === 0 || !templateId)
     throw new Error("ID de template Brevo manquant");
+
   const CHUNK_SIZE = 50;
   const guestChunks = chunkArray(guests, CHUNK_SIZE);
 
-  // Tableau pour stocker tous les résultats (SettledResult)
   let allResults: PromiseSettledResult<unknown>[] = [];
-  //   let allResults: PromiseSettledResult<brevo.CreateSmtpEmail>[] = [];
 
   for (const chunk of guestChunks) {
     const chunkPromises = chunk.map((guest) => {
@@ -45,21 +45,24 @@ export async function sendBulkEventEmail(guests: EmailGuest[]) {
       sendSmtpEmail.templateId = templateId;
       sendSmtpEmail.to = [{ email: guest.email, name: guest.label }];
 
-      // Ces params correspondent aux {{ params.XXX }} dans ton template Brevo
+      // Mapping strict avec les variables
       sendSmtpEmail.params = {
-        GUEST_NAME: guest.label,
-        EVENT_NAME: guest.eventName,
-        QR_IMAGE: `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${guest.qrData}`,
+        link_qrcode: `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${guest.qrData}`,
+        event_name: guest.eventName,
+        guest_name: guest.label,
+        custom_message: guest.customMessage,
+        invitation_url: guest.invitationUrl,
+        event_date: guest.eventDate,
+        event_location: guest.eventLocation,
+        seats: guest.seats,
       };
 
       return apiInstance.sendTransacEmail(sendSmtpEmail);
     });
 
-    // On attend que le lot actuel soit traité
     const chunkResults = await Promise.allSettled(chunkPromises);
     allResults = [...allResults, ...chunkResults];
 
-    // Petite pause de 500ms entre les lots pour ne pas saturer l'API
     if (guestChunks.length > 1) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }

@@ -457,6 +457,7 @@ export function useCreateTerminal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events-with-terminals"] });
+      queryClient.invalidateQueries({ queryKey: ["event"] });
     },
   });
 }

@@ -10,6 +10,8 @@ import {
   Sparkles,
   Clock,
   Timer,
+  MessageCircleHeart,
+  Navigation,
 } from "lucide-react";
 
 import {
@@ -30,10 +32,12 @@ import { Event2 } from "@/types/types";
 type EventFormData = {
   name: string;
   description: string;
+  invitationMessage: string;
   date: string;
   startTime: string;
   durationHours: number;
   location: string;
+  fullLocation: string;
 };
 
 export default function AddEvent() {
@@ -41,10 +45,12 @@ export default function AddEvent() {
   const [formData, setFormData] = useState<EventFormData>({
     name: "",
     description: "",
+    invitationMessage: "",
     date: "",
     startTime: "12:00",
     durationHours: 24,
     location: "",
+    fullLocation: "",
   });
 
   const [errors, setErrors] = useState<
@@ -58,9 +64,13 @@ export default function AddEvent() {
     if (!formData.name.trim()) newErrors.name = "NOM REQUIS";
     if (!formData.description.trim())
       newErrors.description = "DESCRIPTION REQUISE";
+    if (!formData.invitationMessage.trim())
+      newErrors.invitationMessage = "MESSAGE D'INVITATION REQUIS";
     if (!formData.date.trim()) newErrors.date = "DATE REQUISE";
     if (!formData.startTime.trim()) newErrors.startTime = "HEURE REQUISE";
     if (!formData.location.trim()) newErrors.location = "LIEU REQUIS";
+    if (!formData.fullLocation.trim())
+      newErrors.fullLocation = "ADRESSE COMPLÈTE REQUISE";
     if (formData.durationHours <= 0) newErrors.durationHours = "DURÉE INVALIDE";
 
     const combinedDateTime = new Date(`${formData.date}T${formData.startTime}`);
@@ -83,18 +93,22 @@ export default function AddEvent() {
       await createEvent({
         name: formData.name,
         description: formData.description,
+        invitationMessage: formData.invitationMessage,
         date: finalDateTime.toISOString(),
         durationHours: Number(formData.durationHours),
         location: formData.location,
+        fullLocation: formData.fullLocation,
       } as unknown as Event2);
 
       setFormData({
         name: "",
         description: "",
+        invitationMessage: "",
         date: "",
         startTime: "12:00",
         durationHours: 24,
         location: "",
+        fullLocation: "",
       });
       setOpenDialog(false);
     } catch (error) {
@@ -124,7 +138,7 @@ export default function AddEvent() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="sm:max-w-2xl bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl overflow-y-auto max-h-[90vh]">
         <DialogHeader className="bg-white/5 p-8 border-b border-white/5 relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent" />
           <div className="flex items-center gap-4">
@@ -226,10 +240,10 @@ export default function AddEvent() {
               <ErrorMessage message={errors.durationHours} />
             </div>
 
-            {/* Lieu */}
+            {/* Lieu (Court) */}
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
-                <MapPin size={12} /> Localisation
+                <MapPin size={12} /> Localisation (Nom du lieu)
               </Label>
               <input
                 name="location"
@@ -248,10 +262,53 @@ export default function AddEvent() {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Adresse Complète */}
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
-              <AlignLeft size={12} /> Briefing
+              <Navigation size={12} /> Adresse complète
+            </Label>
+            <input
+              name="fullLocation"
+              type="text"
+              value={formData.fullLocation}
+              onChange={handleChange}
+              placeholder="Ex: 4 Avenue du Flambeau, Gombe, Kinshasa"
+              className={cn(
+                "w-full h-12 px-4 rounded-xl bg-white/5 border text-sm font-bold text-white transition-all focus:outline-none focus:border-primary placeholder:text-gray-700",
+                errors.fullLocation
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-white/10",
+              )}
+            />
+            <ErrorMessage message={errors.fullLocation} />
+          </div>
+
+          {/* Message d'invitation chaleureux */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+              <MessageCircleHeart size={12} /> Message d&apos;invitation
+              chaleureux
+            </Label>
+            <textarea
+              name="invitationMessage"
+              value={formData.invitationMessage}
+              onChange={handleChange}
+              rows={2}
+              className={cn(
+                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white/70 transition-all focus:outline-none focus:border-primary resize-none placeholder:text-gray-700",
+                errors.invitationMessage
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-white/10",
+              )}
+              placeholder="Ex: Nous serions honorés de vous compter parmi nos invités..."
+            />
+            <ErrorMessage message={errors.invitationMessage} />
+          </div>
+
+          {/* Description / Briefing */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 ml-1">
+              <AlignLeft size={12} /> Briefing (Description interne)
             </Label>
             <textarea
               name="description"

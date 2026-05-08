@@ -53,7 +53,7 @@ export interface Invitation {
   isSentWhatsapp: boolean;
   peopleCount: number;
   eventId: number;
-  event?: Event2;
+  event: Event2;
   qrCode: string;
   table: string;
   scannedCount: number;
@@ -88,6 +88,8 @@ export interface Event2 {
   description: string;
   date: string;
   location: string;
+  fullLocation?: string;
+  invitationMessage?: string;
   eventCode: string;
   status: "FINISHED" | "ONGOING" | "UPCOMING" | "CANCELLED";
   createdById: string;

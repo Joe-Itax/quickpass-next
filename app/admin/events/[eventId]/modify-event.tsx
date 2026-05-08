@@ -9,6 +9,8 @@ import {
   Info,
   Clock,
   Timer,
+  Navigation,
+  MessageCircleHeart,
 } from "lucide-react";
 
 import {
@@ -30,6 +32,8 @@ type EventFormData = {
   name: string;
   description: string;
   location: string;
+  fullLocation: string;
+  invitationMessage: string;
   date: string;
   startTime: string;
   durationHours: number;
@@ -73,6 +77,8 @@ export default function ModifyEvent({
     name: event.name,
     description: event.description || "",
     location: event.location,
+    fullLocation: (event as Event2).fullLocation || "",
+    invitationMessage: (event as Event2).invitationMessage || "",
     date: initialData.date,
     startTime: initialData.time,
     durationHours: event.durationHours || 24,
@@ -91,10 +97,13 @@ export default function ModifyEvent({
     if (!formData.description.trim())
       newErrors.description = "DESCRIPTION REQUISE";
     if (!formData.location.trim()) newErrors.location = "COORDONNÉES REQUISES";
+    if (!formData.fullLocation.trim())
+      newErrors.fullLocation = "ADRESSE COMPLÈTE REQUISE";
+    if (!formData.invitationMessage.trim())
+      newErrors.invitationMessage = "MESSAGE D'INVITATION REQUIS";
     if (!formData.date) {
       newErrors.date = "DATE REQUISE";
     } else {
-      // Validation : Date doit être aujourd'hui ou futur
       const selectedDate = new Date(formData.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -121,9 +130,11 @@ export default function ModifyEvent({
         name: formData.name,
         description: formData.description,
         location: formData.location,
+        fullLocation: formData.fullLocation,
+        invitationMessage: formData.invitationMessage,
         date: finalDateTime.toISOString(),
         durationHours: Number(formData.durationHours),
-      };
+      } as Event2;
 
       await updateEvent(eventData);
       setOpenDialog(false);
@@ -257,7 +268,7 @@ export default function ModifyEvent({
 
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                <MapPin size={12} /> Localisation
+                <MapPin size={12} /> Localisation (Nom du lieu)
               </Label>
               <input
                 name="location"
@@ -275,9 +286,52 @@ export default function ModifyEvent({
             </div>
           </div>
 
+          {/* Adresse Complète */}
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-              <AlignLeft size={12} /> Briefing
+              <Navigation size={12} /> Adresse Complète
+            </Label>
+            <input
+              name="fullLocation"
+              type="text"
+              placeholder="Ex: Croisement Av. des Huileries, Kinshasa"
+              value={formData.fullLocation}
+              onChange={handleChange}
+              className={cn(
+                "w-full h-12 px-4 rounded-xl bg-white/5 border text-sm font-bold text-white transition-all focus:outline-none focus:border-primary",
+                errors.fullLocation
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-white/10",
+              )}
+            />
+            <ErrorMessage message={errors.fullLocation} />
+          </div>
+
+          {/* Message d'Invitation */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
+              <MessageCircleHeart size={12} /> Message d&apos;Invitation
+              Chaleureux
+            </Label>
+            <textarea
+              name="invitationMessage"
+              value={formData.invitationMessage}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Ex: Nous serions honorés de vous compter parmi nos invités..."
+              className={cn(
+                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white transition-all focus:outline-none focus:border-primary resize-none custom-scrollbar",
+                errors.invitationMessage
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-white/10",
+              )}
+            />
+            <ErrorMessage message={errors.invitationMessage} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+              <AlignLeft size={12} /> Briefing (Description Interne)
             </Label>
             <textarea
               name="description"
@@ -285,11 +339,12 @@ export default function ModifyEvent({
               onChange={handleChange}
               rows={3}
               className={cn(
-                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white/70 transition-all focus:outline-none focus:border-primary resize-none custom-scrollbar",
+                "w-full p-4 rounded-xl bg-white/5 border text-sm font-medium text-white/70 transition-all focus:outline-none focus:border-primary resize-none custom-scrollbar placeholder:text-gray-700",
                 errors.description
                   ? "border-red-500 bg-red-500/5"
                   : "border-white/10",
               )}
+              placeholder="Décrivez l'enjeu de cet événement..."
             />
             <ErrorMessage message={errors.description} />
           </div>
