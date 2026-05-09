@@ -22,14 +22,12 @@ import {
   Clock,
   AlertCircle,
   Mail,
-  MessageCircle,
+  FileSpreadsheet,
   Loader2,
   CheckCircle2,
-  Info,
   Table2,
 } from "lucide-react";
 import { Event2 } from "@/types/types";
-import formatDateToCustom from "@/utils/format-date-to-custom";
 import AddGuest from "./add-guest";
 import AddTable from "./add-table";
 import ModifyEvent from "./modify-event";
@@ -42,26 +40,60 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
 import ImportGuests from "./import-guests";
 import { toast } from "sonner";
+import ExcelJS from "exceljs";
+
+// --- HELPERS (Définis en dehors pour éviter la re-déclaration au rendu) ---
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return "Date inconnue";
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "Africa/Kinshasa",
+  }).format(date);
+};
+
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  glow?: boolean;
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  glow = false,
+}: StatCardProps) {
+  return (
+    <motion.div
+      whileHover={{ y: -5 }}
+      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group"
+    >
+      {glow && (
+        <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors" />
+      )}
+      <Icon className={cn("w-5 h-5", color)} />
+      <span className="text-2xl font-black italic tracking-tighter text-white">
+        {value}
+      </span>
+      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">
+        {label}
+      </span>
+    </motion.div>
+  );
+}
 
 export default function EventPage() {
   const { eventId } = useParams();
   const router = useRouter();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isBroadcasting, setIsBroadcasting] = useState<{
-    email: boolean;
-    whatsapp: boolean;
-  }>({
-    email: false,
-    whatsapp: false,
-  });
-
-  const [broadcastReport, setBroadcastReport] = useState<{
-    channel: "email" | "whatsapp";
-    sent: number;
-    eligible: number;
-    errors: string[];
-  } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
 
   const {
     data: dataEvent,
@@ -91,7 +123,6 @@ export default function EventPage() {
     };
   }, [event]);
 
-  // --- LOGIQUE D'ÉLIGIBILITÉ SÉCURISÉE ---
   const eligibility = useMemo(() => {
     if (!event?.invitations) return { email: 0, whatsapp: 0 };
     return {
@@ -99,8 +130,7 @@ export default function EventPage() {
         (inv) => inv.email && inv.email.includes("@") && !inv.isSentEmail,
       ).length,
       whatsapp: event.invitations.filter(
-        (inv) =>
-          inv.whatsapp && inv.whatsapp.length >= 9 && !inv.isSentWhatsapp,
+        (inv) => inv.whatsapp && inv.whatsapp.length >= 9,
       ).length,
     };
   }, [event]);
@@ -117,36 +147,74 @@ export default function EventPage() {
     0,
   );
 
-  const handleBroadcast = async (channel: "email" | "whatsapp") => {
-    const totalToProcess =
-      channel === "email" ? eligibility.email : eligibility.whatsapp;
-
-    setIsBroadcasting((prev) => ({ ...prev, [channel]: true }));
-    setBroadcastReport(null);
+  // --- LOGIQUE EXPORT EXCEL ---
+  const handleExportWhatsApp = async () => {
+    if (!event?.invitations) return;
+    setIsExporting(true);
 
     try {
-      const res = await fetch(`/api/events/${eventId}/broadcast/${channel}`, {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("WhatsApp Broadcast");
+
+      worksheet.columns = [
+        { header: "WhatsApp Number", key: "phone", width: 20 },
+        { header: "Nom de l'invité", key: "name", width: 25 },
+        { header: "Nombre de places", key: "pax", width: 15 },
+        { header: "Date", key: "date", width: 25 },
+        { header: "Lieu", key: "location", width: 30 },
+        { header: "Lien Digital Pass", key: "link", width: 45 },
+        { header: "Image QR Code (URL)", key: "qr_url", width: 50 },
+      ];
+
+      event.invitations.forEach((inv) => {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${inv.qrCode}`;
+        worksheet.addRow({
+          phone: inv.whatsapp,
+          name: inv.label,
+          pax: inv.peopleCount,
+          date: formatDateTime(event.date), // Utilisation de event.date
+          location: `${event.location} (${event.fullLocation || ""})`,
+          link: `${process.env.NEXT_PUBLIC_BASE_URL}/invitation/${inv.qrCode}`,
+          qr_url: qrUrl,
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `LokaPass_WhatsApp_${event.name.replace(/\s+/g, "_")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Fichier Excel généré avec succès !");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de l'export Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleBroadcastEmail = async () => {
+    setIsBroadcastingEmail(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/broadcast/email`, {
         method: "POST",
       });
       const result = await res.json();
-
       if (res.ok) {
-        setBroadcastReport({
-          channel,
-          sent: result.count || 0,
-          eligible: totalToProcess,
-          errors: result.errors || [],
-        });
-
-        toast.success(`${result.count} invitations traitées par ${channel}`);
+        toast.success(`${result.count} emails envoyés`);
         refetch();
-      } else {
-        toast.error(result.error || "Erreur lors de la diffusion");
-      }
+      } else toast.error(result.error);
     } catch (err) {
       toast.error("Erreur réseau");
     } finally {
-      setIsBroadcasting((prev) => ({ ...prev, [channel]: false }));
+      setIsBroadcastingEmail(false);
     }
   };
 
@@ -198,9 +266,7 @@ export default function EventPage() {
                   ? "bg-red-500"
                   : event.status === "UPCOMING"
                     ? "bg-blue-600"
-                    : event.status === "ONGOING"
-                      ? "bg-emerald-500 animate-pulse"
-                      : "bg-gray-600",
+                    : "bg-emerald-500",
               )}
             >
               {event.status}
@@ -210,7 +276,7 @@ export default function EventPage() {
           <div className="flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Calendar size={14} className="text-primary" />{" "}
-              {formatDateToCustom(event.date, false)}
+              {formatDateTime(event.date)}
             </span>
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Clock size={14} className="text-primary" /> {timeInfo?.startStr}{" "}
@@ -281,7 +347,7 @@ export default function EventPage() {
             </h3>
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
               {unassignedGuests.length > 0
-                ? "⚠️ Placement incomplet : Diffusion bloquée"
+                ? "⚠️ Placement incomplet : Diffusion restreinte"
                 : "Canaux de transmission prêts"}
             </p>
           </div>
@@ -296,34 +362,29 @@ export default function EventPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* WhatsApp */}
           <div className="space-y-4">
             <Button
-              onClick={() => handleBroadcast("whatsapp")}
-              disabled={
-                isBroadcasting.whatsapp ||
-                unassignedGuests.length > 0 ||
-                eligibility.whatsapp === 0
-              }
+              onClick={handleExportWhatsApp}
+              disabled={isExporting || eligibility.whatsapp === 0}
               className={cn(
                 "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
-                unassignedGuests.length > 0 || eligibility.whatsapp === 0
+                eligibility.whatsapp === 0
                   ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
                   : "bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white text-[#25D366]",
               )}
             >
-              {isBroadcasting.whatsapp ? (
+              {isExporting ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                <MessageCircle />
+                <FileSpreadsheet />
               )}
               <span className="font-black uppercase italic text-[11px]">
-                Diffuser WhatsApp
+                Exporter pour WhatsApp
               </span>
             </Button>
             <div className="px-4 flex justify-between items-center">
               <span className="text-[9px] font-black text-gray-500 uppercase">
-                En attente d&apos;envoi (WhatsApp)
+                Contacts WhatsApp détectés
               </span>
               <span className="text-xs font-mono text-emerald-500 font-bold">
                 {eligibility.whatsapp}
@@ -331,12 +392,11 @@ export default function EventPage() {
             </div>
           </div>
 
-          {/* Email */}
           <div className="space-y-4">
             <Button
-              onClick={() => handleBroadcast("email")}
+              onClick={handleBroadcastEmail}
               disabled={
-                isBroadcasting.email ||
+                isBroadcastingEmail ||
                 unassignedGuests.length > 0 ||
                 eligibility.email === 0
               }
@@ -347,13 +407,13 @@ export default function EventPage() {
                   : "bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500 hover:text-white text-blue-400",
               )}
             >
-              {isBroadcasting.email ? (
+              {isBroadcastingEmail ? (
                 <Loader2 className="animate-spin" />
               ) : (
                 <Mail />
               )}
               <span className="font-black uppercase italic text-[11px]">
-                Diffuser Email
+                Diffuser par Email
               </span>
             </Button>
             <div className="px-4 flex justify-between items-center">
@@ -366,54 +426,6 @@ export default function EventPage() {
             </div>
           </div>
         </div>
-
-        {/* --- RAPPORT POST-ENVOI SÉCURISÉ --- */}
-        <AnimatePresence>
-          {broadcastReport && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-4"
-            >
-              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                <Info size={20} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-xs font-black uppercase text-white italic">
-                  Rapport de transmission : {broadcastReport.channel}
-                </h4>
-                <p className="text-[11px] text-gray-400">
-                  Succès :{" "}
-                  <span className="text-emerald-500 font-bold">
-                    {broadcastReport.sent}
-                  </span>
-                  {broadcastReport.eligible > broadcastReport.sent && (
-                    <>
-                      {" "}
-                      | Échecs techniques :{" "}
-                      <span className="text-red-500 font-bold">
-                        {broadcastReport.eligible - broadcastReport.sent}
-                      </span>
-                    </>
-                  )}
-                </p>
-                {broadcastReport.sent === broadcastReport.eligible &&
-                broadcastReport.sent > 0 ? (
-                  <p className="text-[9px] font-bold text-emerald-500 uppercase mt-2 italic">
-                    ✨ File d&apos;attente traitée avec succès.
-                  </p>
-                ) : (
-                  broadcastReport.sent < broadcastReport.eligible && (
-                    <p className="text-[9px] font-bold text-orange-500 uppercase mt-2">
-                      💡 Conseil : Vérifiez la validité des contacts pour les
-                      invitations restantes.
-                    </p>
-                  )
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* --- STATS ET CONTENU --- */}
@@ -609,38 +621,4 @@ export default function EventPage() {
       />
     </section>
   );
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  glow = false,
-}: StatCardProps) {
-  return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group"
-    >
-      {glow && (
-        <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors" />
-      )}
-      <Icon className={cn("w-5 h-5", color)} />
-      <span className="text-2xl font-black italic tracking-tighter text-white">
-        {value}
-      </span>
-      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">
-        {label}
-      </span>
-    </motion.div>
-  );
-}
-
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  glow?: boolean;
 }
