@@ -163,7 +163,7 @@ export default function EventPage() {
         { header: "Date", key: "date", width: 25 },
         { header: "Lieu", key: "location", width: 30 },
         { header: "Lien Digital Pass", key: "link", width: 45 },
-        { header: "Image QR Code (URL)", key: "qr_url", width: 50 },
+        { header: "Image QR Code", key: "qr_url", width: 50 },
       ];
 
       event.invitations.forEach((inv) => {
@@ -269,7 +269,7 @@ export default function EventPage() {
                     : "bg-emerald-500",
               )}
             >
-              {event.status}
+              {`${event.status === "UPCOMING" ? "À venir" : event.status === "ONGOING" ? "En cours" : event.status === "FINISHED" ? "Terminé" : event.status === "CANCELLED" ? "Annulé" : event.status}`}
             </Badge>
           </div>
 

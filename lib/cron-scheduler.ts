@@ -11,13 +11,19 @@ const reset = "\x1b[0m";
 export const runEventSystemChecks = async () => {
   const now = new Date();
 
+  // Délais de purge
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const fiveDaysAgo = new Date();
+  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
   console.log(
-    `${cyan}[CRON SYSTEM] Checking events at ${now.toLocaleTimeString()}${reset}`,
+    `${cyan}[CRON SYSTEM] Checking system health at ${now.toLocaleTimeString()}${reset}`,
   );
 
   try {
-    // 1. UPCOMING -> ONGOING
-    // On récupère les noms avant pour le log
+    // --- 1. GESTION DES STATUTS (UPCOMING -> ONGOING) ---
     const upcomingToStart = await prisma.event.findMany({
       where: { status: "UPCOMING", date: { lte: now }, deletedAt: null },
       select: { name: true, id: true },
@@ -35,7 +41,7 @@ export const runEventSystemChecks = async () => {
       );
     }
 
-    // 2. ONGOING -> FINISHED
+    // --- 2. GESTION DES STATUTS (ONGOING -> FINISHED) ---
     const ongoingEvents = await prisma.event.findMany({
       where: { status: "ONGOING", deletedAt: null },
     });
@@ -57,40 +63,60 @@ export const runEventSystemChecks = async () => {
       }
     }
 
-    // 3. PURGE DÉFINITIVE (30 jours après deletedAt)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // On récupère les noms pour le log avant la suppression
-    const toPurge = await prisma.event.findMany({
-      where: { deletedAt: { lte: thirtyDaysAgo } },
-      select: { name: true, id: true },
+    // --- 3. PURGE DES ÉVÉNEMENTS (Supprimés OU Annulés > 30 jours) ---
+    const eventsToPurge = await prisma.event.findMany({
+      where: {
+        OR: [
+          { deletedAt: { lte: thirtyDaysAgo } },
+          { status: "CANCELLED", updatedAt: { lte: thirtyDaysAgo } },
+        ],
+      },
+      select: { name: true, id: true, status: true },
     });
 
-    if (toPurge.length > 0) {
+    if (eventsToPurge.length > 0) {
       await prisma.event.deleteMany({
-        where: { id: { in: toPurge.map((e) => e.id) } },
+        where: { id: { in: eventsToPurge.map((e) => e.id) } },
       });
-      toPurge.forEach((e) =>
+      eventsToPurge.forEach((e) =>
         console.log(
-          `${red}[PURGE] 🗑️ Event "${e.name}" (and all related data) permanently deleted${reset}`,
+          `${red}[PURGE EVENT] 🗑️ "${e.name}" (${e.status}) deleted permanently${reset}`,
         ),
       );
     }
 
-    // Log de résumé si rien ne s'est passé
+    // --- 4. PURGE DES TERMINAUX ARCHIVÉS (> 5 jours) ---
+    const terminalsToPurge = await prisma.terminal.findMany({
+      where: { deletedAt: { lte: fiveDaysAgo } },
+      select: { name: true, id: true },
+    });
+
+    if (terminalsToPurge.length > 0) {
+      await prisma.terminal.deleteMany({
+        where: { id: { in: terminalsToPurge.map((t) => t.id) } },
+      });
+      terminalsToPurge.forEach((t) =>
+        console.log(
+          `${red}[PURGE TERMINAL] 📱 Terminal "${t.name}" deleted permanently${reset}`,
+        ),
+      );
+    }
+
+    // --- RÉSUMÉ ---
     if (
-      upcomingToStart.length === 0 &&
-      finishedCount === 0 &&
-      toPurge.length === 0
+      !upcomingToStart.length &&
+      !finishedCount &&
+      !eventsToPurge.length &&
+      !terminalsToPurge.length
     ) {
-      console.log("[CRON] No changes detected.");
+      console.log("[CRON] No maintenance required.");
     }
 
     return {
       started: upcomingToStart.length,
       finished: finishedCount,
-      purged: toPurge.length,
+      purgedEvents: eventsToPurge.length,
+      purgedTerminals: terminalsToPurge.length,
     };
   } catch (error) {
     console.error(`${red}[CRON_LOGIC_ERROR]${reset}`, error);
@@ -112,9 +138,7 @@ export const initCron = () => {
       start: true,
       timeZone: "Africa/Kinshasa",
     });
-    console.log(
-      `${green}[CRON] 🚀 Scheduler started successfully (5min interval)${reset}`,
-    );
+    console.log(`${green}[CRON] 🚀 Scheduler running (5min interval)${reset}`);
   } catch (e) {
     console.error("[CRON_INIT_ERROR]", e);
   }

@@ -26,14 +26,19 @@ export default function PublicInvitationPage() {
   useEffect(() => {
     fetch(`/api/invitation/${qrCode}`)
       .then(async (res) => {
-        if (!res.ok) throw new Error(res.status === 404 ? "Inconnu" : "Erreur");
-        return res.json();
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(res.status === 404 ? result.error : "Erreur");
+        }
+
+        return result;
       })
       .then((data) => {
         setInvitation(data);
         setLoading(false);
       })
       .catch((err) => {
+        console.log("Fetch error: ", err);
         setError(err);
         setLoading(false);
       });

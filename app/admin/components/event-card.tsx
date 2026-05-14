@@ -39,7 +39,8 @@ export function EventCard({ event }: { event: Event2 }) {
           {event.status === "ONGOING" && (
             <span className="size-1.5 rounded-full bg-emerald-400 animate-ping mr-2" />
           )}
-          {event.status}
+          {/* {event.status} */}
+          {`${event.status === "UPCOMING" ? "À venir" : event.status === "ONGOING" ? "En cours" : event.status === "FINISHED" ? "Terminé" : event.status === "CANCELLED" ? "Annulé" : event.status}`}
         </Badge>
 
         {event.status === "ONGOING" && (
