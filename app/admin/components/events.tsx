@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, CalendarPlus } from "lucide-react";
+import { Search, Filter, CalendarPlus, Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EventCard } from "./event-card";
 import { useEvents } from "@/hooks/use-event";
@@ -17,6 +17,8 @@ import { Event2 } from "@/types/types";
 import DataStatusDisplay from "@/components/data-status-display";
 import AddEvent from "../events/add-event";
 import { useRealtimeList } from "@/hooks/use-realtime-list";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Events() {
   const { data: events = [], isPending, isError, error, refetch } = useEvents();
@@ -78,6 +80,13 @@ export default function Events() {
           </Select>
 
           <AddEvent />
+
+          <Link href={`/admin/verify-guest`}>
+            <Button className="rounded-2xl bg-primary font-black uppercase italic hover:scale-105 transition-transform px-6 shadow-[0_0_20px_rgba(253,182,35,0.3)]">
+              <Check className="mr-0" size={20} strokeWidth={3} />
+              Check QRCode
+            </Button>
+          </Link>
         </div>
       </div>
 

@@ -283,6 +283,17 @@ export function useReverseScan(eventId: number) {
   });
 }
 
+export function useVerifyQR() {
+  return useMutation({
+    mutationFn: (qr: string) =>
+      fetcher(`/api/events/verify-qr`, {
+        method: "POST",
+        body: JSON.stringify({ qr }),
+      }),
+    retry: false,
+  });
+}
+
 // ===================================================================
 // 🟧 TABLES
 // ===================================================================

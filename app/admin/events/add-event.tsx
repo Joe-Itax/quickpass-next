@@ -133,7 +133,7 @@ export default function AddEvent() {
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger asChild>
         <Button className="rounded-2xl bg-primary font-black uppercase italic hover:scale-105 transition-transform px-6 shadow-[0_0_20px_rgba(253,182,35,0.3)]">
-          <Plus className="mr-2" size={20} strokeWidth={3} />
+          <Plus className="mr-0" size={20} strokeWidth={3} />
           Nouvel Événement
         </Button>
       </DialogTrigger>
