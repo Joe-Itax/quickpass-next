@@ -7,6 +7,7 @@ import DataStatusDisplay from "@/components/data-status-display";
 import { Navbar } from "@/components/public/navbar";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useOfflineScan } from "@/hooks/use-offline-scan";
 
 export default function EventLayout({
   children,
@@ -27,7 +28,15 @@ export default function EventLayout({
     }
   }, [eventCode, router]);
 
+  const { prefetch, bundleReady } = useOfflineScan(eventCode as string);
   const { isError, error } = useEventByEventCode(eventCode as string);
+
+  useEffect(() => {
+    const terminalCode = localStorage.getItem("terminalCode");
+    if (terminalCode && !bundleReady) {
+      prefetch(terminalCode).catch(() => undefined);
+    }
+  }, [eventCode, bundleReady, prefetch]);
 
   useEffect(() => {
     // Vérifier si l'erreur est due à un EventCode invalide (404)

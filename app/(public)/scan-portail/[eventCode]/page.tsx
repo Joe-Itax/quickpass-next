@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { useScanByEventCode } from "@/hooks/use-event";
+import { useOfflineScan } from "@/hooks/use-offline-scan";
+import { SyncStatus } from "@/components/sync-status";
 import {
   ChevronLeft,
   Zap,
@@ -48,28 +49,30 @@ export default function ScanPage() {
   const router = useRouter();
 
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(
-    typeof window !== "undefined" ? navigator.onLine : true,
-  );
   const [viewState, setViewState] = useState<"idle" | "loading" | "result">(
     "idle",
   );
   const [lastScanResult, setLastScanResult] = useState<ScanResult | null>(null);
   const [isError, setIsError] = useState(false);
 
-  const { mutateAsync: scan } = useScanByEventCode(eventCode);
+  const {
+    isOnline,
+    bundleReady,
+    invitationCount,
+    pendingScans,
+    isPrefetching,
+    prefetch,
+    scan,
+  } = useOfflineScan(eventCode);
 
-  // --- GESTION CONNECTIVITÉ ---
+  // Préchargement du cache local au montage
   useEffect(() => {
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
+    const terminalCode = localStorage.getItem("terminalCode");
+    if (!terminalCode || bundleReady) return;
+    prefetch(terminalCode).catch(() => {
+      /* hors-ligne : le cache existant sera utilisé */
+    });
+  }, [eventCode, bundleReady, prefetch]);
 
   // --- SÉCURITÉ & INFOS ---
   useEffect(() => {
@@ -110,31 +113,22 @@ export default function ScanPage() {
       setViewState("loading");
 
       try {
-        const res = (await scan({ qr: qrValue, terminalCode })) as ScanResult;
-        setLastScanResult(res);
-        setIsError(false);
+        const res = await scan(qrValue, terminalCode);
+        setLastScanResult({
+          label: res.label,
+          assignedTable: res.assignedTable,
+          scannedCount: res.scannedCount,
+          peopleCount: res.peopleCount,
+          error: res.error,
+        });
+        setIsError(!!res.error);
         setViewState("result");
       } catch (err: unknown) {
         setIsError(true);
-        let rawMessage =
-          (err instanceof Error ? err.message : String(err)) || "";
-        if (rawMessage.startsWith("Error: "))
-          rawMessage = rawMessage.replace("Error: ", "");
-
-        try {
-          const errorData = JSON.parse(rawMessage);
-          setLastScanResult({
-            error: errorData.error || "Erreur inconnue",
-            label: errorData.invitation?.label,
-            scannedCount: errorData.invitation?.scannedCount,
-            peopleCount: errorData.invitation?.peopleCount,
-            assignedTable: errorData.invitation?.assignedTable,
-          });
-        } catch {
-          setLastScanResult({
-            error: rawMessage || "Erreur réseau ou code invalide",
-          });
-        }
+        setLastScanResult({
+          error:
+            err instanceof Error ? err.message : "Erreur lors du scan",
+        });
         setViewState("result");
       }
     }
@@ -190,21 +184,33 @@ export default function ScanPage() {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <div
-            className={`size-3 rounded-full shadow-[0_0_12px] transition-all duration-500 ${isOnline ? "bg-green-500 shadow-green-500/50 animate-pulse" : "bg-red-500 shadow-red-500/50"}`}
-          />
-          <span className="text-[7px] font-black uppercase tracking-widest text-gray-500">
-            {isOnline ? "Live" : "Offline"}
+          <motion.div
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border ${
+              isOnline
+                ? "border-green-500/30 bg-green-500/10"
+                : "border-red-500/30 bg-red-500/10"
+            }`}
+          >
             {isOnline ? (
-              <>
-                <Wifi className="text-green-500 shadow-green-500/50 animate-pulse" />
-              </>
+              <Wifi size={12} className="text-green-400" />
             ) : (
-              <>
-                <WifiOff className="text-red-500 shadow-red-500/50" />
-              </>
+              <WifiOff size={12} className="text-red-400" />
             )}
-          </span>
+            <span
+              className={`text-[8px] font-black uppercase tracking-widest ${
+                isOnline ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {isOnline ? "Live" : "Offline"}
+            </span>
+          </motion.div>
+          <SyncStatus
+            compact
+            bundleReady={bundleReady}
+            invitationCount={invitationCount}
+            pendingScans={pendingScans}
+            isPrefetching={isPrefetching}
+          />
         </div>
       </div>
 

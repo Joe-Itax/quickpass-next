@@ -15,6 +15,7 @@ import DataStatusDisplay from "@/components/data-status-display";
 import { Event2, Invitation, Table } from "@/types/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import { useCallback, useEffect } from "react";
 
 export default function StatsPage() {
   const { eventCode } = useParams() as { eventCode: string };
@@ -39,18 +40,25 @@ export default function StatsPage() {
     refetch: refetchTables,
   } = useTablesByEventCode(eventCode);
 
+  const refetchAll = useCallback(() => {
+    void refetchEvent();
+    void refetchInvitations();
+    void refetchTables();
+  }, [refetchEvent, refetchInvitations, refetchTables]);
+
   useRealtimeSync({
     eventCode,
-    onUpdate: () => refetchEvent(),
+    onUpdate: refetchAll,
   });
-  useRealtimeSync({
-    eventCode,
-    onUpdate: () => refetchInvitations(),
-  });
-  useRealtimeSync({
-    eventCode,
-    onUpdate: () => refetchTables(),
-  });
+
+  useEffect(() => {
+    window.addEventListener("scan-completed", refetchAll);
+    window.addEventListener("force-sync", refetchAll);
+    return () => {
+      window.removeEventListener("scan-completed", refetchAll);
+      window.removeEventListener("force-sync", refetchAll);
+    };
+  }, [refetchAll]);
 
   const invitations = (invs as Invitation[]) || [];
   const tablesData = (tables as Table[]) || [];

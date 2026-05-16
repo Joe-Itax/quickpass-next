@@ -1,4 +1,13 @@
 import { Event2, Invitation, Table } from "@/types/types";
+import {
+  cacheEvents,
+  cacheInvitationsForScan,
+  cacheTables,
+  getCachedInvitations,
+  getCachedTables,
+  getScanBundle,
+  type CachedInvitation,
+} from "@/lib/local-db";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // ------------------- UTIL -------------------
@@ -10,6 +19,80 @@ const fetcher = async <T>(url: string, options?: RequestInit): Promise<T> => {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 };
+
+function cachedInvitationToInvitation(inv: CachedInvitation): Invitation {
+  return {
+    id: inv.id,
+    label: inv.label,
+    email: inv.email,
+    whatsapp: inv.whatsapp,
+    isSentEmail: false,
+    isSentWhatsapp: false,
+    peopleCount: inv.peopleCount,
+    eventId: inv.eventId,
+    event: {} as Event2,
+    qrCode: inv.qrCode || "",
+    table: inv.allocations[0]?.tableName || "",
+    scannedCount: inv.scannedCount,
+    createdAt: "",
+    updatedAt: "",
+    userId: null,
+    allocations: inv.allocations.map((allocation, index) => ({
+      id: inv.id * 1000 + index,
+      invitationId: inv.id,
+      tableId: allocation.tableId,
+      seatsAssigned: allocation.seatsAssigned,
+      createdAt: "",
+      updatedAt: "",
+      table: {
+        id: allocation.tableId,
+        name: allocation.tableName,
+        capacity: allocation.seatsAssigned,
+        eventId: inv.eventId,
+        createdAt: "",
+        updatedAt: "",
+      },
+    })),
+  };
+}
+
+function invitationToCached(inv: Invitation): CachedInvitation {
+  return {
+    id: inv.id,
+    eventId: inv.eventId,
+    label: inv.label,
+    email: inv.email,
+    whatsapp: inv.whatsapp,
+    peopleCount: inv.peopleCount,
+    scannedCount: inv.scannedCount,
+    qrCode: inv.qrCode,
+    allocations:
+      inv.allocations?.map((allocation) => ({
+        tableId: allocation.tableId,
+        tableName: allocation.table?.name || "",
+        seatsAssigned: allocation.seatsAssigned,
+      })) || [],
+    syncedAt: Date.now(),
+  };
+}
+
+async function getCachedInvitationsByEventCode(eventCode: string) {
+  const bundle = await getScanBundle(eventCode);
+  if (!bundle) return [];
+  const cached = await getCachedInvitations(bundle.eventId);
+  return cached.map(cachedInvitationToInvitation);
+}
+
+async function getCachedTablesByEventCode(eventCode: string) {
+  const bundle = await getScanBundle(eventCode);
+  if (!bundle) return [];
+  const cached = await getCachedTables(bundle.eventId);
+  return cached.map((table) => ({
+    ...table,
+    createdAt: "",
+    updatedAt: "",
+  })) as Table[];
+}
 
 // ------------------- QUERY KEYS -------------------
 export const EVENT_KEYS = {
@@ -69,10 +152,62 @@ export function useEvent(eventId: number) {
 export function useEventByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.oneByEventCode(eventCode),
-    queryFn: () => fetcher(`/api/events/event-code/${eventCode}`),
+    queryFn: async () => {
+      try {
+        const event = await fetcher<Event2>(`/api/events/event-code/${eventCode}`);
+        await cacheEvents([
+          {
+            id: event.id,
+            name: event.name,
+            description: event.description,
+            date: event.date,
+            location: event.location,
+            fullLocation: event.fullLocation,
+            status: event.status,
+            eventCode: event.eventCode,
+            createdAt: event.createdAt,
+            syncedAt: Date.now(),
+          },
+        ]);
+        return event;
+      } catch (error) {
+        const bundle = await getScanBundle(eventCode);
+        if (bundle) {
+          return {
+            id: bundle.eventId,
+            name: bundle.eventName,
+            description: "",
+            date: "",
+            location: "",
+            eventCode: bundle.eventCode,
+            status: "ONGOING",
+            createdById: "",
+            createdAt: "",
+            updatedAt: "",
+            tables: [],
+            invitations: [],
+            assignments: [],
+            terminals: [],
+            durationHours: 24,
+            stats: {
+              id: 0,
+              eventId: bundle.eventId,
+              totalInvitations: bundle.invitationCount,
+              totalCapacity: 0,
+              totalPeople: 0,
+              totalScanned: 0,
+              totalAssignedSeats: 0,
+              availableSeats: 0,
+              updatedAt: "",
+            },
+          } as Event2;
+        }
+        throw error;
+      }
+    },
     // enabled: false,
     enabled: !!eventCode,
-    // retry: false,
+    retry: false,
   });
 }
 
@@ -148,7 +283,28 @@ export function useEventInvitations(eventId: number) {
 export function useEventInvitationsByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.eventByEventCode(eventCode),
-    queryFn: () => fetcher(`/api/events/event-code/${eventCode}/invitations`),
+    queryFn: async () => {
+      try {
+        const invitations = await fetcher<Invitation[]>(
+          `/api/events/event-code/${eventCode}/invitations`,
+        );
+        const eventId =
+          invitations[0]?.eventId ?? (await getScanBundle(eventCode))?.eventId;
+        if (eventId) {
+          await cacheInvitationsForScan(
+            invitations.map(invitationToCached),
+            eventId,
+          );
+        }
+        return invitations;
+      } catch (error) {
+        const cached = await getCachedInvitationsByEventCode(eventCode);
+        if (cached.length > 0) return cached;
+        throw error;
+      }
+    },
+    enabled: !!eventCode,
+    retry: false,
   });
 }
 
@@ -312,8 +468,29 @@ export function useTables(eventId: number) {
 export function useTablesByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.tablesByEventCode(eventCode),
-    queryFn: () => fetcher(`/api/events/event-code/${eventCode}/tables`),
+    queryFn: async () => {
+      try {
+        const tables = await fetcher<Table[]>(
+          `/api/events/event-code/${eventCode}/tables`,
+        );
+        await cacheTables(
+          tables.map((table) => ({
+            id: table.id,
+            eventId: table.eventId,
+            name: table.name,
+            capacity: table.capacity,
+            syncedAt: Date.now(),
+          })),
+        );
+        return tables;
+      } catch (error) {
+        const cached = await getCachedTablesByEventCode(eventCode);
+        if (cached.length > 0) return cached;
+        throw error;
+      }
+    },
     enabled: !!eventCode,
+    retry: false,
   });
 }
 
@@ -448,6 +625,8 @@ export function useEventHistory(eventCode: string) {
       if (!res.ok) throw new Error("Failed to fetch history");
       return res.json();
     },
+    enabled: !!eventCode,
+    retry: false,
   });
 }
 

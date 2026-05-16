@@ -3,6 +3,9 @@ import { Geist, Geist_Mono, Itim } from "next/font/google";
 import { ReactQueryProvider } from "@/providers/react-query-provider";
 import { NotificationManager } from "@/components/notification-manager";
 
+import { ServiceWorkerInitializer } from "@/components/service-worker-initializer";
+import { OfflineIndicator } from "@/components/offline-indicator";
+
 import "@/app/styles/globals.css";
 
 const geistSans = Geist({
@@ -21,9 +24,9 @@ const itim = Itim({
 });
 
 export const metadata: Metadata = {
-  title: "LokaPass | Local Access Pass System",
+  title: "YambiPass | L'accueil intelligent de vos événements",
   description:
-    "LokaPass est un système de contrôle d'accès basé sur QR-code permettant de gérer l'admission des invités lors des événements physiques en assurant la validation, la traçabilité et la non-duplication des entrées.",
+    "YSimplifiez la logistique de vos événements avec YambiPass. Invitations numériques, scan de contrôle en moins de 5s et orientation fluide de vos invités.",
 };
 
 export default function RootLayout({
@@ -33,11 +36,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#fdb623" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased`}
       >
-        {" "}
+        <ServiceWorkerInitializer />
+        <OfflineIndicator />
         <NotificationManager />
         <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>

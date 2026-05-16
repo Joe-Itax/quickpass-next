@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YambiPass — Connexion interrompue</title>
+    <style>
+      :root {
+        --bg-color: #0f172a; /* Slate 900 (Fonds sombre pro) */
+        --card-bg: #1e293b; /* Slate 800 */
+        --primary-blue: #1a237e; /* Ton Bleu Indigo */
+        --accent-gold: #d4af37; /* Ton Or Champagne */
+        --text-main: #f8fafc; /* Blanc cassé */
+        --text-muted: #94a3b8; /* Gris adouci */
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Oxygen,
+          Ubuntu,
+          Cantarell,
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .container {
+        max-width: 400px;
+        padding: 2.5rem 2rem;
+        margin: 1rem;
+        background-color: var(--card-bg);
+        border-radius: 1.5rem; /* rounded-2xl selon la norme YambiPass */
+        box-shadow:
+          0 20px 25px -5px rgb(0 0 0 / 0.3),
+          0 8px 10px -6px rgb(0 0 0 / 0.3);
+      }
+
+      .logo-container {
+        margin-bottom: 1.5rem;
+      }
+
+      .logo {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.75rem 0;
+        color: var(--text-main);
+      }
+
+      p {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        margin: 0 0 2rem 0;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: rgba(212, 175, 55, 0.1);
+        color: var(--accent-gold);
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        text-transform: uppercase;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-gold);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.95);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.95);
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-container">
+        <img src="/logo-app/icon-192.png" alt="YambiPass Logo" class="logo" />
+      </div>
+
+      <h1>Protocole en attente</h1>
+      <p>
+        Votre appareil est actuellement hors-ligne. Pas d'inquiétude, l'accès à
+        vos données locales et la synchronisation des scans reprendront dès que
+        le réseau sera rétabli.
+      </p>
+
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        Mode Offline Activé
+      </div>
+    </div>
+  </body>
+</html>

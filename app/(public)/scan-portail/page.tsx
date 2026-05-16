@@ -13,6 +13,8 @@ import {
   MonitorSmartphone,
 } from "lucide-react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { prefetchEventScanBundle } from "@/lib/offline-scan";
+import { getTerminalSession, saveTerminalSession } from "@/lib/local-db";
 
 export default function ScanPortalPage() {
   const [loading, setLoading] = useState(true);
@@ -42,8 +44,16 @@ export default function ScanPortalPage() {
             router.replace(`/scan-portail/${savedEvent}`);
             return;
           }
-        } catch (e) {
-          console.error("Auto-validation failed: ", e);
+        } catch {
+          const session = await getTerminalSession(savedEvent);
+          if (
+            session &&
+            session.terminalCode === savedTerminal &&
+            session.eventCode === savedEvent
+          ) {
+            router.replace(`/scan-portail/${savedEvent}`);
+            return;
+          }
         }
       }
       setLoading(false);
@@ -77,14 +87,32 @@ export default function ScanPortalPage() {
       }
 
       if (res.ok) {
-        localStorage.setItem("eventCode", eventCode.trim());
-        localStorage.setItem("terminalCode", terminalCode.trim());
+        const ec = eventCode.trim();
+        const tc = terminalCode.trim();
+        localStorage.setItem("eventCode", ec);
+        localStorage.setItem("terminalCode", tc);
         localStorage.setItem("eventName", data.eventName);
         localStorage.setItem(
           "terminalName",
-          data.terminalName || terminalCode.trim(),
+          data.terminalName || tc,
         );
-        router.push(`/scan-portail/${eventCode.trim()}`);
+
+        await saveTerminalSession({
+          eventCode: ec,
+          terminalCode: tc,
+          eventName: data.eventName,
+          terminalName: data.terminalName || tc,
+          validatedAt: Date.now(),
+        });
+
+        // Précharge les invitations pour le scan hors-ligne
+        try {
+          await prefetchEventScanBundle(ec, tc);
+        } catch (prefetchErr) {
+          console.warn("Prefetch offline bundle:", prefetchErr);
+        }
+
+        router.push(`/scan-portail/${ec}`);
       } else {
         const data = await res.json();
         setErrorMsg(data.error || "Codes invalides.");

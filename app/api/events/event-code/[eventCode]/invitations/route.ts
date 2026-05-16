@@ -42,6 +42,7 @@ export async function GET(req: NextRequest, context: EventContext) {
           label: true,
           peopleCount: true,
           scannedCount: true,
+          qrCode: true,
           eventId: true,
           createdAt: true,
           updatedAt: true,

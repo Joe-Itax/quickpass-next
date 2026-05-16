@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { getTerminalSession } from "@/lib/local-db";
 
 export function useScanAuth() {
   const router = useRouter();
@@ -11,13 +12,11 @@ export function useScanAuth() {
       const savedEvent = localStorage.getItem("eventCode");
       const savedTerminal = localStorage.getItem("terminalCode");
 
-      // 1. Vérification locale immédiate
       if (!savedEvent || !savedTerminal || savedEvent !== eventCode) {
         router.replace("/scan-portail");
         return;
       }
 
-      // 2. Vérification serveur (pour voir si le terminal est toujours actif)
       try {
         const res = await fetch("/api/events/validate-access", {
           method: "POST",
@@ -29,15 +28,35 @@ export function useScanAuth() {
         });
 
         if (!res.ok) {
-          localStorage.clear(); // On nettoie tout par sécurité
+          const session = await getTerminalSession(savedEvent);
+          if (
+            session &&
+            session.terminalCode === savedTerminal &&
+            session.eventCode === savedEvent
+          ) {
+            setIsAuthorized(true);
+            return;
+          }
+          localStorage.clear();
           router.replace("/scan-portail");
           return;
         }
 
+        const data = await res.json();
+        localStorage.setItem("eventName", data.eventName);
+        localStorage.setItem("terminalName", data.terminalName);
         setIsAuthorized(true);
-      } catch (error) {
-        console.error("Auth check failed", error);
-        setIsAuthorized(true);
+      } catch {
+        const session = await getTerminalSession(savedEvent);
+        if (
+          session &&
+          session.terminalCode === savedTerminal &&
+          session.eventCode === savedEvent
+        ) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(true);
+        }
       }
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEventHistory } from "@/hooks/use-event";
+import { useScanHistory } from "@/hooks/use-scan-history";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -33,21 +33,18 @@ export default function HistoryPage() {
     isError,
     error,
     refetch,
-  } = useEventHistory(eventCode);
+  } = useScanHistory(eventCode);
 
   useRealtimeSync({
     eventCode,
-    onUpdate: () => refetch(),
+    onUpdate: refetch,
   });
 
   // Extraction de la liste unique des terminaux pour le filtre
   const terminals = useMemo((): string[] => {
     if (!logs) return [];
     const names = logs
-      .map(
-        (l: { terminal: { name: string }; terminalCode: string }) =>
-          l.terminal?.name || l.terminalCode,
-      )
+      .map((l: Log) => l.terminal?.name || l.terminalCode)
       .filter(Boolean);
     return Array.from(new Set(names)) as string[];
   }, [logs]);
@@ -182,7 +179,7 @@ export default function HistoryPage() {
 
             return (
               <div
-                key={log.id}
+                key={`${log.id}-${String(log.scannedAt)}`}
                 className={`p-4 rounded-2xl border backdrop-blur-sm transition-all shadow-lg ${
                   log.status === "SUCCESS"
                     ? "bg-white/2 border-white/5"

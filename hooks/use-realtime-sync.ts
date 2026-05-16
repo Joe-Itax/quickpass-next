@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase-client";
 
 interface RealtimeSyncProps {
@@ -7,45 +7,58 @@ interface RealtimeSyncProps {
   onUpdate: () => void;
 }
 
+/**
+ * Écoute Supabase Realtime. Un seul channel par montage, tous les listeners
+ * enregistrés AVANT subscribe() (requis par supabase-js v2).
+ */
 export function useRealtimeSync({
   eventId,
   eventCode,
   onUpdate,
 }: RealtimeSyncProps) {
+  const onUpdateRef = useRef(onUpdate);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
   useEffect(() => {
     if (!eventId && !eventCode) {
       console.error(
-        "useRealtimeSync error: You must provide either 'eventId' or 'eventCode'.",
+        "useRealtimeSync: fournir 'eventId' ou 'eventCode'.",
       );
       return;
     }
 
-    const channelName = `sync-${eventId || eventCode}`;
-    const channel = supabase.channel(channelName);
+    const channelName = `sync-${eventId ?? eventCode}-${Math.random().toString(36).slice(2, 9)}`;
+
+    const trigger = () => onUpdateRef.current();
+
+    let channel = supabase.channel(channelName);
 
     if (eventId) {
-      // MODE ADMIN : On écoute tout via l'ID
       const tables = [
         "Invitation",
         "Table",
         "EventStats",
         "ScanLog",
         "Terminal",
-      ];
-      tables.forEach((table) => {
-        channel.on(
+      ] as const;
+
+      for (const table of tables) {
+        channel = channel.on(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
-            table: table,
+            table,
             filter: `eventId=eq.${eventId}`,
           },
-          onUpdate,
+          trigger,
         );
-      });
+      }
 
-      channel.on(
+      channel = channel.on(
         "postgres_changes",
         {
           event: "UPDATE",
@@ -53,39 +66,30 @@ export function useRealtimeSync({
           table: "Event",
           filter: `id=eq.${eventId}`,
         },
-        onUpdate,
+        trigger,
       );
     } else if (eventCode) {
-      // MODE PORTAIL : On écoute via le Code
-      // On écoute ScanLog car il a la colonne eventCode
-      channel.on(
-        "postgres_changes",
-        {
-          event: "INSERT", // Un scan génère un nouveau log
-          schema: "public",
-          table: "ScanLog",
-          filter: `eventCode=eq.${eventCode}`,
-        },
-        () => {
-          console.log("[REALTIME] Nouveau scan détecté via ScanLog");
-          onUpdate();
-        },
-      );
-
-      // On écoute l'Event lui-même pour les changements de statut
-      channel.on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "Event",
-          filter: `eventCode=eq.${eventCode}`,
-        },
-        () => {
-          console.log("[REALTIME] Changement de statut de l'event");
-          onUpdate();
-        },
-      );
+      channel = channel
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "ScanLog",
+            filter: `eventCode=eq.${eventCode}`,
+          },
+          trigger,
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "Event",
+            filter: `eventCode=eq.${eventCode}`,
+          },
+          trigger,
+        );
     }
 
     channel.subscribe();
@@ -93,5 +97,5 @@ export function useRealtimeSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId, eventCode, onUpdate]);
+  }, [eventId, eventCode]);
 }
