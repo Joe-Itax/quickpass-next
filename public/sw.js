@@ -1,4 +1,4 @@
-const CACHE_VERSION = "lokapass-v2";
+const CACHE_VERSION = "yambipass-v2";
 const URLS_TO_CACHE = [
   "/",
   "/offline.html",

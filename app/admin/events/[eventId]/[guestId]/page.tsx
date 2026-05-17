@@ -31,7 +31,7 @@ export default function GuestPage() {
   const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
-  const LOGO_URL = "/logo-app/logo-white.png";
+  const LOGO_URL = "/logo-app/icon-192.png";
 
   const {
     data: invitationData,

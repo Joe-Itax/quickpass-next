@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
-  "https://lokapass.vercel.app",
   "https://yambipass.vercel.app",
-  "https://quickpass-next.vercel.app",
 ];
 
 export function corsMiddleware(req: NextRequest) {

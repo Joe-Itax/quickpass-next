@@ -71,10 +71,10 @@ function StatCard({
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group"
+      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group isolate z-0"
     >
       {glow && (
-        <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors" />
+        <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors -z-10" />
       )}
       <Icon className={cn("w-5 h-5", color)} />
       <span className="text-2xl font-black italic tracking-tighter text-white">
@@ -186,7 +186,7 @@ export default function EventPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `LokaPass_WhatsApp_${event.name.replace(/\s+/g, "_")}.xlsx`;
+      a.download = `YambiPass_WhatsApp_${event.name.replace(/\s+/g, "_")}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -311,7 +311,7 @@ export default function EventPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl transform-gpu will-change-transform space-y-6"
+            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl space-y-6"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
@@ -340,7 +340,7 @@ export default function EventPage() {
       </AnimatePresence>
 
       {/* --- BROADCAST CENTER --- */}
-      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden transform-gpu">
+      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden z-0 isolate">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black italic uppercase text-white">
