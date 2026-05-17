@@ -211,6 +211,7 @@ export default function EventPage() {
         toast.success(`${result.count} emails envoyés`);
         refetch();
       } else toast.error(result.error);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error("Erreur réseau");
     } finally {
@@ -236,7 +237,7 @@ export default function EventPage() {
   const availableSeats = Math.max(0, totalCapacity - totalAssigned);
 
   return (
-    <section className="py-6 px-0! max-w-7xl mx-auto space-y-8">
+    <section className="py-6 px-0! max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
         <div className="space-y-4">
@@ -310,7 +311,7 @@ export default function EventPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl space-y-6"
+            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl transform-gpu will-change-transform space-y-6"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
@@ -339,7 +340,7 @@ export default function EventPage() {
       </AnimatePresence>
 
       {/* --- BROADCAST CENTER --- */}
-      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden">
+      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden transform-gpu">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black italic uppercase text-white">

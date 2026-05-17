@@ -4,6 +4,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://lokapass.vercel.app",
+  "https://yambipass.vercel.app",
   "https://quickpass-next.vercel.app",
 ];
 
@@ -15,7 +16,7 @@ export function corsMiddleware(req: NextRequest) {
     console.log(`[CORS-LOGGER] Requête reçue depuis l'origine: ${origin}`);
   } else {
     console.log(
-      `[CORS-LOGGER] Requête sans origine (probablement interne ou serveur)`
+      `[CORS-LOGGER] Requête sans origine (probablement interne ou serveur)`,
     );
   }
 
@@ -31,15 +32,15 @@ export function corsMiddleware(req: NextRequest) {
   response.headers.set("Access-Control-Allow-Credentials", "true");
   response.headers.set(
     "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
+    "GET, POST, PUT, DELETE, OPTIONS",
   );
   response.headers.set(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, Accept, Set-Cookie"
+    "Content-Type, Authorization, X-Requested-With, Accept, Set-Cookie",
   );
   response.headers.set(
     "Access-Control-Expose-Headers",
-    "set-cookie, x-auth-token"
+    "set-cookie, x-auth-token",
   );
 
   // Répondre aux requêtes preflight
