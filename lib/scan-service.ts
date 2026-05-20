@@ -4,6 +4,7 @@ import { qrDecode } from "@/lib/qr";
 export type ScanSuccess = {
   status: "ok";
   invitation: {
+    id: number;
     label: string;
     peopleCount: number;
     scannedCount: number;
@@ -198,6 +199,7 @@ export async function processEventScan(
     return {
       status: "ok" as const,
       invitation: {
+        id: inv.id,
         label: updated.label,
         peopleCount: updated.peopleCount,
         scannedCount: updated.scannedCount,

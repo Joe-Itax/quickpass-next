@@ -6,6 +6,8 @@ import {
   getCachedInvitations,
   getCachedTables,
   getScanBundle,
+  getCachedEvents,
+  updateCachedInvitationScan,
   type CachedInvitation,
 } from "@/lib/local-db";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -94,6 +96,49 @@ async function getCachedTablesByEventCode(eventCode: string) {
   })) as Table[];
 }
 
+/**
+ * Calcule les statistiques d'un événement à partir du cache local.
+ */
+async function getComputedStatsFromCache(eventCode: string) {
+  const bundle = await getScanBundle(eventCode);
+  if (!bundle) return null;
+  const eventId = bundle.eventId;
+
+  const [cachedInvitations, cachedTables] = await Promise.all([
+    getCachedInvitations(eventId),
+    getCachedTables(eventId),
+  ]);
+
+  const totalInvitations = cachedInvitations.length;
+  const totalPeople = cachedInvitations.reduce(
+    (sum, inv) => sum + inv.peopleCount,
+    0,
+  );
+  const totalScanned = cachedInvitations.reduce(
+    (sum, inv) => sum + inv.scannedCount,
+    0,
+  );
+  const totalCapacity = cachedTables.reduce((sum, t) => sum + t.capacity, 0);
+  const totalAssignedSeats = cachedInvitations.reduce(
+    (sum, inv) =>
+      sum + inv.allocations.reduce((s, a) => s + a.seatsAssigned, 0),
+    0,
+  );
+  const availableSeats = totalCapacity - totalAssignedSeats;
+
+  return {
+    id: 0, // local only
+    eventId,
+    totalInvitations,
+    totalCapacity,
+    totalPeople,
+    totalScanned,
+    totalAssignedSeats,
+    availableSeats,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // ------------------- QUERY KEYS -------------------
 export const EVENT_KEYS = {
   all: ["events"] as const,
@@ -118,7 +163,6 @@ export const EVENT_KEYS = {
 // 🟦 EVENTS ROOT
 // ===================================================================
 
-// GET all
 export function useEvents() {
   return useQuery({
     queryKey: EVENT_KEYS.all,
@@ -126,7 +170,6 @@ export function useEvents() {
   });
 }
 
-// POST create
 export function useCreateEvent() {
   const qc = useQueryClient();
   return useMutation({
@@ -139,22 +182,56 @@ export function useCreateEvent() {
   });
 }
 
-// GET single event
 export function useEvent(eventId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.one(eventId),
-    queryFn: () => fetcher(`/api/events/${eventId}`),
+    queryFn: async () => {
+      try {
+        return await fetcher<Event2>(`/api/events/${eventId}`);
+      } catch (error) {
+        const cachedEvents = await getCachedEvents();
+        const cached = cachedEvents.find((e) => e.id === eventId);
+        if (cached) {
+          const bundle = await getScanBundle(cached.eventCode);
+          const stats = bundle
+            ? await getComputedStatsFromCache(cached.eventCode)
+            : null;
+          return {
+            id: cached.id,
+            name: cached.name,
+            description: cached.description,
+            date: cached.date,
+            location: cached.location,
+            fullLocation: cached.fullLocation,
+            eventCode: cached.eventCode,
+            status: (cached.status as Event2["status"]) || "ONGOING",
+            createdById: "",
+            createdAt: cached.createdAt,
+            updatedAt: "",
+            durationHours: 24,
+            invitations: [],
+            tables: [],
+            assignments: [],
+            terminals: [],
+            stats: stats || undefined,
+          } as Event2;
+        }
+        throw error;
+      }
+    },
     enabled: !!eventId,
+    retry: false,
   });
 }
 
-// GET By EventCode
 export function useEventByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.oneByEventCode(eventCode),
     queryFn: async () => {
       try {
-        const event = await fetcher<Event2>(`/api/events/event-code/${eventCode}`);
+        const event = await fetcher<Event2>(
+          `/api/events/event-code/${eventCode}`,
+        );
         await cacheEvents([
           {
             id: event.id,
@@ -173,6 +250,7 @@ export function useEventByEventCode(eventCode: string) {
       } catch (error) {
         const bundle = await getScanBundle(eventCode);
         if (bundle) {
+          const stats = await getComputedStatsFromCache(eventCode);
           return {
             id: bundle.eventId,
             name: bundle.eventName,
@@ -189,7 +267,7 @@ export function useEventByEventCode(eventCode: string) {
             assignments: [],
             terminals: [],
             durationHours: 24,
-            stats: {
+            stats: stats || {
               id: 0,
               eventId: bundle.eventId,
               totalInvitations: bundle.invitationCount,
@@ -205,13 +283,11 @@ export function useEventByEventCode(eventCode: string) {
         throw error;
       }
     },
-    // enabled: false,
     enabled: !!eventCode,
     retry: false,
   });
 }
 
-// PATCH update event
 export function useUpdateEvent(eventId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -228,7 +304,6 @@ export function useUpdateEvent(eventId: number) {
   });
 }
 
-// DELETE event
 export function useDeleteEvent(eventId?: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -252,8 +327,21 @@ export function useDeleteEvent(eventId?: number) {
 export function useEventStats(eventId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.stats(eventId),
-    queryFn: () => fetcher(`/api/events/${eventId}/stats`),
+    queryFn: async () => {
+      try {
+        return await fetcher(`/api/events/${eventId}/stats`);
+      } catch (error) {
+        const cachedEvents = await getCachedEvents();
+        const cachedEvent = cachedEvents.find((e) => e.id === eventId);
+        if (cachedEvent) {
+          const stats = await getComputedStatsFromCache(cachedEvent.eventCode);
+          if (stats) return stats;
+        }
+        throw error;
+      }
+    },
     enabled: !!eventId,
+    retry: false,
   });
 }
 
@@ -271,7 +359,6 @@ export function useRecomputeEventStats(eventId: number) {
 // 🟩 INVITATIONS
 // ===================================================================
 
-// GET all invitations
 export function useEventInvitations(eventId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.invitations(eventId),
@@ -279,7 +366,6 @@ export function useEventInvitations(eventId: number) {
   });
 }
 
-// GET all invitations by EventCode
 export function useEventInvitationsByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.eventByEventCode(eventCode),
@@ -308,7 +394,6 @@ export function useEventInvitationsByEventCode(eventCode: string) {
   });
 }
 
-// CREATE invitation
 export function useCreateInvitation(eventId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -324,7 +409,6 @@ export function useCreateInvitation(eventId: number) {
   });
 }
 
-// CREATE MASSIVE INVITATION
 export function useCreateInvitations(eventId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -340,7 +424,6 @@ export function useCreateInvitations(eventId: number) {
   });
 }
 
-// GET single invitation
 export function useInvitation(eventId: number, invitationId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.invitation(eventId, invitationId),
@@ -350,7 +433,6 @@ export function useInvitation(eventId: number, invitationId: number) {
   });
 }
 
-// UPDATE invitation
 export function useUpdateInvitation(eventId: number, invitationId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -373,7 +455,6 @@ export function useUpdateInvitation(eventId: number, invitationId: number) {
   });
 }
 
-// DELETE invitation
 export function useDeleteInvitation(eventId: number, invitationId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -439,6 +520,53 @@ export function useReverseScan(eventId: number) {
   });
 }
 
+export function useReverseScanByEventCode(eventCode: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      qr,
+      terminalCode,
+    }: {
+      qr: string;
+      terminalCode: string;
+    }): Promise<{ invitation: Invitation }> => {
+      return fetcher(`/api/events/event-code/${eventCode}/scan/reverse`, {
+        method: "POST",
+        body: JSON.stringify({ qr, terminalCode }),
+      });
+    },
+
+    onSuccess: async (data: { invitation: Invitation }) => {
+      // Mettre à jour le cache local : décrémenter scannedCount
+      if (data?.invitation?.id) {
+        const invId = data.invitation.id;
+        // Lire l'invitation en cache pour obtenir le scannedCount actuel
+        const bundle = await getScanBundle(eventCode);
+        if (bundle) {
+          const cached = await getCachedInvitations(bundle.eventId);
+          const target = cached.find((inv) => inv.id === invId);
+          if (target) {
+            const newCount = Math.max(0, target.scannedCount - 1);
+            await updateCachedInvitationScan(invId, newCount);
+          }
+        }
+      }
+      // Invalider les queries pour rafraîchir l'UI
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.history(eventCode) });
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.oneByEventCode(eventCode) });
+      qc.invalidateQueries({
+        queryKey: EVENT_KEYS.eventByEventCode(eventCode),
+      });
+      const bundle = await getScanBundle(eventCode);
+      if (bundle) {
+        qc.invalidateQueries({ queryKey: EVENT_KEYS.stats(bundle.eventId) });
+        qc.invalidateQueries({ queryKey: EVENT_KEYS.one(bundle.eventId) });
+      }
+      qc.invalidateQueries({ queryKey: EVENT_KEYS.all });
+    },
+  });
+}
+
 export function useVerifyQR() {
   return useMutation({
     mutationFn: (qr: string) =>
@@ -454,7 +582,6 @@ export function useVerifyQR() {
 // 🟧 TABLES
 // ===================================================================
 
-// GET all tables
 export function useTables(eventId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.tables(eventId),
@@ -463,8 +590,6 @@ export function useTables(eventId: number) {
   });
 }
 
-// GET all tables by EventCode
-// tablesByEventCode
 export function useTablesByEventCode(eventCode: string) {
   return useQuery({
     queryKey: EVENT_KEYS.tablesByEventCode(eventCode),
@@ -494,7 +619,6 @@ export function useTablesByEventCode(eventCode: string) {
   });
 }
 
-// GET one table
 export function useTable(eventId: number, tableId: number) {
   return useQuery({
     queryKey: EVENT_KEYS.table(eventId, tableId),
@@ -503,7 +627,6 @@ export function useTable(eventId: number, tableId: number) {
   });
 }
 
-// CREATE table
 export function useCreateTable(eventId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -519,7 +642,6 @@ export function useCreateTable(eventId: number) {
   });
 }
 
-// ALLOCATE GUESTS TO TABLE
 export function useUpdateTableAllocation(eventId: number, tableId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -529,7 +651,6 @@ export function useUpdateTableAllocation(eventId: number, tableId: number) {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      // On invalide tout ce qui touche aux tables et aux invitations
       qc.invalidateQueries({ queryKey: EVENT_KEYS.table(eventId, tableId) });
       qc.invalidateQueries({ queryKey: EVENT_KEYS.invitations(eventId) });
       qc.invalidateQueries({ queryKey: EVENT_KEYS.one(eventId) });
@@ -537,7 +658,6 @@ export function useUpdateTableAllocation(eventId: number, tableId: number) {
   });
 }
 
-// UPDATE table
 export function useUpdateTable(eventId: number, tableId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -560,7 +680,6 @@ export function useUpdateTable(eventId: number, tableId: number) {
   });
 }
 
-// DELETE table
 export function useDeleteTable(eventId: number, tableId?: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -603,7 +722,6 @@ export function useAssignInvitation(eventId: number) {
   });
 }
 
-// Get Assignments
 export function useEventAssignments(eventId: number) {
   return useQuery({
     queryKey: ["event", eventId, "assignments"],
@@ -615,7 +733,6 @@ export function useEventAssignments(eventId: number) {
 // ===================================================================
 // 🟥 LOGS
 // ===================================================================
-// GET all logs
 
 export function useEventHistory(eventCode: string) {
   return useQuery({

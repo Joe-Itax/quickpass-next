@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoutDialog from "./logout";
+import { authClient } from "@/lib/auth-client";
+import { useReverseScanByEventCode } from "@/hooks/use-event";
 
 interface ScanResult {
   label?: string;
@@ -45,6 +47,7 @@ interface DetectedCode {
 }
 
 export default function ScanPage() {
+  const { data: session } = authClient.useSession();
   const { eventCode } = useParams() as { eventCode: string };
   const router = useRouter();
 
@@ -53,6 +56,8 @@ export default function ScanPage() {
     "idle",
   );
   const [lastScanResult, setLastScanResult] = useState<ScanResult | null>(null);
+  const [lastQrValue, setLastQrValue] = useState<string | null>(null);
+  const [canReverseScan, setCanReverseScan] = useState(true);
   const [isError, setIsError] = useState(false);
 
   const {
@@ -64,6 +69,8 @@ export default function ScanPage() {
     prefetch,
     scan,
   } = useOfflineScan(eventCode);
+
+  const reverseScanMutation = useReverseScanByEventCode(eventCode);
 
   // Préchargement du cache local au montage
   useEffect(() => {
@@ -81,6 +88,12 @@ export default function ScanPage() {
       router.replace("/scan-portail");
     }
   }, [eventCode, router]);
+
+  // Le reverse scan n'est possible que si un USER est connecté ET que le dernier scan a réussi
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCanReverseScan(!!session && !!lastScanResult && !lastScanResult.error);
+  }, [session, lastScanResult]);
 
   const displayInfo = useMemo(() => {
     if (typeof window === "undefined")
@@ -111,6 +124,7 @@ export default function ScanPage() {
       }
 
       setViewState("loading");
+      setLastQrValue(qrValue);
 
       try {
         const res = await scan(qrValue, terminalCode);
@@ -126,8 +140,7 @@ export default function ScanPage() {
       } catch (err: unknown) {
         setIsError(true);
         setLastScanResult({
-          error:
-            err instanceof Error ? err.message : "Erreur lors du scan",
+          error: err instanceof Error ? err.message : "Erreur lors du scan",
         });
         setViewState("result");
       }
@@ -136,7 +149,33 @@ export default function ScanPage() {
 
   const resetScanner = () => {
     setLastScanResult(null);
+    setLastQrValue(null);
+    setCanReverseScan(false);
     setViewState("idle");
+  };
+
+  const reverseScan = async () => {
+    if (!lastQrValue) return;
+    const terminalCode = localStorage.getItem("terminalCode");
+    if (!terminalCode) return;
+
+    try {
+      await reverseScanMutation.mutateAsync({
+        qr: lastQrValue,
+        terminalCode,
+      });
+      // Le onSuccess du hook met à jour le cache local et invalide les queries.
+      // Réinitialiser l'état local
+      setLastScanResult(null);
+      setLastQrValue(null);
+      setCanReverseScan(false);
+      setViewState("idle");
+    } catch (err) {
+      alert(
+        "Erreur lors de l'annulation : " +
+          (err instanceof Error ? err.message : String(err)),
+      );
+    }
   };
 
   const highlightCodeOnCanvas = (
@@ -163,7 +202,7 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen text-white flex flex-col bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover pb-20">
+    <div className="min-h-screen text-white flex flex-col bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover pb-40">
       {/* HEADER AVEC SIGNAL DE CONNECTIVITÉ */}
       <div className="p-6 flex justify-between items-center bg-black/40 backdrop-blur-2xl border-b border-white/10 z-30">
         <Button
@@ -364,7 +403,6 @@ export default function ScanPage() {
                       </div>
                     )}
 
-                    {/* Bouton de retour optionnel si l'écran est vraiment petit */}
                     <p className="text-[8px] text-gray-500 uppercase font-medium animate-pulse">
                       Prêt pour le prochain scan...
                     </p>
@@ -377,17 +415,50 @@ export default function ScanPage() {
 
         {/* ACTIONS */}
         <div className="w-full max-w-sm space-y-4">
-          <Button
-            onClick={resetScanner}
-            disabled={viewState === "loading" || viewState === "idle"}
-            className={`w-full h-20 rounded-3xl text-xl font-black uppercase tracking-widest transition-all ${
-              viewState === "result"
-                ? "bg-primary hover:bg-primary/90 scale-105 shadow-2xl shadow-primary/20"
-                : "bg-white/5 text-gray-700"
-            }`}
-          >
-            {viewState === "idle" ? "Scan en cours..." : "Suivant"}
-          </Button>
+          <div className="flex justify-between min-[450px]:flex-row flex-col w-full gap-2">
+            {canReverseScan && (
+              <div className="relative group">
+                <Button
+                  onClick={reverseScan}
+                  disabled={!isOnline || reverseScanMutation.isPending}
+                  title={
+                    !isOnline
+                      ? "Connexion internet requise pour annuler un scan"
+                      : "Annuler ce scan"
+                  }
+                  className={`h-20 w-full rounded-3xl text-xl font-black uppercase tracking-widest transition-all ${
+                    !isOnline
+                      ? "bg-red-600/50 cursor-not-allowed opacity-60"
+                      : "bg-red-600 hover:bg-red-700"
+                  } text-white`}
+                >
+                  {reverseScanMutation.isPending ? "..." : "Reverse"}
+                </Button>
+                {!isOnline && (
+                  <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 px-3 py-2 bg-red-600/90 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                    Internet requis
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              onClick={resetScanner}
+              disabled={viewState === "loading" || viewState === "idle"}
+              className={`${canReverseScan ? "min-[450px]:w-[60%] w-full" : "w-full"} h-20 rounded-3xl text-xl font-black uppercase tracking-widest transition-all ${
+                viewState === "result"
+                  ? "bg-primary hover:bg-primary/90 scale-105 shadow-2xl shadow-primary/20"
+                  : "bg-white/5 text-gray-700"
+              }`}
+            >
+              {viewState === "idle" ? "Scan en cours..." : "Suivant"}
+            </Button>
+          </div>
+          {canReverseScan && !isOnline && (
+            <p className="text-center text-xs text-red-400 font-medium">
+              Connexion internet requise pour annuler un scan
+            </p>
+          )}
           <p className="text-center text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]">
             {viewState === "idle"
               ? "Alignez le QR Code dans le cadre"

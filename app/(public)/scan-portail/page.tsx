@@ -92,10 +92,7 @@ export default function ScanPortalPage() {
         localStorage.setItem("eventCode", ec);
         localStorage.setItem("terminalCode", tc);
         localStorage.setItem("eventName", data.eventName);
-        localStorage.setItem(
-          "terminalName",
-          data.terminalName || tc,
-        );
+        localStorage.setItem("terminalName", data.terminalName || tc);
 
         await saveTerminalSession({
           eventCode: ec,
@@ -127,7 +124,7 @@ export default function ScanPortalPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050505] text-white overflow-hidden relative px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050505] text-white overflow-hidden relative px-6 pb-8">
       {/* Background effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[80%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
@@ -160,7 +157,7 @@ export default function ScanPortalPage() {
               <Lock size={40} className="text-white" />
             </motion.div>
             <h1 className="text-3xl font-black italic tracking-tighter mb-2">
-              LokaPass
+              YambiPass
             </h1>
             <p className="text-gray-500 font-medium">
               Vérification de l&apos;accès...

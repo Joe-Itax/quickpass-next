@@ -15,8 +15,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:3001",
     "http://localhost:3000",
-    "https://quickpass-next.vercel.app",
-    "https://quickpass-next-admin.vercel.app",
+    "https://yambipass.vercel.app",
   ],
   user: {
     additionalFields: {

@@ -9,6 +9,7 @@ import {
   cacheTables,
   getCachedInvitationById,
   getCachedInvitationByQr,
+  getCachedInvitations,
   getScanBundle,
   saveScanBundle,
   saveTerminalSession,
@@ -45,6 +46,7 @@ async function recordOfflineAttempt(params: {
 }
 
 export interface OfflineScanResult {
+  id?: number;
   label?: string;
   assignedTable?: string;
   scannedCount?: number;
@@ -135,16 +137,33 @@ export async function prefetchEventScanBundle(
 
   const data = (await res.json()) as OfflineBundleResponse;
 
-  const invitations = data.invitations.map((inv) => ({
-    id: inv.id,
-    eventId: inv.eventId,
-    label: inv.label,
-    peopleCount: inv.peopleCount,
-    scannedCount: inv.scannedCount,
-    qrCode: inv.qrCode ?? undefined,
-    allocations: inv.allocations,
-    syncedAt: Date.now(),
-  }));
+  // IMPORTANT: Fusion intelligente des données locales avec le serveur
+  // Récupérer les invitations locales pour ne pas perdre les scans offline
+  const localInvitations = await getCachedInvitations(data.event.id);
+  const localInvitationMap = new Map(
+    localInvitations.map((inv) => [inv.id, inv]),
+  );
+
+  const invitations = data.invitations.map((inv) => {
+    const localInv = localInvitationMap.get(inv.id);
+    // Utiliser le scannedCount le plus élevé (local ou serveur)
+    // Cela protège contre la perte de scans offline
+    const mergedScannedCount = Math.max(
+      inv.scannedCount,
+      localInv?.scannedCount ?? 0,
+    );
+
+    return {
+      id: inv.id,
+      eventId: inv.eventId,
+      label: inv.label,
+      peopleCount: inv.peopleCount,
+      scannedCount: mergedScannedCount,
+      qrCode: inv.qrCode ?? undefined,
+      allocations: inv.allocations,
+      syncedAt: Date.now(),
+    };
+  });
 
   await cacheInvitationsForScan(invitations, data.event.id);
   await cacheTables(data.tables);
@@ -190,8 +209,7 @@ export async function processOfflineScan(
       kind: "log",
       qr,
       status: "ERROR",
-      errorMessage:
-        "Donnees hors-ligne indisponibles. Cache evenement absent.",
+      errorMessage: "Données hors-ligne indisponibles. Cache événement absent.",
     });
     return {
       error:
@@ -280,6 +298,7 @@ export async function processOfflineScan(
   });
 
   return {
+    id: inv.id,
     label: inv.label,
     assignedTable,
     scannedCount: newCount,
@@ -319,6 +338,7 @@ export async function processHybridScan(
         }
         dispatchScanCompleted();
         return {
+          id: data.id,
           label: data.label,
           assignedTable: data.assignedTable,
           scannedCount: data.scannedCount,

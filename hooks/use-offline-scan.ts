@@ -8,6 +8,8 @@ import {
 } from "@/lib/offline-scan";
 import { getScanBundle, getPendingScanCount } from "@/lib/local-db";
 import { useIsOnline } from "./use-offline";
+import { useQueryClient } from "@tanstack/react-query";
+import { EVENT_KEYS } from "@/hooks/use-event";
 
 export function useOfflineScan(eventCode: string) {
   const isOnline = useIsOnline();
@@ -16,6 +18,7 @@ export function useOfflineScan(eventCode: string) {
   const [bundleReady, setBundleReady] = useState(false);
   const [invitationCount, setInvitationCount] = useState(0);
   const [pendingScans, setPendingScans] = useState(0);
+  const queryClient = useQueryClient();
 
   const refreshStats = useCallback(async () => {
     const bundle = await getScanBundle(eventCode);
@@ -24,6 +27,29 @@ export function useOfflineScan(eventCode: string) {
     const pending = await getPendingScanCount(eventCode);
     setPendingScans(pending);
   }, [eventCode]);
+
+  const invalidateQueries = useCallback(() => {
+    // Invalider toutes les queries liées à cet événement pour que l'UI se mette à jour
+    queryClient.invalidateQueries({
+      queryKey: EVENT_KEYS.oneByEventCode(eventCode),
+    });
+    queryClient.invalidateQueries({
+      queryKey: EVENT_KEYS.eventByEventCode(eventCode),
+    });
+    queryClient.invalidateQueries({ queryKey: EVENT_KEYS.history(eventCode) });
+    // Si on a l'ID de l'événement, on peut invalider les stats
+    const bundle = getScanBundle(eventCode);
+    bundle.then((b) => {
+      if (b) {
+        queryClient.invalidateQueries({
+          queryKey: EVENT_KEYS.stats(b.eventId),
+        });
+        queryClient.invalidateQueries({ queryKey: EVENT_KEYS.one(b.eventId) });
+      }
+    });
+    // Invalider aussi la liste globale des événements pour les dashboards
+    queryClient.invalidateQueries({ queryKey: EVENT_KEYS.all });
+  }, [eventCode, queryClient]);
 
   const prefetch = useCallback(
     async (terminalCode: string) => {
@@ -54,12 +80,14 @@ export function useOfflineScan(eventCode: string) {
         isOnline,
       );
       await refreshStats();
+      // Invalider les queries pour que les pages admin/stats se mettent à jour
+      invalidateQueries();
       if (result.queued) {
         window.dispatchEvent(new CustomEvent("force-sync"));
       }
       return result;
     },
-    [eventCode, isOnline, refreshStats],
+    [eventCode, isOnline, refreshStats, invalidateQueries],
   );
 
   useEffect(() => {
