@@ -71,7 +71,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -3 }}
       className={cn(
-        "p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors",
+        "relative z-10 transform-gpu will-change-transform p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors",
         glow
           ? "bg-emerald-500/10 hover:bg-emerald-500/20"
           : "bg-white/5 hover:bg-white/10",
@@ -211,6 +211,7 @@ export default function EventPage() {
         toast.success(`${result.count} emails envoyés`);
         refetch();
       } else toast.error(result.error);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error("Erreur réseau");
     } finally {
@@ -308,7 +309,7 @@ export default function EventPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden"
+            className="relative z-10 transform-gpu will-change-[height,opacity] p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
