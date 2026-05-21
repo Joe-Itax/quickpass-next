@@ -39,7 +39,7 @@ export function NavMain({
                   tooltip={item.title}
                   className={`relative h-11 rounded-xl transition-all duration-300 group ${
                     isActive
-                      ? "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
+                      ? "bg-primary/80 text-white hover:bg-primary/95 hover:text-white"
                       : "text-gray-400 hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -48,7 +48,7 @@ export function NavMain({
                     {isActive && (
                       <motion.div
                         layoutId="nav-active"
-                        className="absolute left-0 w-1 h-6 bg-primary rounded-full shadow-[0_0_10px_#FDB623]"
+                        className="absolute left-0 w-1 h-6 bg-white rounded-full shadow-[0_0_10px_#FDB623]"
                       />
                     )}
 
@@ -56,7 +56,7 @@ export function NavMain({
                       <item.icon
                         size={20}
                         stroke={isActive ? 2.5 : 1.5}
-                        className={`transition-colors ${isActive ? "text-primary" : "group-hover:text-white"}`}
+                        className={`transition-colors ${isActive ? "text-white" : "group-hover:text-white"}`}
                       />
                     )}
 

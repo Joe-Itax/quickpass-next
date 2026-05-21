@@ -168,15 +168,11 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50 relative;
+    @apply border-border outline-ring/50;
   }
 
   html,
   body {
-    @apply size-full scroll-smooth;
-  }
-
-  body {
-    @apply bg-background text-foreground;
+    @apply size-full scroll-smooth bg-background text-foreground;
   }
 }

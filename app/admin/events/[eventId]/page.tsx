@@ -42,7 +42,6 @@ import ImportGuests from "./import-guests";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 
-// --- HELPERS (Définis en dehors pour éviter la re-déclaration au rendu) ---
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return "Date inconnue";
   const date = new Date(dateStr);
@@ -70,12 +69,14 @@ function StatCard({
 }: StatCardProps) {
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      className="p-5 rounded-4xl bg-white/2 border border-white/5 flex flex-col items-center text-center gap-2 relative overflow-hidden group isolate z-0"
-    >
-      {glow && (
-        <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors -z-10" />
+      whileHover={{ y: -3 }}
+      className={cn(
+        "p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors",
+        glow
+          ? "bg-emerald-500/10 hover:bg-emerald-500/20"
+          : "bg-white/5 hover:bg-white/10",
       )}
+    >
       <Icon className={cn("w-5 h-5", color)} />
       <span className="text-2xl font-black italic tracking-tighter text-white">
         {value}
@@ -147,7 +148,6 @@ export default function EventPage() {
     0,
   );
 
-  // --- LOGIQUE EXPORT EXCEL ---
   const handleExportWhatsApp = async () => {
     if (!event?.invitations) return;
     setIsExporting(true);
@@ -172,7 +172,7 @@ export default function EventPage() {
           phone: inv.whatsapp,
           name: inv.label,
           pax: inv.peopleCount,
-          date: formatDateTime(event.date), // Utilisation de event.date
+          date: formatDateTime(event.date),
           location: `${event.location} (${event.fullLocation || ""})`,
           link: `${process.env.NEXT_PUBLIC_BASE_URL}/invitation/${inv.qrCode}`,
           qr_url: qrUrl,
@@ -211,7 +211,6 @@ export default function EventPage() {
         toast.success(`${result.count} emails envoyés`);
         refetch();
       } else toast.error(result.error);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error("Erreur réseau");
     } finally {
@@ -238,7 +237,6 @@ export default function EventPage() {
 
   return (
     <section className="py-6 px-0! max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
-      {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
         <div className="space-y-4">
           <Button
@@ -304,14 +302,13 @@ export default function EventPage() {
         </div>
       </div>
 
-      {/* --- ALERTE FLUX CRITIQUE --- */}
       <AnimatePresence>
         {unassignedGuests.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-500/5 backdrop-blur-xl space-y-6"
+            className="p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
@@ -339,8 +336,7 @@ export default function EventPage() {
         )}
       </AnimatePresence>
 
-      {/* --- BROADCAST CENTER --- */}
-      <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5 space-y-6 relative overflow-hidden z-0 isolate">
+      <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black italic uppercase text-white">
@@ -429,7 +425,6 @@ export default function EventPage() {
         </div>
       </div>
 
-      {/* --- STATS ET CONTENU --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

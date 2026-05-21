@@ -45,7 +45,7 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased bg-background text-foreground`}
       >
         <ServiceWorkerInitializer />
         <OfflineIndicator />

@@ -308,13 +308,23 @@ export async function processOfflineScan(
   };
 }
 
-/** Scan hybride : réseau d'abord, fallback offline */
+/** Scan hybride : hors-ligne d'abord (instantané), fallback réseau si non synchronisé */
 export async function processHybridScan(
   eventCode: string,
   qr: string,
   terminalCode: string,
   isOnline: boolean,
 ): Promise<OfflineScanResult> {
+  const bundle = await getScanBundle(eventCode);
+
+  // Si le cache est présent, on valide en local immédiatement (Offline-First)
+  // La fonction processOfflineScan ajoute le log en base locale
+  // et retourne queued: true pour déclencher la synchronisation.
+  if (bundle) {
+    return processOfflineScan(eventCode, qr, terminalCode);
+  }
+
+  // Fallback si on a aucun cache (par exemple première connexion)
   if (isOnline) {
     try {
       const res = await fetch(
@@ -329,13 +339,6 @@ export async function processHybridScan(
       const data = await res.json();
 
       if (res.ok) {
-        const bundle = await getScanBundle(eventCode);
-        const inv = bundle
-          ? await findInvitation(qr, bundle.eventId)
-          : undefined;
-        if (inv) {
-          await updateCachedInvitationScan(inv.id, data.scannedCount);
-        }
         dispatchScanCompleted();
         return {
           id: data.id,
@@ -357,7 +360,8 @@ export async function processHybridScan(
         offline: false,
       };
     } catch {
-      // Réseau instable : basculer offline
+      // Réseau instable et pas de bundle : on laisse le offline_scan remonter l'erreur "bundle manquant"
+      return processOfflineScan(eventCode, qr, terminalCode);
     }
   }
 

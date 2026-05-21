@@ -31,7 +31,8 @@ export default function GuestPage() {
   const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
-  const LOGO_URL = "/logo-app/icon-192.png";
+  const LOGO_URL = "/logo-app/icon-1024.png";
+  // const LOGO_URL = "/logo-app/icon-1024-no_background.png";
 
   const {
     data: invitationData,
@@ -63,53 +64,84 @@ export default function GuestPage() {
     const svgElement = qrCodeRef.current.querySelector("svg");
     if (!svgElement) return;
 
+    const scale = 3; // facteur de sur-échantillonnage (HD)
     const svgData = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
     const img = new Image();
     const logo = new Image();
-
     logo.src = LOGO_URL;
     logo.crossOrigin = "anonymous";
 
     img.onload = () => {
       logo.onload = () => {
-        const padding = 80;
-        canvas.width = img.width + padding;
-        canvas.height = img.height + padding + 60;
+        const baseWidth = img.width;
+        const baseHeight = img.height;
+        const padding = 80 * scale;
+        const textAreaHeight = 80 * scale;
 
-        if (ctx) {
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          const qrX = padding / 2;
-          const qrY = padding / 2;
-          ctx.drawImage(img, qrX, qrY);
-          const logoSize = img.width * 0.2;
-          const logoX = qrX + (img.width - logoSize) / 2;
-          const logoY = qrY + (img.height - logoSize) / 2;
-          ctx.fillStyle = "white";
-          ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
-          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-          ctx.fillStyle = "black";
-          ctx.font = "bold 24px Inter, Arial, sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(
-            invitation.label.toUpperCase(),
-            canvas.width / 2,
-            img.height + padding / 2 + 30,
-          );
-          ctx.font = "900 10px Inter, sans-serif";
-          ctx.fillStyle = "#999999";
-          ctx.fillText(
-            "VERIFIED BY LOKAPASS",
-            canvas.width / 2,
-            canvas.height - 15,
-          );
-          const link = document.createElement("a");
-          link.download = `LOKAPASS_${invitation.id}_${invitation.label.replace(/\s+/g, "_")}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
+        const canvas = document.createElement("canvas");
+        canvas.width = baseWidth * scale + padding;
+        canvas.height = baseHeight * scale + padding + textAreaHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Fond blanc
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // QR redimensionné
+        const qrX = padding / 2;
+        const qrY = padding / 2;
+        ctx.drawImage(img, qrX, qrY, baseWidth * scale, baseHeight * scale);
+
+        // Logo central
+        const logoSize = baseWidth * scale * 0.2;
+        const logoX = qrX + (baseWidth * scale - logoSize) / 2;
+        const logoY = qrY + (baseHeight * scale - logoSize) / 2;
+        ctx.fillStyle = "white";
+        ctx.fillRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8);
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+
+        // Texte du pass : gérer le débordement
+        const maxWidth = canvas.width - padding;
+        let fontSize = 32 * scale; // taille de base adaptée au scale
+        ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+        const text = `${invitation.id}. ${invitation.label.toUpperCase()}`;
+        let textWidth = ctx.measureText(text).width;
+
+        // Réduire la police si nécessaire
+        while (textWidth > maxWidth && fontSize > 12 * scale) {
+          fontSize -= 2 * scale;
+          ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+          textWidth = ctx.measureText(text).width;
         }
+
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          text,
+          canvas.width / 2,
+          baseHeight * scale + padding / 2 + fontSize * 0.8,
+        );
+
+        // Pied "VERIFIED BY YAMBIPASS"
+        ctx.font = `900 ${12 * scale}px Inter, sans-serif`;
+        ctx.fillStyle = "#999999";
+        ctx.fillText(
+          "VERIFIED BY YAMBIPASS",
+          canvas.width / 2,
+          canvas.height - 15 * scale,
+        );
+
+        // Téléchargement
+        const link = document.createElement("a");
+        link.download = `YAMBIPASS_${invitation.id}_${invitation.label.replace(/\s+/g, "_")}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+      logo.onerror = () => {
+        // fallback si logo ne charge pas : on ignore le logo
+        logo.onload = null;
+        // relancer le traitement sans logo... (code similaire sans drawImage logo)
       };
     };
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
@@ -298,24 +330,22 @@ export default function GuestPage() {
 
               <div
                 ref={qrCodeRef}
-                className="bg-white p-6 rounded-4xl shadow-inner mb-6 flex flex-col items-center border-4 border-white max-[400px]:w-full w-60"
+                className="bg-white p-1 rounded-2xl shadow-inner mb-6 flex flex-col items-center border-4 border-white max-[400px]:w-full w-30"
               >
                 <QRCodeSVG
                   value={invitation.qrCode}
-                  size={undefined}
+                  size={300}
                   style={{ height: "100%", width: "100%" }}
                   level="H"
                   includeMargin={false}
                   imageSettings={{
                     src: LOGO_URL,
-                    x: undefined,
-                    y: undefined,
                     height: 40,
                     width: 40,
                     excavate: true,
                   }}
                 />
-                <p className="mt-4 text-black font-black text-sm uppercase italic tracking-tighter">
+                <p className="mt-4 text-black font-black text-sm text-center w-full uppercase italic tracking-tighter">
                   {invitation.id}. {invitation.label}
                 </p>
               </div>

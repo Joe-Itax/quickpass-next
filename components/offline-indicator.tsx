@@ -36,25 +36,17 @@ export function OfflineIndicator() {
       {showOffline && (
         <motion.div
           key="offline"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="sticky top-0 left-0 right-0 bg-red-600/95 backdrop-blur-sm z-900 px-4 py-2.5 flex items-center justify-between"
+          initial={{ opacity: 0, y: -20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.9 }}
+          className="fixed bottom-4 left-4 -translate-x-4 bg-red-600/95 backdrop-blur-md z-900 px-4 py-2 flex items-center gap-3 rounded-full shadow-2xl border border-red-500/50"
         >
-          <motion.div className="flex items-center gap-3">
-            <WifiOff size={18} className="text-white shrink-0" />
-            <div>
-              <p className="text-white font-semibold text-sm">
-                Mode hors-ligne
-              </p>
-              <p className="text-white/80 text-xs">
-                Les scans sont enregistrés localement et synchronisés au retour
-                du réseau
-              </p>
-            </div>
-          </motion.div>
+          <WifiOff size={16} className="text-white shrink-0" />
+          <p className="text-white font-semibold text-xs whitespace-nowrap">
+            Mode hors-ligne
+          </p>
           {syncStats.pendingScans > 0 && (
-            <span className="text-white text-xs font-mono bg-black/25 px-2 py-1 rounded shrink-0">
+            <span className="text-white text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded-full shrink-0">
               {syncStats.pendingScans} en attente
             </span>
           )}
@@ -64,41 +56,34 @@ export function OfflineIndicator() {
       {showSyncing && (
         <motion.div
           key="syncing"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="sticky top-0 left-0 right-0 bg-amber-600/95 backdrop-blur-sm z-900 px-4 py-2.5 flex items-center justify-between"
+          initial={{ opacity: 0, y: -20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.9 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 bg-amber-600/95 backdrop-blur-md z-900 px-4 py-2 flex items-center gap-3 rounded-full shadow-2xl border border-amber-500/50"
         >
-          <motion.div className="flex items-center gap-3">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-            >
-              <RefreshCw size={18} className="text-white" />
-            </motion.div>
-            <motion.div>
-              <p className="text-white font-semibold text-sm">
-                Synchronisation...
-              </p>
-              <p className="text-white/80 text-xs">
-                Envoi des scans vers le serveur
-              </p>
-            </motion.div>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+          >
+            <RefreshCw size={16} className="text-white shrink-0" />
           </motion.div>
+          <p className="text-white font-semibold text-xs whitespace-nowrap">
+            Synchronisation...
+          </p>
         </motion.div>
       )}
 
       {showPending && (
         <motion.div
           key="pending"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="sticky top-0 left-0 right-0 bg-blue-600/90 backdrop-blur-sm z-900 px-4 py-2 flex items-center gap-3"
+          initial={{ opacity: 0, y: -20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.9 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur-md z-900 px-4 py-2 flex items-center gap-3 rounded-full shadow-2xl border border-blue-500/50"
         >
-          <CloudUpload size={16} className="text-white" />
-          <p className="text-white text-sm font-medium">
-            {syncStats.pendingScans} scan(s) à synchroniser
+          <CloudUpload size={16} className="text-white shrink-0" />
+          <p className="text-white font-semibold text-xs whitespace-nowrap">
+            {syncStats.pendingScans} en attente
           </p>
         </motion.div>
       )}

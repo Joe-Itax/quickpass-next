@@ -22,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import { Lock } from "lucide-react";
+import Image from "next/image";
 
 const data = {
   navMain: [
@@ -55,19 +55,24 @@ export function AdminSidebar({
               className="hover:bg-transparent h-12 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div
-                  className={`rounded-2xl shrink-0 bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(253,182,35,0.4)] ${state === "collapsed" ? "shrink-0 size-6.5" : "size-10 shrink-0"}`}
-                >
-                  <Lock className="" size={20} strokeWidth={3} />
+                <div className="size-10 max-[390px]:size-8 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Image
+                    src={`/logo-app/icon-1024-no_background.png`}
+                    width={40}
+                    height={40}
+                    alt="Logo YambiPass"
+                    className="w-full p-1"
+                  />
                 </div>
                 <div
                   className={`flex flex-col transition-opacity duration-300 ${
                     state === "collapsed" ? "opacity-0 w-0" : "opacity-100"
                   }`}
                 >
-                  <span className="text-lg font-black italic uppercase tracking-tighter text-white">
-                    LokaPass
-                  </span>
+                  <p className="text-2xl max-[390px]:text-xl tracking-tighter">
+                    <span className="font-black"> Yambi</span>
+                    <span>Pass</span>
+                  </p>
                   <span className="text-[8px] font-bold text-primary tracking-[0.2em] uppercase leading-none">
                     Admin Panel
                   </span>

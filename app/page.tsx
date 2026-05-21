@@ -19,6 +19,7 @@ import {
 import { FaqItem } from "@/components/faq-item";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function LandingPage() {
   const { data: session } = authClient.useSession();
@@ -35,14 +36,23 @@ export default function LandingPage() {
       {/* --- NAVIGATION --- */}
       <header className="fixed w-full top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl">
         <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="size-10 rounded-xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
-              <Lock className="text-white" size={20} />
+          <Link href={"/"} className="flex items-center gap-1">
+            {/* <Link href={"/"}> */}
+            <div className="size-10 max-[390px]:size-8 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary/20">
+              <Image
+                src={`/logo-app/icon-1024-no_background.png`}
+                width={40}
+                height={40}
+                alt="Logo YambiPass"
+                className="w-full p-1"
+              />
             </div>
-            <span className="text-2xl font-black tracking-tighter italic">
-              LokaPass
-            </span>
-          </div>
+            <p className="text-2xl max-[390px]:text-xl tracking-tighter">
+              <span className="font-black"> Yambi</span>
+              <span>Pass</span>
+            </p>
+            {/* </Link> */}
+          </Link>
 
           <nav className="hidden md:flex gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
             <a href="#flux" className="hover:text-primary transition-colors">
@@ -58,7 +68,7 @@ export default function LandingPage() {
 
           <Link
             href={sess ? "/admin" : "/login"}
-            className="group flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] bg-white text-black px-6 py-3 rounded-full hover:bg-primary hover:text-white transition-all shadow-xl"
+            className="group flex items-center gap-3 text-[10px] max-[390px]:text-[8px] font-black uppercase tracking-[0.2em] bg-white text-black px-6 max-[390px]:px-2 py-3 max-[390px]:py-1.5 rounded-full hover:bg-primary hover:text-white transition-all shadow-xl"
           >
             Dashboard
             <ArrowRight
@@ -88,7 +98,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] mb-10 uppercase italic"
+            className="text-6xl max-[390px]:text-4xl md:text-9xl font-black tracking-tighter leading-[0.85] mb-10 uppercase italic"
           >
             SÉCURISEZ <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-primary via-blue-400 to-white text-not-italic">
@@ -139,7 +149,7 @@ export default function LandingPage() {
           <div className="text-center mb-24">
             <h2 className="text-4xl md:text-6xl font-black uppercase italic mb-6">
               Le Process{" "}
-              <span className="text-primary text-not-italic">LokaPass</span>
+              <span className="text-primary text-not-italic">YambiPass</span>
             </h2>
             <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px]">
               De la liste Excel au Scan final
@@ -176,7 +186,7 @@ export default function LandingPage() {
 
             <div className="relative z-10">
               <h3 className="text-4xl md:text-6xl font-black uppercase italic mb-8">
-                LokaPass <span className="text-primary">Operated™</span>
+                YambiPass <span className="text-primary">Operated™</span>
               </h3>
               <p className="text-gray-400 text-xl font-medium mb-12 max-w-2xl">
                 Le service complet où nous portons la responsabilité technique
@@ -264,11 +274,11 @@ export default function LandingPage() {
               <div className="space-y-6 font-bold">
                 <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
                   <Link
-                    href="mailto:contact@lokapass.cd"
+                    href="mailto:contact@yambipass.cd"
                     className="flex items-center gap-4"
                   >
                     <Mail />
-                    contact@lokapass.cd
+                    contact@yambipass.cd
                   </Link>
                 </div>
                 <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
@@ -309,7 +319,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="py-12 border-t border-white/5 text-center text-[10px] font-bold uppercase tracking-[0.5em] text-gray-700">
-        © {new Date().getFullYear()} LokaPass • Managed by Carmel Code •
+        © {new Date().getFullYear()} YambiPass • Managed by Carmel Code •
         Kinshasa
       </footer>
     </div>
@@ -349,7 +359,7 @@ const StepCard = ({
   title: string;
   desc: string;
 }) => (
-  <div className="p-12 rounded-[3.5rem] bg-white/2 border border-white/5 group hover:border-primary/30 transition-all">
+  <div className="p-4 md:p-8 rounded-[3.5rem] bg-white/2 border border-white/5 group hover:border-primary/30 transition-all">
     <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-8 group-hover:bg-primary group-hover:text-white transition-all shadow-lg">
       {icon}
     </div>

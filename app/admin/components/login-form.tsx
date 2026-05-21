@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { Lock, ShieldCheck, AlertCircle } from "lucide-react";
+import {  ShieldCheck, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
 export function LoginForm({
@@ -64,14 +64,11 @@ export function LoginForm({
         <div className="absolute -top-px left-1/2 -translate-x-1/2 w-1/2 h-px bg-linear-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_#FDB623]" />
 
         <div className="flex flex-col items-center mb-8">
-          <div className="size-14 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(253,182,35,0.3)]">
-            <Lock className="text-white" size={28} strokeWidth={2.5} />
-          </div>
           <h1 className="text-2xl font-black italic uppercase tracking-tighter text-white">
             Administration
           </h1>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1">
-            Secure Access Point
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1 text-center">
+            Point d&apos;Accès Sécurisé
           </p>
         </div>
 

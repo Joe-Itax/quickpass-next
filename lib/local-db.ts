@@ -114,7 +114,7 @@ export interface LocalScanLog {
   synced: boolean;
 }
 
-export class LokaPassDB extends Dexie {
+export class YambiPassDB extends Dexie {
   events!: Table<CachedEvent, number>;
   invitations!: Table<CachedInvitation, number>;
   users!: Table<CachedUser, string>;
@@ -125,7 +125,7 @@ export class LokaPassDB extends Dexie {
   localScanLogs!: Table<LocalScanLog, string>;
 
   constructor() {
-    super("lokapass-local-db");
+    super("yambipass-local-db");
 
     this.version(1).stores({
       events: "id, eventCode, syncedAt",
@@ -168,7 +168,7 @@ export class LokaPassDB extends Dexie {
   }
 }
 
-export const db = new LokaPassDB();
+export const db = new YambiPassDB();
 
 // ============================================
 // SCAN BUNDLE & SESSION

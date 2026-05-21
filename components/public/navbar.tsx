@@ -25,8 +25,8 @@ export function Navbar() {
         >
           <div className="size-18 bg-[#FDB623] rounded-full flex items-center justify-center drop-shadow-[0_0_21px_#FDB623] p-4">
             <Image
-              src="/logo-app/logo-white.svg"
-              alt="QuickPass"
+              src="/logo-app/icon-512.png"
+              alt="YambiPass"
               width={100}
               height={100}
               className="m-auto w-full"
