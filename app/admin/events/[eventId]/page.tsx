@@ -237,8 +237,8 @@ export default function EventPage() {
   const availableSeats = Math.max(0, totalCapacity - totalAssigned);
 
   return (
-    <section className="py-6 px-0! max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
+    <section className="py-6 px-2 max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
+      <div className="relative z-10 transform-gpu backface-hidden flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
         <div className="space-y-4">
           <Button
             variant="ghost"
@@ -273,7 +273,7 @@ export default function EventPage() {
             </Badge>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
+          <div className="transform-gpu flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Calendar size={14} className="text-primary" />{" "}
               {formatDateTime(event.date)}
