@@ -15,7 +15,11 @@ import {
   Table2,
   Mail,
   MessageCircle,
+  Send,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useInvitation } from "@/hooks/use-event";
 import DataStatusDisplay from "@/components/data-status-display";
 import { QRCodeSVG } from "qrcode.react";
@@ -29,6 +33,7 @@ export default function GuestPage() {
   const { eventId, guestId } = useParams();
   const router = useRouter();
   const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
   const LOGO_URL = "/logo-app/icon-1024.png";
@@ -147,6 +152,37 @@ export default function GuestPage() {
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
+  const handleSendSingle = async (channel: "email" | "whatsapp") => {
+    if (channel === "whatsapp") {
+      toast.info("L'envoi WhatsApp automatique sera bientôt disponible.");
+      return;
+    }
+    setIsSendingEmail(true);
+
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/invitations/${guestId}/send`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel }),
+        }
+      );
+
+      if (res.ok) {
+        toast.success("Invitation envoyée par Email !");
+        refetch();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Erreur lors de l'envoi.");
+      }
+    } catch {
+      toast.error("Erreur réseau. Vérifiez votre connexion.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <section className="min-h-screen bg-[#050505] p-4 md:p-10 space-y-10">
       {/* --- NAV BAR --- */}
@@ -241,43 +277,64 @@ export default function GuestPage() {
           {(invitation.email || invitation.whatsapp) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {invitation.whatsapp && (
-                <a
-                  href={`https://wa.me/${invitation.whatsapp.replace(/\+/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/5 border border-white/10 rounded-4xl p-6 flex items-center gap-5 hover:bg-green-500/5 hover:border-green-500/20 transition-all group"
-                >
-                  <div className="size-12 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <MessageCircle size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      WhatsApp
-                    </p>
-                    <p className="text-sm font-bold text-white tracking-tight">
-                      {invitation.whatsapp}
-                    </p>
-                  </div>
-                </a>
+                <div className="flex bg-white/5 border border-white/10 rounded-4xl overflow-hidden hover:border-green-500/20 transition-all group">
+                  <a
+                    href={`https://wa.me/${invitation.whatsapp.replace(/\+/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 p-6 flex items-center gap-5 hover:bg-green-500/5 transition-all"
+                  >
+                    <div className="size-12 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <MessageCircle size={24} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        WhatsApp {invitation.isSentWhatsapp && <CheckCircle size={10} className="text-green-500" />}
+                      </p>
+                      <p className="text-sm font-bold text-white tracking-tight">
+                        {invitation.whatsapp}
+                      </p>
+                    </div>
+                  </a>
+                  <button
+                    onClick={() => handleSendSingle("whatsapp")}
+                    disabled
+                    title="L'envoi WhatsApp automatique sera bientôt disponible"
+                    className="px-5 flex flex-col items-center justify-center gap-1 border-l border-white/10 bg-white/2 transition-all cursor-not-allowed text-gray-600"
+                  >
+                    <AlertTriangle size={16} />
+                    <span className="text-[8px] font-bold uppercase tracking-widest">Bientôt</span>
+                  </button>
+                </div>
               )}
 
               {invitation.email && (
-                <a
-                  href={`mailto:${invitation.email}`}
-                  className="bg-white/5 border border-white/10 rounded-4xl p-6 flex items-center gap-5 hover:bg-blue-500/5 hover:border-blue-500/20 transition-all group"
-                >
-                  <div className="size-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Mail size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      Email
-                    </p>
-                    <p className="text-sm font-bold text-white tracking-tight break-all">
-                      {invitation.email}
-                    </p>
-                  </div>
-                </a>
+                <div className="flex bg-white/5 border border-white/10 rounded-4xl overflow-hidden hover:border-blue-500/20 transition-all group">
+                  <a
+                    href={`mailto:${invitation.email}`}
+                    className="flex-1 p-6 flex items-center gap-5 hover:bg-blue-500/5 transition-all"
+                  >
+                    <div className="size-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Mail size={24} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        Email {invitation.isSentEmail && <CheckCircle size={10} className="text-blue-500" />}
+                      </p>
+                      <p className="text-sm font-bold text-white tracking-tight break-all">
+                        {invitation.email}
+                      </p>
+                    </div>
+                  </a>
+                  <button
+                    onClick={() => handleSendSingle("email")}
+                    disabled={isSendingEmail}
+                    className="px-6 flex flex-col items-center justify-center gap-1 border-l border-white/10 hover:bg-blue-500/10 transition-all cursor-pointer text-blue-500 disabled:opacity-50"
+                  >
+                    {isSendingEmail ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Envoyer</span>
+                  </button>
+                </div>
               )}
             </div>
           )}

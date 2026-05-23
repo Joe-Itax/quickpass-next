@@ -116,7 +116,7 @@ export function EventCard({ event }: { event: Event2 }) {
 
         {/* ACTIONS */}
         <div className="flex items-center gap-2">
-          <Link href={`/admin/events/${event.id}`} className="flex-1">
+          <Link prefetch={true} href={`/admin/events/${event.id}`} className="flex-1">
             <Button
               className="w-full bg-white/5 hover:bg-primary text-white font-black uppercase italic text-xs py-5 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/5 hover:border-primary"
               variant={"secondary"}

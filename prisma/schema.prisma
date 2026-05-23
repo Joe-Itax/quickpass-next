@@ -233,3 +233,34 @@ model ScanLog {
   terminal      Terminal? @relation(fields: [terminalId], references: [id], onDelete: Cascade)
   assignedTable String?
 }
+
+// ----------------------------
+//          WHATSAPP QUEUE
+// ----------------------------
+enum QueueStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model WhatsappQueue {
+  id           String      @id @default(uuid())
+  eventId      String
+  guestId      String
+  phoneNumber  String
+  messageText  String      @db.Text
+  qrCodeUrl    String      @db.Text
+  status       QueueStatus @default(PENDING)
+  attempts     Int         @default(0)
+  errorMessage String?     @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+}
+
+model WhatsappSession {
+  id   String @id
+  data String @db.Text
+}

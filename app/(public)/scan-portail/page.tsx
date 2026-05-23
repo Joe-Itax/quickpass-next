@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {
-  Lock,
   Loader2,
   ShieldAlert,
   ChevronLeft,
@@ -15,6 +14,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { prefetchEventScanBundle } from "@/lib/offline-scan";
 import { getTerminalSession, saveTerminalSession } from "@/lib/local-db";
+import Image from "next/image";
 
 export default function ScanPortalPage() {
   const [loading, setLoading] = useState(true);
@@ -150,14 +150,21 @@ export default function ScanPortalPage() {
         {loading ? (
           <motion.div key="loading" className="flex flex-col items-center">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="size-20 rounded-2xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-2xl mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="size-20 rounded-2xl bg-white flex items-center justify-center shadow-2xl mb-8"
             >
-              <Lock size={40} className="text-white" />
+              <Image
+                src="/logo-app/icon-1024-no_background.png"
+                alt="logo"
+                width={40}
+                height={40}
+                className="w-full"
+              />
             </motion.div>
-            <h1 className="text-3xl font-black italic tracking-tighter mb-2">
-              YambiPass
+            <h1 className="text-3xl tracking-tighter mb-2">
+              <span className="font-black">Yambi</span>
+              <span>Pass</span>
             </h1>
             <p className="text-gray-500 font-medium">
               Vérification de l&apos;accès...

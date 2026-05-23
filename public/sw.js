@@ -1,11 +1,30 @@
-const CACHE_VERSION = "yambipass-v2";
+const CACHE_VERSION = "yambipass-v3";
 const URLS_TO_CACHE = [
   "/",
   "/offline.html",
   "/logo-app/icon-192.png",
   "/logo-app/icon-512.png",
   "/scan-portail",
+  "/admin",
+  "/admin/events",
+  "/admin/terminals",
 ];
+
+// Routes admin qui doivent fonctionner en mode offline (lecture seule)
+const OFFLINE_ELIGIBLE_PATTERNS = [
+  /^\/admin$/,
+  /^\/admin\/events$/,
+  /^\/admin\/events\/[^/]+$/,
+  /^\/admin\/events\/[^/]+\/[^/]+$/,
+  /^\/admin\/events\/[^/]+\/tables$/,
+  /^\/admin\/events\/[^/]+\/tables\/[^/]+$/,
+  /^\/admin\/terminals$/,
+  /^\/scan-portail/,
+];
+
+function isOfflineEligible(pathname) {
+  return OFFLINE_ELIGIBLE_PATTERNS.some((pattern) => pattern.test(pathname));
+}
 
 // ----- INSTALL -----
 self.addEventListener("install", (event) => {
@@ -63,7 +82,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (request.mode === "navigate") {
-    event.respondWith(staleWhileRevalidatePage(request));
+    event.respondWith(navigationHandler(request, url));
     return;
   }
 
@@ -105,21 +124,42 @@ async function cacheFirst(request) {
   }
 }
 
-async function staleWhileRevalidatePage(request) {
+/**
+ * Stratégie de navigation :
+ * 1. Essaie le réseau d'abord
+ * 2. Si le réseau échoue ET que la page est éligible offline → sert le cache
+ * 3. Si le réseau échoue ET que la page N'EST PAS éligible → sert offline.html
+ *
+ * Si le réseau réussit, met toujours en cache pour les prochaines visites.
+ */
+async function navigationHandler(request, url) {
   const cache = await caches.open(CACHE_VERSION);
-  const cached = await cache.match(request);
 
-  const networkPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) cache.put(request, response.clone());
-      return response;
-    })
-    .catch(async () => {
-      const offline = await caches.match("/offline.html");
-      return offline || new Response("Hors-ligne", { status: 503 });
-    });
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      // Met en cache cette page pour les visites offline futures
+      if (isOfflineEligible(url.pathname)) {
+        cache.put(request, response.clone());
+      }
+    }
+    return response;
+  } catch {
+    // On est offline → chercher dans le cache
+    const cached = await cache.match(request);
+    if (cached) return cached;
 
-  return cached || networkPromise;
+    // Si la page est éligible offline mais pas encore en cache,
+    // essayer de servir la page /admin comme shell de fallback
+    if (isOfflineEligible(url.pathname)) {
+      const adminShell = await cache.match("/admin");
+      if (adminShell) return adminShell;
+    }
+
+    // Dernier recours : page offline statique
+    const offline = await cache.match("/offline.html");
+    return offline || new Response("Hors-ligne", { status: 503 });
+  }
 }
 
 // ----- BACKGROUND SYNC -----

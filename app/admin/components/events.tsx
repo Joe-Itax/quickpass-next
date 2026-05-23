@@ -19,6 +19,7 @@ import AddEvent from "../events/add-event";
 import { useRealtimeList } from "@/hooks/use-realtime-list";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import BackgroundPrefetcher from "./background-prefetcher";
 
 export default function Events() {
   const { data: events = [], isPending, isError, error, refetch } = useEvents();
@@ -48,6 +49,9 @@ export default function Events() {
 
   return (
     <div className="space-y-8">
+      {/* PREFETCH OFFLINE (Silencieux) */}
+      <BackgroundPrefetcher events={events as Event2[]} />
+
       {/* TOOLBAR FILTRES */}
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-white/2 border border-white/5 p-4 rounded-4xl backdrop-blur-md">
         <div className="relative w-full lg:max-w-md">

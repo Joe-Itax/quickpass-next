@@ -107,6 +107,45 @@
           opacity: 0.5;
         }
       }
+
+      .btn-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 1rem;
+        text-decoration: none;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .btn-primary {
+        background-color: var(--primary-blue);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #283593;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+      }
+
+      .btn-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
     </style>
   </head>
   <body>
@@ -125,6 +164,11 @@
       <div class="status-badge">
         <span class="status-dot"></span>
         Mode Offline Activé
+      </div>
+
+      <div class="btn-container">
+        <a href="/admin/events" class="btn btn-primary">Tableau de bord hors-ligne</a>
+        <a href="/scan-portail" class="btn btn-secondary">Portail de Scan</a>
       </div>
     </div>
   </body>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, FormEvent } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Send,
   HelpCircle,
+  Loader2
 } from "lucide-react";
 import { FaqItem } from "@/components/faq-item";
 import { authClient } from "@/lib/auth-client";
@@ -23,6 +24,46 @@ import Image from "next/image";
 
 export default function LandingPage() {
   const { data: session } = authClient.useSession();
+
+  const [contactEmail, setContactEmail] = useState("");
+  const [eventType, setEventType] = useState("");
+  const [guestsCount, setGuestsCount] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formStatus, setFormStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleContactSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormStatus("idle");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: contactEmail,
+          eventType,
+          guests: guestsCount,
+          requirements,
+        }),
+      });
+
+      if (res.ok) {
+        setFormStatus("success");
+        setContactEmail("");
+        setEventType("");
+        setGuestsCount("");
+        setRequirements("");
+      } else {
+        setFormStatus("error");
+      }
+    } catch {
+      setFormStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const sess = session?.session;
 
   return (
@@ -274,45 +315,95 @@ export default function LandingPage() {
               <div className="space-y-6 font-bold">
                 <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
                   <Link
-                    href="mailto:contact@yambipass.cd"
+                    href="mailto:yambipass@gmail.com"
                     className="flex items-center gap-4"
+                    target="_blank"
                   >
                     <Mail />
-                    contact@yambipass.cd
+                    yambipass@gmail.com
                   </Link>
                 </div>
                 <div className="flex items-center gap-4 hover:text-primary transition-colors cursor-pointer">
-                  <Phone /> +243 97 78 73 421
+                  <Link
+                    href={`https://wa.me/+243982430975`}
+                    className="flex items-center gap-4"
+                    target="_blank"
+                  >
+                    <Phone /> +243 98 24 30 975
+                  </Link>
                 </div>
               </div>
             </div>
-            <form className="space-y-4 bg-white/3 p-10 rounded-[3rem] border border-white/10 shadow-3xl">
+            <form
+              onSubmit={handleContactSubmit}
+              className="space-y-4 bg-white/3 p-10 rounded-[3rem] border border-white/10 shadow-3xl"
+            >
               <input
                 type="email"
                 placeholder="Votre email *"
                 className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-primary font-bold"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
                 required
               />
               <input
                 type="text"
                 placeholder="Type d'événement *"
                 className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-primary font-bold"
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
                 required
               />
               <input
                 type="number"
                 placeholder="Nombre d'invités *"
                 className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-primary font-bold"
+                value={guestsCount}
+                onChange={(e) => setGuestsCount(e.target.value)}
                 required
               />
               <textarea
                 rows={4}
                 placeholder="Date, lieu et exigences..."
                 className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-primary font-bold"
+                value={requirements}
+                onChange={(e) => setRequirements(e.target.value)}
               />
-              <Button className="w-full py-6 bg-primary font-black uppercase tracking-widest rounded-2xl shadow-xl hover:shadow-primary/20 transition-all">
-                Lancer le briefing
+              <Button
+                disabled={isSubmitting}
+                type="submit"
+                className="w-full py-6 bg-primary font-black uppercase tracking-widest rounded-2xl shadow-xl hover:shadow-primary/20 transition-all"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  "Lancer le briefing"
+                )}
               </Button>
+
+              {formStatus === "success" && (
+                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <p className="text-emerald-400 font-bold text-sm">✓ Votre demande a bien été envoyée !</p>
+                  <p className="text-emerald-400/60 text-xs mt-1">Notre équipe vous recontactera sous 24h.</p>
+                </div>
+              )}
+
+              {formStatus === "error" && (
+                <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20">
+                  <p className="text-red-400 font-bold text-sm text-center">Une erreur est survenue. Veuillez réessayer.</p>
+                  <p className="text-red-400/60 text-xs mt-2 text-center">
+                    Si le problème persiste, contactez-nous directement :
+                  </p>
+                  <div className="flex items-center justify-center gap-6 mt-3 text-xs">
+                    <a href="mailto:yambipass@gmail.com" className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+                      <Mail size={14} /> Email
+                    </a>
+                    <a href="https://wa.me/+243982430975" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+                      <MessageCircle size={14} /> WhatsApp
+                    </a>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         </div>
