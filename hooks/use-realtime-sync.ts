@@ -43,6 +43,7 @@ export function useRealtimeSync({
         "EventStats",
         "ScanLog",
         "Terminal",
+        "WhatsappQueue",
       ] as const;
 
       for (const table of tables) {

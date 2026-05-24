@@ -61,14 +61,13 @@ export async function POST(req: NextRequest, context: EventContext) {
       where: {
         eventId,
         email: { not: null, contains: "@" },
-        isSentEmail: false,
       },
     });
 
     if (guests.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "Aucun email en attente.",
+        message: "Aucun email valide.",
       });
     }
 

@@ -21,7 +21,8 @@ export default function PublicInvitationPage() {
 
   const ticketRef = useRef<HTMLDivElement>(null);
 
-  const LOGO_URL = "/logo-app/logo-white.png";
+  const LOGO_URL = "/logo-app/icon-1024.png";
+  // const LOGO_URL = "/logo-app/logo-white.png";
 
   useEffect(() => {
     fetch(`/api/invitation/${qrCode}`)

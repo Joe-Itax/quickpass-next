@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Send,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useInvitation } from "@/hooks/use-event";
@@ -34,6 +33,7 @@ export default function GuestPage() {
   const router = useRouter();
   const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
   const LOGO_URL = "/logo-app/icon-1024.png";
@@ -153,11 +153,8 @@ export default function GuestPage() {
   };
 
   const handleSendSingle = async (channel: "email" | "whatsapp") => {
-    if (channel === "whatsapp") {
-      toast.info("L'envoi WhatsApp automatique sera bientôt disponible.");
-      return;
-    }
-    setIsSendingEmail(true);
+    if (channel === "email") setIsSendingEmail(true);
+    if (channel === "whatsapp") setIsSendingWhatsapp(true);
 
     try {
       const res = await fetch(
@@ -169,17 +166,27 @@ export default function GuestPage() {
         }
       );
 
+      const data = await res.json();
+
       if (res.ok) {
+        if (channel === "whatsapp") {
+          toast.success(`${data.queued || 1} message WhatsApp planifie`);
+          if (data.workerError) {
+            toast.warning("File creee. Le worker reprendra via sa boucle.");
+          }
+          refetch();
+          return;
+        }
         toast.success("Invitation envoyée par Email !");
         refetch();
       } else {
-        const data = await res.json();
         toast.error(data.error || "Erreur lors de l'envoi.");
       }
     } catch {
       toast.error("Erreur réseau. Vérifiez votre connexion.");
     } finally {
-      setIsSendingEmail(false);
+      if (channel === "email") setIsSendingEmail(false);
+      if (channel === "whatsapp") setIsSendingWhatsapp(false);
     }
   };
 
@@ -273,7 +280,7 @@ export default function GuestPage() {
             </div>
           </div>
 
-          {/* --- NOUVEAU BLOC : CONTACT INFO --- */}
+          {/* --- CONTACT INFO --- */}
           {(invitation.email || invitation.whatsapp) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {invitation.whatsapp && (
@@ -298,12 +305,15 @@ export default function GuestPage() {
                   </a>
                   <button
                     onClick={() => handleSendSingle("whatsapp")}
-                    disabled
-                    title="L'envoi WhatsApp automatique sera bientôt disponible"
-                    className="px-5 flex flex-col items-center justify-center gap-1 border-l border-white/10 bg-white/2 transition-all cursor-not-allowed text-gray-600"
+                    disabled={isSendingWhatsapp}
+                    className="px-6 flex flex-col items-center justify-center gap-1 border-l border-white/10 hover:bg-green-500/10 transition-all cursor-pointer text-green-500 disabled:opacity-50"
                   >
-                    <AlertTriangle size={16} />
-                    <span className="text-[8px] font-bold uppercase tracking-widest">Bientôt</span>
+                    {isSendingWhatsapp ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Send size={18} />
+                    )}
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Envoyer</span>
                   </button>
                 </div>
               )}

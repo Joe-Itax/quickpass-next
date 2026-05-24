@@ -8,14 +8,13 @@ import {
   Check,
   Mail,
   Phone,
-  Lock,
   Gem,
   MessageCircle,
   FileText,
   ShieldCheck,
   Send,
   HelpCircle,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { FaqItem } from "@/components/faq-item";
 import { authClient } from "@/lib/auth-client";
@@ -30,7 +29,9 @@ export default function LandingPage() {
   const [guestsCount, setGuestsCount] = useState("");
   const [requirements, setRequirements] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formStatus, setFormStatus] = useState<"idle" | "success" | "error">("idle");
+  const [formStatus, setFormStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
 
   const handleContactSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -383,22 +384,36 @@ export default function LandingPage() {
 
               {formStatus === "success" && (
                 <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <p className="text-emerald-400 font-bold text-sm">✓ Votre demande a bien été envoyée !</p>
-                  <p className="text-emerald-400/60 text-xs mt-1">Notre équipe vous recontactera sous 24h.</p>
+                  <p className="text-emerald-400 font-bold text-sm">
+                    ✓ Votre demande a bien été envoyée !
+                  </p>
+                  <p className="text-emerald-400/60 text-xs mt-1">
+                    Notre équipe vous recontactera sous 24h.
+                  </p>
                 </div>
               )}
 
               {formStatus === "error" && (
                 <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-red-400 font-bold text-sm text-center">Une erreur est survenue. Veuillez réessayer.</p>
+                  <p className="text-red-400 font-bold text-sm text-center">
+                    Une erreur est survenue. Veuillez réessayer.
+                  </p>
                   <p className="text-red-400/60 text-xs mt-2 text-center">
                     Si le problème persiste, contactez-nous directement :
                   </p>
                   <div className="flex items-center justify-center gap-6 mt-3 text-xs">
-                    <a href="mailto:yambipass@gmail.com" className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+                    <a
+                      href="mailto:yambipass@gmail.com"
+                      className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold"
+                    >
                       <Mail size={14} /> Email
                     </a>
-                    <a href="https://wa.me/+243982430975" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+                    <a
+                      href="https://wa.me/+243982430975"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-red-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold"
+                    >
                       <MessageCircle size={14} /> WhatsApp
                     </a>
                   </div>

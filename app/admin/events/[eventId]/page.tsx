@@ -22,10 +22,12 @@ import {
   Clock,
   AlertCircle,
   Mail,
+  MessageCircle,
   FileSpreadsheet,
   Loader2,
   CheckCircle2,
   Table2,
+  ListChecks,
 } from "lucide-react";
 import { Event2 } from "@/types/types";
 import AddGuest from "./add-guest";
@@ -95,6 +97,7 @@ export default function EventPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
+  const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
 
   const {
     data: dataEvent,
@@ -128,7 +131,7 @@ export default function EventPage() {
     if (!event?.invitations) return { email: 0, whatsapp: 0 };
     return {
       email: event.invitations.filter(
-        (inv) => inv.email && inv.email.includes("@") && !inv.isSentEmail,
+        (inv) => inv.email && inv.email.includes("@"),
       ).length,
       whatsapp: event.invitations.filter(
         (inv) => inv.whatsapp && inv.whatsapp.length >= 9,
@@ -216,6 +219,30 @@ export default function EventPage() {
       toast.error("Erreur réseau");
     } finally {
       setIsBroadcastingEmail(false);
+    }
+  };
+
+  const handleBroadcastWhatsapp = async () => {
+    setIsBroadcastingWhatsapp(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/broadcast/whatsapp`, {
+        method: "POST",
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        toast.success(`${result.queued} message(s) WhatsApp planifie(s)`);
+        if (result.workerError) {
+          toast.warning("File creee. Le worker reprendra via sa boucle.");
+        }
+        refetch();
+      } else {
+        toast.error(result.error || "Erreur lors de la planification.");
+      }
+    } catch {
+      toast.error("Erreur reseau");
+    } finally {
+      setIsBroadcastingWhatsapp(false);
     }
   };
 
@@ -359,7 +386,40 @@ export default function EventPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
+            <Button
+              onClick={handleBroadcastWhatsapp}
+              disabled={isBroadcastingWhatsapp || eligibility.whatsapp === 0}
+              className={cn(
+                "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
+                eligibility.whatsapp === 0
+                  ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
+                  : "bg-[#25D366]/15 border border-[#25D366]/30 hover:bg-[#25D366] hover:text-white text-[#25D366]",
+              )}
+            >
+              {isBroadcastingWhatsapp ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <MessageCircle />
+              )}
+              <span className="font-black uppercase italic text-[11px]">
+                Envoyer WhatsApp
+              </span>
+            </Button>
+            <div className="px-4 flex justify-between items-center gap-3">
+              <span className="text-[9px] font-black text-gray-500 uppercase">
+                Contacts detectes
+              </span>
+              <Link
+                href={`/admin/events/${eventId}/whatsapp`}
+                className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-primary hover:text-white"
+              >
+                <ListChecks size={12} /> Suivi
+              </Link>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <Button
               onClick={handleExportWhatsApp}
@@ -416,7 +476,7 @@ export default function EventPage() {
             </Button>
             <div className="px-4 flex justify-between items-center">
               <span className="text-[9px] font-black text-gray-500 uppercase">
-                En attente d&apos;envoi (Email)
+                Emails valides
               </span>
               <span className="text-xs font-mono text-blue-400 font-bold">
                 {eligibility.email}

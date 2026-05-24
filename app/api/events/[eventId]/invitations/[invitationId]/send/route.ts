@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEventAccess } from "@/lib/auth-guards";
 import { sendBulkEventEmail } from "@/lib/brevo";
-import { sendBulkEventWhatsapp } from "@/lib/whatsapp";
+import {
+  isValidWhatsappPhone,
+  queueWhatsappInvitations,
+} from "@/lib/whatsapp-queue";
 
 interface Context {
   params: Promise<{
@@ -32,19 +35,13 @@ export async function POST(req: NextRequest, context: Context) {
     });
 
     if (!guest) {
-      return NextResponse.json({ error: "Invité non trouvé" }, { status: 404 });
-    }
-
-    if (guest.allocations.length === 0) {
-      return NextResponse.json(
-        { error: "Assignez d'abord l'invité à une table." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Invite non trouve" }, { status: 404 });
     }
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       select: {
+        id: true,
         name: true,
         date: true,
         location: true,
@@ -55,7 +52,10 @@ export async function POST(req: NextRequest, context: Context) {
     });
 
     if (!event) {
-      return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Evenement introuvable" },
+        { status: 404 },
+      );
     }
 
     const formattedDate =
@@ -65,14 +65,12 @@ export async function POST(req: NextRequest, context: Context) {
         timeZone: "Africa/Kinshasa",
       }).format(event.date) + " (heure de Kinshasa)";
 
-    let success = false;
-
     if (channel === "email") {
       if (!guest.email || !guest.email.includes("@")) {
         return NextResponse.json({ error: "Email invalide" }, { status: 400 });
       }
 
-      const emailPayload = [
+      const results = await sendBulkEventEmail([
         {
           email: guest.email,
           label: guest.label,
@@ -81,61 +79,44 @@ export async function POST(req: NextRequest, context: Context) {
           eventDate: formattedDate,
           eventLocation: `${event.location} (${event.fullLocation || ""})`,
           customMessage:
-            event.invitationMessage || event.description || "Vous êtes invité !",
+            event.invitationMessage || event.description || "Vous etes invite !",
           invitationUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/invitation/${guest.qrCode}`,
           seats: guest.peopleCount || 1,
         },
-      ];
+      ]);
 
-      const results = await sendBulkEventEmail(emailPayload);
       if (results[0].status === "fulfilled") {
-        success = true;
         await prisma.invitation.update({
           where: { id: guestId },
           data: { isSentEmail: true },
         });
-      }
-    } else if (channel === "whatsapp") {
-      if (!guest.whatsapp) {
-        return NextResponse.json({ error: "Numéro WhatsApp invalide" }, { status: 400 });
+        return NextResponse.json({ success: true });
       }
 
-      const waPayload = [
-        {
-          whatsapp: guest.whatsapp,
-          label: guest.label,
-          qrData: guest.qrCode || "",
-          eventName: event.name,
-          eventDate: formattedDate,
-          eventfullLocation: `${event.location} (${event.fullLocation || ""})`,
-          invitationMessage:
-            event.invitationMessage || event.description || "Vous êtes invité !",
-          invitationLink: `${process.env.NEXT_PUBLIC_BASE_URL}/invitation/${guest.qrCode}`,
-        },
-      ];
-
-      const results = await sendBulkEventWhatsapp(waPayload);
-      if (results[0].status === "fulfilled") {
-        success = true;
-        await prisma.invitation.update({
-          where: { id: guestId },
-          data: { isSentWhatsapp: true },
-        });
-      } else {
-        console.error("Erreur WhatsApp Zavu:", results[0].reason);
-        return NextResponse.json(
-          { error: "Échec de l'envoi WhatsApp via Zavu" },
-          { status: 500 }
-        );
-      }
+      return NextResponse.json(
+        { error: "Echec de l'envoi Email" },
+        { status: 500 },
+      );
     }
 
-    if (success) {
-      return NextResponse.json({ success: true });
-    } else {
-      console.log("Erreur lors de l'envoi: ", )
-      return NextResponse.json({ error: "Échec de l'envoi" }, { status: 500 });
+    if (!isValidWhatsappPhone(guest.whatsapp) || !guest.qrCode) {
+      return NextResponse.json(
+        { error: "Numero WhatsApp invalide ou QR code manquant" },
+        { status: 400 },
+      );
     }
+
+    const result = await queueWhatsappInvitations({
+      event,
+      guests: [guest],
+    });
+
+    return NextResponse.json({
+      success: true,
+      queued: result.queued,
+      workerNotified: result.worker.ok,
+      workerError: result.worker.ok ? undefined : result.worker.error,
+    });
   } catch (error) {
     console.error("Send Single Error:", error);
     return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
