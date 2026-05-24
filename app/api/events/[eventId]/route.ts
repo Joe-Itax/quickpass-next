@@ -52,7 +52,25 @@ export async function GET(req: NextRequest, context: EventContext) {
       { error: "Événement introuvable ou archivé" },
       { status: 404 },
     );
-  return NextResponse.json(event);
+  const totalScanned = event.invitations.reduce(
+    (sum, invitation) => sum + invitation.scannedCount,
+    0,
+  );
+
+  const availableSeats = event.stats
+    ? event.stats.totalCapacity - event.stats.totalAssignedSeats
+    : undefined;
+
+  const eventWithStats = {
+    ...event,
+    stats: {
+      ...event.stats,
+      totalScanned,
+      availableSeats,
+    },
+  };
+
+  return NextResponse.json(eventWithStats);
 }
 
 export async function PATCH(req: NextRequest, context: EventContext) {

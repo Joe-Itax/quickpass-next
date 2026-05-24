@@ -3,12 +3,12 @@
 import { useState, useRef } from "react";
 import {
   FileUp,
-  //   Table as TableIcon,
   Check,
   AlertCircle,
   Loader2,
   X,
   FileSpreadsheet,
+  Download,
 } from "lucide-react";
 import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,14 @@ import { toast } from "sonner";
 import { useCreateInvitations } from "@/hooks/use-event";
 import { Invitation } from "@/types/types";
 
+interface ImportedGuest extends Partial<Invitation> {
+  tableName?: string; // Le nom de la table à assigner
+}
+
 export default function ImportGuests({ eventId }: { eventId: number }) {
   const [open, setOpen] = useState(false);
   const [isReading, setIsReading] = useState(false);
-  const [previewData, setPreviewData] = useState<Partial<Invitation>[]>([]);
+  const [previewData, setPreviewData] = useState<ImportedGuest[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +49,7 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
       await workbook.xlsx.load(arrayBuffer);
       const worksheet = workbook.getWorksheet(1); // On prend la première feuille
 
-      const guests: Partial<Invitation>[] = [];
+      const guests: ImportedGuest[] = [];
 
       // On itère sur les lignes (en sautant l'entête)
       worksheet?.eachRow((row, rowNumber) => {
@@ -63,6 +67,7 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
         const count = parseInt(getRawValue(row.getCell(2)) || "1");
         const rawEmail = getRawValue(row.getCell(3));
         let whatsapp = getRawValue(row.getCell(4));
+        const tableName = getRawValue(row.getCell(5)); // Nouvelle colonne pour la table
 
         // Nettoyage WhatsApp : Ajout du + si absent (ex: 243...)
         if (whatsapp) {
@@ -79,6 +84,7 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
             email: rawEmail?.includes("@") ? rawEmail : undefined,
             whatsapp: whatsapp,
             eventId: eventId,
+            tableName: tableName || undefined, // Ajouter le nom de la table s'il existe
           });
         }
       });
@@ -97,11 +103,15 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
   const handleImport = async () => {
     setIsReading(true);
     try {
-      const data = await createInvitations(previewData as Invitation[]);
+      // Créer les invitations avec les allocations de table
+      // Le serveur gérera la création des tables manquantes et les allocations
+      const data = await createInvitations(
+        previewData as unknown as Invitation[],
+      );
 
       console.log("data after massive import:", data);
 
-      toast.success("Importation réussie !");
+      toast.success("Importation et allocation des tables réussies !");
       setPreviewData([]);
       setOpen(false);
     } catch (e) {
@@ -109,6 +119,91 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
       toast.error("L'importation a échoué.");
     } finally {
       setIsReading(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Modèle");
+
+      // En-têtes
+      worksheet.columns = [
+        { header: "Nom de l'invité", key: "name", width: 25 },
+        { header: "Nombre de places", key: "pax", width: 18 },
+        { header: "Email", key: "email", width: 25 },
+        { header: "Téléphone WhatsApp", key: "whatsapp", width: 22 },
+        { header: "Nom de la table (optionnel)", key: "table", width: 25 },
+      ];
+
+      // Formater l'en-tête
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4F46D6" },
+      };
+
+      // Ajouter des lignes d'exemple
+      const examples = [
+        {
+          name: "Jean Dupont",
+          pax: 2,
+          email: "jean@example.com",
+          whatsapp: "+243123456789",
+          table: "Table A",
+        },
+        {
+          name: "Marie Martin",
+          pax: 1,
+          email: "marie@example.com",
+          whatsapp: "+243987654321",
+          table: "Table B",
+        },
+        {
+          name: "Groupe Société",
+          pax: 5,
+          email: "contact@societe.com",
+          whatsapp: "+243555666777",
+          table: "Table C",
+        },
+      ];
+
+      examples.forEach((ex) => {
+        worksheet.addRow(ex);
+      });
+
+      // Ajouter des notes
+      const note = worksheet.addRow([
+        "NOTES: Le nombre de place, si pas spécifié, est considérer comme 1. L'email et le numéro whatsapp sont optionnels, mais nous recommendons de fournir au moins un de ces deux informations. Le nom de la table est optionnel. Si vous le spécifiez, la table sera créée automatiquement si elle n'existe pas. ",
+      ]);
+      note.font = {
+        italic: true,
+        color: { argb: "FF666666" },
+        size: 9,
+      };
+
+      worksheet.columns.forEach((col) => {
+        if (col.width) col.width = Math.min(col.width + 2, 30);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Template_Import_Invites.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Modèle téléchargé !");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors du téléchargement du modèle");
     }
   };
 
@@ -122,18 +217,28 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
 
       <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl sm:max-w-2xl">
         <DialogHeader className="bg-white/5 p-8 border-b border-white/5">
-          <div className="flex items-center gap-4">
-            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-              <FileSpreadsheet className="text-primary" size={24} />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                <FileSpreadsheet className="text-primary" size={24} />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black italic uppercase text-white">
+                  Importation Massive
+                </DialogTitle>
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                  Nom, PAX, Email, WhatsApp, Table (optionnel)
+                </p>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-xl font-black italic uppercase text-white">
-                Importation Massive
-              </DialogTitle>
-              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                Format requis: Nom, PAX, Email, WhatsApp
-              </p>
-            </div>
+            <Button
+              onClick={handleDownloadTemplate}
+              variant="outline"
+              size="sm"
+              className="border-primary/20 text-primary hover:bg-primary/90 font-black uppercase italic text-[10px] whitespace-nowrap"
+            >
+              <Download className="size-3 mr-2" /> Template
+            </Button>
           </div>
         </DialogHeader>
 
@@ -202,6 +307,9 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
                       <th className="p-3 text-[9px] font-black text-gray-500 uppercase italic">
                         Whatsapp
                       </th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase italic">
+                        Table
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,6 +333,9 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
                         <td className="p-3 text-[9px] text-gray-500 font-medium">
                           {guest.whatsapp || "—"}
                         </td>
+                        <td className="p-3 text-[9px] font-medium text-orange-400">
+                          {guest.tableName || "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -242,7 +353,8 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
                   Vérifiez bien que les colonnes respectent l&apos;ordre :{" "}
                   <br />
                   <span className="text-white">
-                    1. Nom | 2. Nombre de places | 3. Email | 4. Téléphone
+                    1. Nom | 2. Pax | 3. Email | 4. Téléphone | 5. Table
+                    (optionnel)
                   </span>
                 </p>
               </div>

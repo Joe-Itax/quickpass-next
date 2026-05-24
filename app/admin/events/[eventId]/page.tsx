@@ -42,7 +42,6 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
 import ImportGuests from "./import-guests";
 import { toast } from "sonner";
-import ExcelJS from "exceljs";
 
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return "Date inconnue";
@@ -95,9 +94,9 @@ export default function EventPage() {
   const router = useRouter();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
   const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
+  const [isExportingStats, setIsExportingStats] = useState(false);
 
   const {
     data: dataEvent,
@@ -151,58 +150,6 @@ export default function EventPage() {
     0,
   );
 
-  const handleExportWhatsApp = async () => {
-    if (!event?.invitations) return;
-    setIsExporting(true);
-
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("WhatsApp Broadcast");
-
-      worksheet.columns = [
-        { header: "WhatsApp Number", key: "phone", width: 20 },
-        { header: "Nom de l'invité", key: "name", width: 25 },
-        { header: "Nombre de places", key: "pax", width: 15 },
-        { header: "Date", key: "date", width: 25 },
-        { header: "Lieu", key: "location", width: 30 },
-        { header: "Lien Digital Pass", key: "link", width: 45 },
-        { header: "Image QR Code", key: "qr_url", width: 50 },
-      ];
-
-      event.invitations.forEach((inv) => {
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${inv.qrCode}`;
-        worksheet.addRow({
-          phone: inv.whatsapp,
-          name: inv.label,
-          pax: inv.peopleCount,
-          date: formatDateTime(event.date),
-          location: `${event.location} (${event.fullLocation || ""})`,
-          link: `${process.env.NEXT_PUBLIC_BASE_URL}/invitation/${inv.qrCode}`,
-          qr_url: qrUrl,
-        });
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `YambiPass_WhatsApp_${event.name.replace(/\s+/g, "_")}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      toast.success("Fichier Excel généré avec succès !");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erreur lors de l'export Excel");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleBroadcastEmail = async () => {
     setIsBroadcastingEmail(true);
     try {
@@ -243,6 +190,55 @@ export default function EventPage() {
       toast.error("Erreur reseau");
     } finally {
       setIsBroadcastingWhatsapp(false);
+    }
+  };
+
+  const handleExportEventStats = async () => {
+    if (!event) return;
+
+    if (event.status !== "FINISHED") {
+      toast.error("Le bilan est disponible uniquement apres l'evenement.");
+      return;
+    }
+
+    setIsExportingStats(true);
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/stats/export`);
+
+      if (!response.ok) {
+        let message = "Erreur lors de l'export des statistiques";
+
+        try {
+          const payload = await response.json();
+          message = payload.error || message;
+        } catch {
+          // The server may return a non-JSON error page in development.
+        }
+
+        toast.error(message);
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const fileName =
+        contentDisposition?.match(/filename="?([^"]+)"?/i)?.[1] ||
+        `YambiPass_Stats_Event_${event.id}.xlsx`;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Fichier de statistiques genere avec succes !");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de l'export des statistiques");
+    } finally {
+      setIsExportingStats(false);
     }
   };
 
@@ -422,36 +418,6 @@ export default function EventPage() {
 
           <div className="space-y-4">
             <Button
-              onClick={handleExportWhatsApp}
-              disabled={isExporting || eligibility.whatsapp === 0}
-              className={cn(
-                "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
-                eligibility.whatsapp === 0
-                  ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
-                  : "bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white text-[#25D366]",
-              )}
-            >
-              {isExporting ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <FileSpreadsheet />
-              )}
-              <span className="font-black uppercase italic text-[11px]">
-                Exporter pour WhatsApp
-              </span>
-            </Button>
-            <div className="px-4 flex justify-between items-center">
-              <span className="text-[9px] font-black text-gray-500 uppercase">
-                Contacts WhatsApp détectés
-              </span>
-              <span className="text-xs font-mono text-emerald-500 font-bold">
-                {eligibility.whatsapp}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Button
               onClick={handleBroadcastEmail}
               disabled={
                 isBroadcastingEmail ||
@@ -480,6 +446,36 @@ export default function EventPage() {
               </span>
               <span className="text-xs font-mono text-blue-400 font-bold">
                 {eligibility.email}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Button
+              onClick={handleExportEventStats}
+              disabled={isExportingStats || event.status !== "FINISHED"}
+              className={cn(
+                "w-full h-20 rounded-3xl flex flex-col gap-1 transition-all group",
+                event.status !== "FINISHED"
+                  ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
+                  : "bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500 hover:text-white text-orange-400",
+              )}
+            >
+              {isExportingStats ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <FileSpreadsheet />
+              )}
+              <span className="font-black uppercase italic text-[11px]">
+                Télécharger Stats
+              </span>
+            </Button>
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-[9px] font-black text-gray-500 uppercase">
+                Après l&apos;événement
+              </span>
+              <span className="text-xs font-mono text-orange-400 font-bold">
+                {event.status === "FINISHED" ? "✓" : "—"}
               </span>
             </div>
           </div>
