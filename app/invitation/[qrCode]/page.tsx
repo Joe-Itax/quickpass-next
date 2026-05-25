@@ -124,7 +124,7 @@ export default function PublicInvitationPage() {
           {/* --- CONTENEUR DE CAPTURE --- */}
           <div className="p-4" ref={ticketRef}>
             {templateLayout ? (
-              <div className="w-[380px] max-w-full">
+              <div className="w-95 max-w-full">
                 <InvitationRenderer
                   templateData={templateLayout}
                   guestData={{
@@ -153,7 +153,7 @@ export default function PublicInvitationPage() {
                 />
               </div>
             ) : (
-              <div className="w-[380px] max-w-full bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <div className="w-95 max-w-full bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 {/* Header */}
                 <div className="bg-primary p-6 text-center">
                   <p className="text-[10px] font-black text-black uppercase tracking-[0.3em] mb-1">
@@ -237,7 +237,7 @@ export default function PublicInvitationPage() {
           </div>
 
           {/* Actions (Hors capture) */}
-          <div className="w-[380px] max-w-full flex flex-col gap-3">
+          <div className="w-95 max-w-full flex flex-col gap-3">
             <Button
               onClick={handleDownloadPDF}
               disabled={exporting}

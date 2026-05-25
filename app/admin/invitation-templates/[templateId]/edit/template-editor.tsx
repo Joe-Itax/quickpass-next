@@ -731,10 +731,10 @@ export function TemplateEditor({
           </div>
         </aside>
 
-        <main className="flex min-h-[720px] items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 xl:min-h-0 xl:overflow-y-auto custom-scrollbar">
+        <main className="flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 xl:min-h-0 xl:overflow-y-auto custom-scrollbar">
           <div
             ref={canvasRef}
-            className="w-full max-w-[430px] flex-none"
+            className="w-full max-w-107.5 flex-none"
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleDrop}
             onPointerDown={() => setSelectedId(null)}
