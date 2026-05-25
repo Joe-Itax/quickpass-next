@@ -1,13 +1,13 @@
 {
-  "name": "YambiPass - Event Management",
+  "name": "YambiPass - L'accueil intelligent de vos événements",
   "short_name": "YambiPass",
-  "description": "YambiPass - L'accueil intelligent de vos événements",
+  "description": "Simplifiez la logistique de vos événements avec YambiPass. Invitations numériques, scan de contrôle sécurisé et orientation fluide.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#d4af37",
-  "background_color": "#0f172a",
+  "theme_color": "#C5A880",
+  "background_color": "#0B0D19",
   "dir": "ltr",
   "lang": "fr-FR",
   "screenshots": [

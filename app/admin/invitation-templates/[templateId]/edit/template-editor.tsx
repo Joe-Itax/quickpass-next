@@ -1009,7 +1009,7 @@ export function TemplateEditor({
               </div>
             ) : null}
 
-            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Zone de securite
