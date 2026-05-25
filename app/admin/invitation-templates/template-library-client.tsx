@@ -257,7 +257,7 @@ export function TemplateLibraryClient({
             </div>
           </div>
           <div className="p-6 flex justify-end gap-3 bg-black/40 border-t border-white/10">
-            <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => setPreviewTemplate(null)}>
+            <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white" onClick={() => setPreviewTemplate(null)}>
               Fermer
             </Button>
             <Button 
@@ -397,7 +397,7 @@ function TemplateGrid({
                       disabled={isPending}
                       onClick={() => onEdit(template)}
                       variant={eventId ? "outline" : "default"}
-                      className={`h-10 flex-1 rounded-xl ${eventId ? "border-white/10 bg-white/5 text-white" : "bg-primary font-black uppercase italic text-black hover:bg-white"}`}
+                      className={`h-10 flex-1 rounded-xl ${eventId ? "border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white" : "bg-primary font-black uppercase italic text-black hover:bg-white"}`}
                     >
                       <Edit3 className="size-4 mr-2" />
                       Editer

@@ -1,6 +1,6 @@
 "use client";
 
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import { cn } from "@/lib/utils";
 import {
   normalizeInvitationLayout,
@@ -8,8 +8,11 @@ import {
 } from "@/lib/invitation-template-layout";
 import type {
   InvitationGuestData,
+  InvitationImageFilters,
   InvitationTemplateElement,
   InvitationTemplateLayout,
+  InvitationTemplateShadow,
+  InvitationTextTransform,
 } from "@/types/invitation-template";
 
 type InvitationEventData = Parameters<typeof resolveInvitationText>[2];
@@ -54,11 +57,6 @@ export function InvitationRenderer({
         aspectRatio,
         containerType: "inline-size",
         backgroundColor: layout.canvas.backgroundColor,
-        backgroundImage: layout.canvas.backgroundImageUrl
-          ? `url(${layout.canvas.backgroundImageUrl})`
-          : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
         borderRadius: layout.canvas.borderRadius,
         borderWidth: layout.canvas.borderWidth ? `${layout.canvas.borderWidth}px` : undefined,
         borderColor: layout.canvas.borderColor,
@@ -66,6 +64,24 @@ export function InvitationRenderer({
         boxSizing: "border-box",
       }}
     >
+      {layout.canvas.backgroundImageUrl ? (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: `url(${layout.canvas.backgroundImageUrl})`,
+            backgroundPosition: `${layout.canvas.backgroundImageX ?? 50}% ${layout.canvas.backgroundImageY ?? 50}%`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize: `${layout.canvas.backgroundImageScale ?? 100}%`,
+            filter: imageFilter({
+              brightness: layout.canvas.backgroundImageBrightness ?? 100,
+              contrast: layout.canvas.backgroundImageContrast ?? 100,
+              grayscale: layout.canvas.backgroundImageGrayscale ?? 0,
+            }),
+            zIndex: 0,
+          }}
+        />
+      ) : null}
+
       {layout.elements.map((element) => (
         <TemplateElement
           key={element.id}
@@ -79,6 +95,16 @@ export function InvitationRenderer({
           renderResizeHandle={renderResizeHandle}
         />
       ))}
+
+      {interactive && layout.canvas.showSafeZone ? (
+        <div
+          className="pointer-events-none absolute border border-dashed border-primary/70"
+          style={{
+            inset: `${layout.canvas.safeZoneInset ?? 6}%`,
+            zIndex: 1000,
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -105,6 +131,8 @@ function TemplateElement({
   ) => void;
   renderResizeHandle?: (element: InvitationTemplateElement) => React.ReactNode;
 }) {
+  const isTextElement = element.type === "text" || element.type === "variable";
+
   return (
     <div
       role={interactive ? "button" : undefined}
@@ -112,7 +140,10 @@ function TemplateElement({
       aria-label={interactive ? "Element du template" : undefined}
       className={cn(
         "absolute",
-        interactive && "cursor-move touch-none outline-none",
+        interactive &&
+          !element.locked &&
+          "cursor-move touch-none outline-none",
+        interactive && element.locked && "cursor-default outline-none",
         isSelected && "ring-2 ring-amber-400 ring-offset-2 ring-offset-black/80",
       )}
       style={{
@@ -123,11 +154,13 @@ function TemplateElement({
         zIndex: element.zIndex,
         opacity: element.opacity,
         transform: `rotate(${element.rotation}deg)`,
+        boxShadow: isTextElement ? undefined : cssShadow(element.shadow),
       }}
       onPointerDown={(event) => {
         if (!interactive) return;
         event.stopPropagation();
         onSelectElement?.(element.id);
+        if (element.locked) return;
         onPointerDownElement?.(event, element);
       }}
       onClick={(event) => {
@@ -142,7 +175,10 @@ function TemplateElement({
           src={element.src}
           alt={element.alt || "Invitation asset"}
           className="pointer-events-none size-full"
-          style={{ objectFit: element.objectFit }}
+          style={{
+            filter: imageFilter(element.filters),
+            objectFit: element.objectFit,
+          }}
         />
       ) : element.type === "qrcode" ? (
         <div
@@ -152,14 +188,35 @@ function TemplateElement({
             padding: "6%",
           }}
         >
-          <QRCodeSVG
+          <QRCodeCanvas
             value={guestData.qrCodeData || "YAMBIPASS_PREVIEW_QR_CODE"}
             bgColor={element.bgColor}
             fgColor={element.fgColor}
-            level="H"
+            level={element.eccLevel}
+            imageSettings={
+              element.showLogo
+                ? {
+                    src: "/logo-app/icon-1024.png",
+                    height: 28,
+                    width: 28,
+                    excavate: true,
+                  }
+                : undefined
+            }
             style={{ width: "100%", height: "100%" }}
           />
         </div>
+      ) : element.type === "shape" ? (
+        <div
+          className="size-full"
+          style={{
+            background:
+              element.fillType === "gradient"
+                ? `linear-gradient(${element.gradientAngle}deg, ${element.gradientFrom}, ${element.gradientTo})`
+                : element.fillColor,
+            borderRadius: `${element.borderRadius}%`,
+          }}
+        />
       ) : (
         <div
           className="flex size-full items-center"
@@ -173,21 +230,118 @@ function TemplateElement({
             textAlign: element.style.textAlign,
             fontFamily: fontStack(element.style.fontFamily),
             fontSize: `${element.style.fontSize}cqw`,
-            color: element.style.color,
+            color: element.style.gradientEnabled ? "transparent" : element.style.color,
+            backgroundImage: element.style.gradientEnabled
+              ? `linear-gradient(${element.style.gradientAngle ?? 90}deg, ${element.style.gradientFrom ?? "#F59E0B"}, ${element.style.gradientTo ?? "#FFFFFF"})`
+              : undefined,
+            backgroundClip: element.style.gradientEnabled ? "text" : undefined,
+            WebkitBackgroundClip: element.style.gradientEnabled ? "text" : undefined,
             fontWeight: element.style.fontWeight,
+            fontStyle: element.style.fontStyle ?? "normal",
             lineHeight: element.style.lineHeight,
             letterSpacing: `${element.style.letterSpacing}em`,
+            textDecoration: element.style.textDecoration ?? "none",
             whiteSpace: "pre-wrap",
             overflowWrap: "anywhere",
+            textShadow: cssShadow(element.shadow),
           }}
         >
-          {resolveInvitationText(element.content, guestData, eventData)}
+          {element.richContent ? (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: sanitizeRichText(
+                  transformHtmlTextCase(
+                    resolveInvitationText(
+                      element.richContent,
+                      guestData,
+                      eventData,
+                    ),
+                    element.style.textTransform,
+                  ),
+                ),
+              }}
+            />
+          ) : (
+            transformTextCase(
+              resolveInvitationText(element.content, guestData, eventData),
+              element.style.textTransform,
+            )
+          )}
         </div>
       )}
 
       {isSelected ? renderResizeHandle?.(element) : null}
     </div>
   );
+}
+
+function imageFilter(filters?: InvitationImageFilters) {
+  const brightness = filters?.brightness ?? 100;
+  const contrast = filters?.contrast ?? 100;
+  const grayscale = filters?.grayscale ?? 0;
+
+  return `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
+}
+
+function cssShadow(shadow?: InvitationTemplateShadow) {
+  if (!shadow?.enabled) return undefined;
+
+  return `${shadow.x}cqw ${shadow.y}cqw ${shadow.blur}cqw ${hexToRgba(
+    shadow.color,
+    shadow.opacity,
+  )}`;
+}
+
+function hexToRgba(hex: string, opacity: number) {
+  const normalized = hex.replace("#", "");
+  const red = parseInt(normalized.slice(0, 2), 16);
+  const green = parseInt(normalized.slice(2, 4), 16);
+  const blue = parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+}
+
+function sanitizeRichText(value: string) {
+  return value
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
+function transformHtmlTextCase(
+  html: string,
+  transform: InvitationTextTransform = "none",
+) {
+  return html
+    .split(/(<[^>]+>)/g)
+    .map((part) =>
+      part.startsWith("<") ? part : transformTextCase(part, transform),
+    )
+    .join("");
+}
+
+function transformTextCase(
+  value: string,
+  transform: InvitationTextTransform = "none",
+) {
+  if (transform === "uppercase") return value.toLocaleUpperCase("fr-FR");
+  if (transform === "lowercase") return value.toLocaleLowerCase("fr-FR");
+  if (transform === "capitalize") {
+    return value.replace(/\p{L}[\p{L}'-]*/gu, (word) =>
+      word.charAt(0).toLocaleUpperCase("fr-FR") +
+      word.slice(1).toLocaleLowerCase("fr-FR"),
+    );
+  }
+  if (transform === "sentence") {
+    const lowered = value.toLocaleLowerCase("fr-FR");
+
+    return lowered.replace(/(^|[.!?]\s+)(\p{L})/gu, (match, prefix, letter) =>
+      `${prefix}${letter.toLocaleUpperCase("fr-FR")}`,
+    );
+  }
+
+  return value;
 }
 
 function fontStack(fontFamily: string) {

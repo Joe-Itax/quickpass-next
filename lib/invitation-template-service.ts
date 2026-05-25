@@ -260,7 +260,10 @@ export async function setEventInvitationTemplate(
 
   return prisma.event.update({
     where: { id: eventId },
-    data: { invitationTemplateId: templateId },
+    data:
+      templateId === null
+        ? { invitationTemplate: { disconnect: true } }
+        : { invitationTemplate: { connect: { id: templateId } } },
     select: { id: true, invitationTemplateId: true },
   });
 }

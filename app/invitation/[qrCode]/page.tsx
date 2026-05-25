@@ -51,6 +51,9 @@ export default function PublicInvitationPage() {
     setExporting(true);
 
     try {
+      await document.fonts?.ready;
+      await waitForImages(ticketRef.current);
+
       const canvas = await html2canvas(ticketRef.current, {
         scale: 4,
         useCORS: true,
@@ -254,5 +257,20 @@ export default function PublicInvitationPage() {
         </motion.div>
       </AnimatePresence>
     </main>
+  );
+}
+
+function waitForImages(root: HTMLElement) {
+  const images = Array.from(root.querySelectorAll("img"));
+
+  return Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+
+      return new Promise<void>((resolve) => {
+        image.onload = () => resolve();
+        image.onerror = () => resolve();
+      });
+    }),
   );
 }

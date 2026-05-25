@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrNull } from "@/lib/auth-guards";
+import { buildEventUpdateData } from "@/lib/event-update-data";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
             if (type === "UPDATE") {
               result = await prisma.event.update({
                 where: { id: Number(resourceId) },
-                data: data,
+                data: buildEventUpdateData(data ?? {}),
               });
             }
             break;

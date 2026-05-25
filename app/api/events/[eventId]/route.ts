@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEventAccess, requireAdmin } from "@/lib/auth-guards";
+import { buildEventUpdateData } from "@/lib/event-update-data";
 import { EventStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -102,12 +103,25 @@ export async function PATCH(req: NextRequest, context: EventContext) {
       stats,
       assignments,
       terminals,
+      invitationTemplate: _invitationTemplate,
+      invitationTemplateId,
       createdBy,
       createdById: _createdById,
       createdAt,
       updatedAt,
       ...cleanData
     } = body;
+    void _id;
+    void tables;
+    void invitations;
+    void stats;
+    void assignments;
+    void terminals;
+    void _invitationTemplate;
+    void createdBy;
+    void _createdById;
+    void createdAt;
+    void updatedAt;
 
     // Conversion de date si elle est présente
     if (cleanData.date) {
@@ -116,9 +130,10 @@ export async function PATCH(req: NextRequest, context: EventContext) {
 
     const updated = await prisma.event.update({
       where: { id },
-      data: {
+      data: buildEventUpdateData({
         ...cleanData,
-      },
+        invitationTemplateId,
+      }),
     });
 
     return NextResponse.json(updated);
