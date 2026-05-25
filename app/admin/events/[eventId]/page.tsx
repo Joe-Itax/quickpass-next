@@ -42,6 +42,7 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
 import ImportGuests from "./import-guests";
 import { toast } from "sonner";
+import { EventTemplateConfigurator } from "@/components/invitations/event-template-configurator";
 
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return "Date inconnue";
@@ -481,6 +482,11 @@ export default function EventPage() {
           </div>
         </div>
       </div>
+
+      <EventTemplateConfigurator
+        eventId={event.id}
+        initialTemplateId={event.invitationTemplateId}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">

@@ -6,6 +6,7 @@ import {
   IconCalendar,
   IconUser,
   IconTerminal2,
+  IconTemplate,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/app/admin/components/nav-main";
@@ -27,6 +28,11 @@ import Image from "next/image";
 const data = {
   navMain: [
     { title: "Dashboard", url: "/admin", icon: IconDashboard },
+    {
+      title: "Invitations",
+      url: "/admin/invitation-templates",
+      icon: IconTemplate,
+    },
     { title: "Événements", url: "/admin/events", icon: IconCalendar },
     { title: "Terminals", url: "/admin/terminals", icon: IconTerminal2 },
     { title: "Utilisateurs", url: "/admin/users", icon: IconUser },

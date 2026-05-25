@@ -22,6 +22,13 @@ export async function GET(
             location: true,
             fullLocation: true,
             invitationMessage: true,
+            invitationTemplate: {
+              select: {
+                id: true,
+                name: true,
+                layoutData: true,
+              },
+            },
           },
         },
         allocations: {

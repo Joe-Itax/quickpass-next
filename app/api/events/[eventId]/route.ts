@@ -44,6 +44,13 @@ export async function GET(req: NextRequest, context: EventContext) {
       stats: true,
       assignments: { include: { user: true } },
       terminals: true,
+      invitationTemplate: {
+        select: {
+          id: true,
+          name: true,
+          layoutData: true,
+        },
+      },
     },
   });
 

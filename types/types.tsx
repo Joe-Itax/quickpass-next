@@ -101,6 +101,12 @@ export interface Event2 {
   stats: Stat;
   terminals: Terminal[];
   durationHours: number;
+  invitationTemplateId?: number | null;
+  invitationTemplate?: {
+    id: number;
+    name: string;
+    layoutData: unknown;
+  } | null;
 }
 
 export interface User {

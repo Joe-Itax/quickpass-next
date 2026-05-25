@@ -28,6 +28,7 @@ model User {
   accounts       Account[]
   assignedEvents EventAssignment[]
   createdEvents  Event[]           @relation("EventCreator")
+  templates      Template[]
 
   @@map("user")
 }
@@ -86,26 +87,30 @@ model Verification {
 //          EVENT
 // ----------------------------
 model Event {
-  id                Int               @id @default(autoincrement())
-  name              String
-  description       String
-  date              DateTime // Sera Date + Heure
-  durationHours     Int               @default(24)
-  location          String
-  fullLocation      String?
-  invitationMessage String?
-  eventCode         String            @unique // event_name_bdIdEvent
-  status            EventStatus       @default(UPCOMING)
-  createdById       String
-  createdBy         User              @relation("EventCreator", fields: [createdById], references: [id])
-  assignments       EventAssignment[]
-  tables            Table[]
-  invitations       Invitation[]
-  stats             EventStats?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  terminals         Terminal[]
-  deletedAt         DateTime?
+  id                   Int               @id @default(autoincrement())
+  name                 String
+  description          String
+  date                 DateTime // Sera Date + Heure
+  durationHours        Int               @default(24)
+  location             String
+  fullLocation         String?
+  invitationMessage    String?
+  eventCode            String            @unique // event_name_bdIdEvent
+  status               EventStatus       @default(UPCOMING)
+  createdById          String
+  createdBy            User              @relation("EventCreator", fields: [createdById], references: [id])
+  assignments          EventAssignment[]
+  tables               Table[]
+  invitations          Invitation[]
+  stats                EventStats?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  terminals            Terminal[]
+  invitationTemplateId Int?
+  invitationTemplate   Template?         @relation("EventInvitationTemplate", fields: [invitationTemplateId], references: [id], onDelete: SetNull)
+  deletedAt            DateTime?
+
+  @@index([invitationTemplateId])
 }
 
 enum EventStatus {
@@ -113,6 +118,31 @@ enum EventStatus {
   ONGOING
   FINISHED
   CANCELLED
+}
+
+enum TemplateCategory {
+  WEDDING
+  DEFENSE
+  GALA
+  STANDARD
+}
+
+model Template {
+  id           Int              @id @default(autoincrement())
+  name         String
+  slug         String?          @unique
+  category     TemplateCategory @default(STANDARD)
+  layoutData   Json
+  thumbnailUrl String?
+  userId       String?
+  isPublic     Boolean          @default(false)
+  user         User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events       Event[]          @relation("EventInvitationTemplate")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([category])
+  @@index([userId])
 }
 
 // ----------------------------

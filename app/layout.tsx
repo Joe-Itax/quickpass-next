@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Itim } from "next/font/google";
+import {
+  Courgette,
+  Geist,
+  Geist_Mono,
+  Great_Vibes,
+  Inter,
+  Itim,
+} from "next/font/google";
 import { ReactQueryProvider } from "@/providers/react-query-provider";
 import { NotificationManager } from "@/components/notification-manager";
 
@@ -23,6 +30,23 @@ const itim = Itim({
   weight: "400",
 });
 
+const invitationInter = Inter({
+  variable: "--font-invitation-inter",
+  subsets: ["latin"],
+});
+
+const courgette = Courgette({
+  variable: "--font-courgette",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const greatVibes = Great_Vibes({
+  variable: "--font-great-vibes",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "YambiPass | L'accueil intelligent de vos événements",
   description:
@@ -42,10 +66,17 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* Polices Google Fonts pour l'Éditeur d'Invitations */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Allura&family=Cinzel:wght@400..900&family=Cormorant+Garamond:wght@400..700&family=Dancing+Script:wght@400..700&family=Josefin+Sans:wght@100..700&family=Lato:wght@100..900&family=Lora:wght@400..700&family=Montserrat:wght@100..900&family=Open+Sans:wght@300..800&family=Oswald:wght@200..700&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Playfair+Display:wght@400..900&family=Poppins:wght@100..900&family=Raleway:wght@100..900&family=Roboto:wght@100..900&family=Sacramento&family=Satisfy&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${itim.className} ${itim.style} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${invitationInter.variable} ${courgette.variable} ${greatVibes.variable} ${itim.className} ${itim.style} antialiased bg-background text-foreground`}
       >
         <ServiceWorkerInitializer />
         <OfflineIndicator />

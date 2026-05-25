@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
@@ -17,6 +18,13 @@ export const auth = betterAuth({
     "http://localhost:3000",
     "https://yambipass.vercel.app",
   ],
+  plugins: [nextCookies()],
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
+  },
   user: {
     additionalFields: {
       role: {
