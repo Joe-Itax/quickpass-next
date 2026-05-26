@@ -304,25 +304,30 @@ export default function LandingPage() {
             <div className="h-1 w-12 bg-primary mx-auto rounded-full"></div>
           </div>
           <div className="space-y-4">
-            {/* <FaqItem
+            <FaqItem
               value="f1"
-              question="Remplacez-vous le designer de mes invitations ?"
-              answer="Non. Si vous avez déjà un designer, nous intégrons simplement le QR Code et les informations dynamiques dans votre invitation. Si vous n’en avez pas, nous pouvons aussi vous proposer une invitation numérique directement intégrée à la plateforme."
-            /> */}
+              question="Puis-je utiliser des invitations conçues en dehors de la plateforme ?"
+              answer="Pour garantir l'étanchéité absolue du protocole, YambiPass centralise tout. La plateforme intègre son propre studio de création graphique pour générer des Pass numériques premium. Le visuel, le QR code de sécurité et les données de l'invité sont fusionnés nativement. Si un format physique reste indispensable, vous pouvez télécharger vos Pass au format PDF haute définition directement depuis notre éditeur pour les imprimer."
+            />
             <FaqItem
               value="f2"
-              question="Le placement à table est-il obligatoire ?"
-              answer="Non. YambiPass s’adapte à votre format. Pour un mariage ou un gala, vous pouvez organiser les invités par tables. Pour une conférence ou un événement libre, le système fonctionne aussi sans placement fixe."
+              question="Mon événement ne nécessite pas de plan de table, le système est-il adapté ?"
+              answer="Absolument. L'assignation des tables est une option modulable dans notre studio. YambiPass s'adapte à votre format : d'un dîner de gala avec un placement millimétré à un cocktail dynamique en placement libre nécessitant uniquement un contrôle strict de la jauge à l'entrée."
             />
             <FaqItem
               value="f3"
-              question="Que se passe-t-il si un invité perd son invitation ou n’a plus de batterie ?"
-              answer="Nos opérateurs peuvent retrouver l’invité directement dans la base et valider son accès en quelques secondes. La fluidité de l’accueil reste garantie."
+              question="Et si un invité de marque égare son Pass ou n'a plus de batterie ?"
+              answer="L'hospitalité ne souffre d'aucune exception. Nos superviseurs à la porte disposent d'un accès instantané à la liste maître sécurisée sur leurs terminaux. Une simple vérification d'identité permet de valider l'accès de votre invité en moins de 5 secondes, sans friction ni attente."
             />
             <FaqItem
               value="f4"
-              question="Le système fonctionne-t-il avec une connexion internet instable ?"
-              answer="Le service est conçu pour tenir compte des contraintes de connectivité. Le fonctionnement principal repose sur une validation en temps réel, avec des mécanismes d’adaptation pensés pour les environnements à réseau limité."
+              question="Devons-nous mobiliser notre propre personnel pour le contrôle ?"
+              answer="Le choix vous appartient. Vous pouvez piloter la plateforme de manière autonome avec vos équipes, ou déléguer cette responsabilité à notre service « YambiPass Intégral ». Nos opérateurs formés prennent alors en charge l'intégralité du filtrage sur site pour vous garantir une sérénité totale."
+            />
+            <FaqItem
+              value="f5"
+              question="Le dispositif est-il vulnérable aux coupures internet sur le lieu de l'événement ?"
+              answer="Le système a été pensé pour les exigences du terrain. Nos terminaux de scan embarquent des protocoles de résilience locale. Même en cas de fluctuation ou de coupure du réseau, la continuité du contrôle et la fluidité de l'accueil restent entièrement assurées."
             />
           </div>
         </div>
@@ -345,7 +350,7 @@ export default function LandingPage() {
 
               <div className="space-y-8">
                 <Link
-                  href="mailto:josephitakala18@gmail.com"
+                  href="mailto:yambipass@gmail.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-6 group"

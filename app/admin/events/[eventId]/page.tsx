@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import DataStatusDisplay from "@/components/data-status-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Archive,
   MoveLeftIcon,
   Users,
   Table2Icon,
@@ -37,12 +38,27 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import DeleteEvent from "./delete-event";
 import QuickAddTerminal from "./quick-add-terminal";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
 import ImportGuests from "./import-guests";
 import { toast } from "sonner";
 import { EventTemplateConfigurator } from "@/components/invitations/event-template-configurator";
+import { InvitationTicket } from "@/components/invitations/invitation-ticket";
+import {
+  buildInvitationExportBlob,
+  createZipBlob,
+  downloadBlob,
+  safeFileName,
+  type InvitationExportFormat,
+} from "@/lib/client-invitation-export";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return "Date inconnue";
@@ -98,6 +114,10 @@ export default function EventPage() {
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
   const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
   const [isExportingStats, setIsExportingStats] = useState(false);
+  const [isExportingInvitations, setIsExportingInvitations] = useState(false);
+  const [bulkExportFormat, setBulkExportFormat] =
+    useState<InvitationExportFormat>("pdf");
+  const bulkExportRef = useRef<HTMLDivElement>(null);
 
   const {
     data: dataEvent,
@@ -243,6 +263,67 @@ export default function EventPage() {
     }
   };
 
+  const handleExportInvitationsZip = async () => {
+    if (!event?.invitations?.length) {
+      toast.error("Aucune invitation a exporter.");
+      return;
+    }
+
+    setIsExportingInvitations(true);
+
+    try {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const nodes = Array.from(
+        bulkExportRef.current?.querySelectorAll<HTMLElement>(
+          "[data-invitation-export-id]",
+        ) ?? [],
+      );
+
+      if (nodes.length === 0) {
+        toast.error("Impossible de preparer les invitations.");
+        return;
+      }
+
+      const invitationById = new Map(
+        event.invitations.map((invitation) => [
+          String(invitation.id),
+          invitation,
+        ]),
+      );
+      const extension = bulkExportFormat === "pdf" ? "pdf" : "png";
+      const entries = [];
+
+      for (const [index, node] of nodes.entries()) {
+        const invitation = invitationById.get(
+          node.dataset.invitationExportId || "",
+        );
+        if (!invitation) continue;
+
+        const blob = await buildInvitationExportBlob(node, bulkExportFormat);
+        const order = String(index + 1).padStart(3, "0");
+        const name = `${order}_${safeFileName(invitation.label) || invitation.id}.${extension}`;
+        entries.push({ name, blob });
+      }
+
+      const zip = await createZipBlob(entries);
+      const formatLabel = bulkExportFormat === "pdf" ? "PDF" : "PNG";
+      downloadBlob(
+        zip,
+        `Invitations_${safeFileName(event.name) || event.id}_${formatLabel}.zip`,
+      );
+      toast.success(`${entries.length} invitation(s) exportee(s).`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de l'export des invitations.");
+    } finally {
+      setIsExportingInvitations(false);
+    }
+  };
+
   if (isPending || isError || error) {
     return (
       <DataStatusDisplay
@@ -383,7 +464,7 @@ export default function EventPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
           <div className="space-y-4">
             <Button
               onClick={handleBroadcastWhatsapp}
@@ -477,6 +558,54 @@ export default function EventPage() {
               </span>
               <span className="text-xs font-mono text-orange-400 font-bold">
                 {event.status === "FINISHED" ? "✓" : "—"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <Button
+                onClick={handleExportInvitationsZip}
+                disabled={
+                  isExportingInvitations || event.invitations.length === 0
+                }
+                className={cn(
+                  "h-20 rounded-3xl flex flex-col gap-1 transition-all group",
+                  event.invitations.length === 0
+                    ? "bg-white/5 text-gray-600 opacity-50 cursor-not-allowed"
+                    : "bg-primary/10 border border-primary/25 hover:bg-primary hover:text-black text-primary",
+                )}
+              >
+                {isExportingInvitations ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Archive />
+                )}
+                <span className="font-black uppercase italic text-[11px]">
+                  Invitations ZIP
+                </span>
+              </Button>
+              <Select
+                value={bulkExportFormat}
+                onValueChange={(value) =>
+                  setBulkExportFormat(value as InvitationExportFormat)
+                }
+              >
+                <SelectTrigger className="h-20 w-24 rounded-3xl border-white/10 bg-white/5 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="image">PNG</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="px-4 flex justify-between items-center">
+              <span className="text-[9px] font-black text-gray-500 uppercase">
+                Export massif
+              </span>
+              <span className="text-xs font-mono text-primary font-bold">
+                {event.invitations.length}
               </span>
             </div>
           </div>
@@ -678,6 +807,36 @@ export default function EventPage() {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       />
+
+      {isExportingInvitations ? (
+        <BulkInvitationExportHost event={event} containerRef={bulkExportRef} />
+      ) : null}
     </section>
+  );
+}
+
+function BulkInvitationExportHost({
+  event,
+  containerRef,
+}: {
+  event: Event2;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      className="pointer-events-none fixed left-[-10000px] top-0 z-[-1] flex flex-col gap-8"
+    >
+      {event.invitations.map((invitation) => (
+        <div
+          key={invitation.id}
+          data-invitation-export-id={invitation.id}
+          className="w-95 max-w-full"
+        >
+          <InvitationTicket invitation={invitation} event={event} />
+        </div>
+      ))}
+    </div>
   );
 }

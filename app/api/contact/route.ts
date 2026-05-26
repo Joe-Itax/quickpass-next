@@ -28,8 +28,7 @@ export async function POST(req: Request) {
 
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.to = [
-      { email: "josephitakala18@gmail.com", name: "Équipe YambiPass" },
-      // { email: "yambipass@gmail.com", name: "Équipe YambiPass" },
+      { email: "yambipass@gmail.com", name: "Équipe YambiPass" },
     ];
     sendSmtpEmail.sender = {
       email: "josephitakala18@gmail.com",

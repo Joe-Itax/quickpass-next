@@ -15,6 +15,7 @@ import {
   ImagePlus,
   Italic,
   Layers,
+  Link2,
   Loader2,
   Lock,
   Move,
@@ -45,6 +46,7 @@ import { InvitationRenderer } from "@/components/invitations/invitation-renderer
 import { compressImageToWebP } from "@/lib/client-image-compression";
 import {
   createImageElement,
+  createLinkElement,
   createShapeElement,
   createTextElement,
   createQRCodeElement,
@@ -57,6 +59,7 @@ import { saveInvitationTemplateAction } from "@/app/admin/invitation-templates/a
 import type {
   InvitationTemplateElement,
   InvitationTemplateImageElement,
+  InvitationTemplateLinkElement,
   InvitationTemplateLayout,
   InvitationTemplateQRCodeElement,
   InvitationTemplateShapeElement,
@@ -81,9 +84,13 @@ type ToolKind =
   | "guest_email"
   | "guest_whatsapp"
   | "guest_seats"
+  | "link"
   | "qrcode"
   | "shape";
 type DragMode = "move" | "resize";
+type RichTextTemplateElement =
+  | InvitationTemplateTextElement
+  | InvitationTemplateLinkElement;
 
 type ActiveDrag = {
   mode: DragMode;
@@ -210,6 +217,18 @@ export function TemplateEditor({
             fontSize: 4,
             color: "#FFFFFF",
           })
+        : tool === "link"
+          ? createLinkElement({
+              content: "Votre lien",
+              href: "https://",
+              x: base.x,
+              y: base.y,
+              width: 60,
+              height: 10,
+              fontSize: 4,
+              color: "#FFFFFF",
+              textDecoration: "underline",
+            })
         : tool === "qrcode"
           ? createQRCodeElement({
               x: base.x,
@@ -727,6 +746,12 @@ export function TemplateEditor({
               dragType="text"
             />
             <ToolButton
+              icon={Link2}
+              label="Lien"
+              onClick={() => addTool("link")}
+              dragType="link"
+            />
+            <ToolButton
               icon={QrCode}
               label="QR Code"
               onClick={() => addTool("qrcode")}
@@ -1203,15 +1228,22 @@ function Inspector({
   onDelete: () => void;
 }) {
   const updateText = (
-    updater: (
-      element: InvitationTemplateTextElement,
-    ) => InvitationTemplateTextElement,
+    updater: (element: RichTextTemplateElement) => RichTextTemplateElement,
   ) => {
-    if (element.type !== "text" && element.type !== "variable") return;
+    if (!isRichTextElement(element)) return;
     onChange((current) =>
-      current.type === "text" || current.type === "variable"
-        ? updater(current)
-        : current,
+      isRichTextElement(current) ? updater(current) : current,
+    );
+  };
+
+  const updateLink = (
+    updater: (
+      element: InvitationTemplateLinkElement,
+    ) => InvitationTemplateLinkElement,
+  ) => {
+    if (element.type !== "link") return;
+    onChange((current) =>
+      current.type === "link" ? updater(current) : current,
     );
   };
 
@@ -1291,6 +1323,16 @@ function Inspector({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <NumberInput
+          label="Rotation deg"
+          value={element.rotation}
+          onChange={(value) =>
+            onChange((current) => ({
+              ...current,
+              rotation: clamp(value, -360, 360),
+            }))
+          }
+        />
         <NumberInput
           label="Z-Index"
           value={element.zIndex}
@@ -1859,6 +1901,25 @@ function Inspector({
             <RichTextEditor element={element} onChange={updateText} />
           </div>
 
+          {element.type === "link" ? (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Lien
+              </label>
+              <Input
+                value={element.href}
+                onChange={(event) =>
+                  updateLink((current) => ({
+                    ...current,
+                    href: event.target.value,
+                  }))
+                }
+                placeholder="https://yambipass.com"
+                className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+              />
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3">
             <NumberInput
               label="Taille"
@@ -2143,14 +2204,13 @@ function RichTextEditor({
   element,
   onChange,
 }: {
-  element: InvitationTemplateTextElement;
+  element: RichTextTemplateElement;
   onChange: (
-    updater: (
-      element: InvitationTemplateTextElement,
-    ) => InvitationTemplateTextElement,
+    updater: (element: RichTextTemplateElement) => RichTextTemplateElement,
   ) => void;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const initialHtml =
     element.richContent || escapeHtml(element.content).replaceAll("\n", "<br>");
 
@@ -2162,6 +2222,29 @@ function RichTextEditor({
     editorRef.current.innerHTML = initialHtml;
   }, [element.id, initialHtml]);
 
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    const editor = editorRef.current;
+    if (!selection || !editor || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (
+      range.commonAncestorContainer === editor ||
+      editor.contains(range.commonAncestorContainer)
+    ) {
+      savedSelectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+    const range = savedSelectionRef.current;
+    if (!selection || !range) return;
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
   const syncContent = () => {
     const html = editorRef.current?.innerHTML || "";
     const text = editorRef.current?.innerText || "";
@@ -2171,11 +2254,56 @@ function RichTextEditor({
       content: text,
       richContent: html,
     }));
+    saveSelection();
   };
 
   const applyCommand = (command: string, value?: string) => {
     editorRef.current?.focus();
+    restoreSelection();
     document.execCommand(command, false, value);
+    syncContent();
+  };
+
+  const applyColor = (color: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    editor.focus();
+    restoreSelection();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      document.execCommand("foreColor", false, color);
+      syncContent();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (
+      !(
+        range.commonAncestorContainer === editor ||
+        editor.contains(range.commonAncestorContainer)
+      )
+    ) {
+      return;
+    }
+
+    if (range.collapsed) {
+      document.execCommand("foreColor", false, color);
+      syncContent();
+      return;
+    }
+
+    const span = document.createElement("span");
+    span.style.color = color;
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(span);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    savedSelectionRef.current = nextRange.cloneRange();
     syncContent();
   };
 
@@ -2221,8 +2349,8 @@ function RichTextEditor({
         <Input
           type="color"
           title="Couleur du texte selectionne"
-          onMouseDown={(event) => event.preventDefault()}
-          onChange={(event) => applyCommand("foreColor", event.target.value)}
+          onPointerDown={saveSelection}
+          onChange={(event) => applyColor(event.target.value)}
           className="h-9 w-12 rounded-lg border-white/10 bg-white/5 p-1"
         />
       </div>
@@ -2231,7 +2359,12 @@ function RichTextEditor({
         contentEditable
         suppressContentEditableWarning
         onInput={syncContent}
-        onBlur={syncContent}
+        onMouseUp={saveSelection}
+        onKeyUp={saveSelection}
+        onBlur={() => {
+          saveSelection();
+          syncContent();
+        }}
         className="min-h-28 px-3 py-2 text-sm text-white outline-none"
         style={{
           fontFamily: editorFontStack(element.style.fontFamily),
@@ -2429,6 +2562,16 @@ function isEditableTarget(target: EventTarget | null) {
     target.tagName === "INPUT" ||
     target.tagName === "TEXTAREA" ||
     target.tagName === "SELECT"
+  );
+}
+
+function isRichTextElement(
+  element: InvitationTemplateElement,
+): element is RichTextTemplateElement {
+  return (
+    element.type === "text" ||
+    element.type === "variable" ||
+    element.type === "link"
   );
 }
 

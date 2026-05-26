@@ -1,29 +1,38 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { QRCodeCanvas } from "qrcode.react";
-import { Download, Calendar, MapPin, Ticket, Loader2 } from "lucide-react";
+import { FileText, ImageDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import html2canvas from "html2canvas-pro";
-import jsPDF from "jspdf";
 import { Invitation } from "@/types/types";
 import DataStatusDisplay from "@/components/data-status-display";
 import { motion, AnimatePresence } from "motion/react";
-import { InvitationRenderer } from "@/components/invitations/invitation-renderer";
+import { InvitationTicket } from "@/components/invitations/invitation-ticket";
+import {
+  buildInvitationExportBlob,
+  buildInvitationExportBlobs,
+  downloadBlob,
+  formatBytes,
+  safeFileName,
+  type InvitationExportFormat,
+} from "@/lib/client-invitation-export";
 
 export default function PublicInvitationPage() {
   const { qrCode } = useParams();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<InvitationExportFormat | null>(
+    null,
+  );
+  const [preparingSizes, setPreparingSizes] = useState(false);
+  const [exportSizes, setExportSizes] = useState<{
+    pdf?: number;
+    image?: number;
+  }>({});
 
   const ticketRef = useRef<HTMLDivElement>(null);
-
-  const LOGO_URL = "/logo-app/icon-1024.png";
-  // const LOGO_URL = "/logo-app/logo-white.png";
+  const exportCacheRef = useRef<{ pdf?: Blob; image?: Blob }>({});
 
   useEffect(() => {
     fetch(`/api/invitation/${qrCode}`)
@@ -46,60 +55,77 @@ export default function PublicInvitationPage() {
       });
   }, [qrCode]);
 
-  const handleDownloadPDF = async () => {
+  useEffect(() => {
+    if (!invitation) return;
+
+    let cancelled = false;
+    exportCacheRef.current = {};
+
+    const prepareSizes = async () => {
+      try {
+        await Promise.resolve();
+        if (cancelled) return;
+
+        setExportSizes({});
+        setPreparingSizes(true);
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        if (!ticketRef.current) return;
+
+        const { pdfBlob, imageBlob } = await buildInvitationExportBlobs(
+          ticketRef.current,
+        );
+        if (cancelled) return;
+
+        exportCacheRef.current = {
+          pdf: pdfBlob,
+          image: imageBlob,
+        };
+        setExportSizes({
+          pdf: pdfBlob.size,
+          image: imageBlob.size,
+        });
+      } catch (err) {
+        console.error("Erreur preparation exports:", err);
+      } finally {
+        if (!cancelled) setPreparingSizes(false);
+      }
+    };
+
+    prepareSizes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [invitation]);
+
+  const handleDownload = async (format: InvitationExportFormat) => {
     if (!ticketRef.current || !invitation) return;
-    setExporting(true);
+    setExporting(format);
 
     try {
-      await document.fonts?.ready;
-      await waitForImages(ticketRef.current);
+      const cachedBlob = exportCacheRef.current[format];
+      const blob =
+        cachedBlob ||
+        (await buildInvitationExportBlob(ticketRef.current, format));
+      const extension = format === "pdf" ? "pdf" : "png";
+      const fileName = `Pass_${safeFileName(invitation.label) || invitation.id}.${extension}`;
 
-      const canvas = await html2canvas(ticketRef.current, {
-        scale: 4,
-        useCORS: true,
-        backgroundColor: null,
-        removeContainer: true,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-
-      // PDF en Paysage (Landscape)
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "px",
-        format: "a4",
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // 1. Fond blanc total
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
-
-      // 2. Calcul des dimensions pour centrer
-      // On veut que l'invitation fasse environ 80% de la hauteur du PDF
-      const padding = 40;
-      const displayHeight = pdfHeight - padding * 2;
-      const displayWidth = (canvas.width * displayHeight) / canvas.height;
-
-      const posX = (pdfWidth - displayWidth) / 2;
-      const posY = padding;
-
-      // 3. Ajout de l'image
-      pdf.addImage(imgData, "PNG", posX, posY, displayWidth, displayHeight);
-
-      pdf.save(`Pass_${invitation.label.replace(/\s+/g, "_")}.pdf`);
+      exportCacheRef.current = {
+        ...exportCacheRef.current,
+        [format]: blob,
+      };
+      setExportSizes((current) => ({ ...current, [format]: blob.size }));
+      downloadBlob(blob, fileName);
     } catch (err) {
-      console.error("Erreur export PDF:", err);
+      console.error("Erreur export invitation:", err);
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   };
 
   if (loading || error || !invitation) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
+      <div className="flex min-h-screen items-center justify-center bg-[#050505] p-6">
         <DataStatusDisplay
           isPending={loading}
           hasError={!!error}
@@ -110,167 +136,51 @@ export default function PublicInvitationPage() {
     );
   }
 
-  const assignedTable =
-    invitation.allocations
-      ?.map((allocation) => allocation.table.name)
-      .join(", ") || "SANS PLACE";
-  const templateLayout = invitation.event?.invitationTemplate?.layoutData;
-
   return (
-    <main className="min-h-screen bg-[#050505] p-4 flex flex-col items-center justify-center gap-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-[#050505] p-4">
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full flex flex-col items-center gap-8"
+          className="flex w-full flex-col items-center gap-8"
         >
-          {/* --- CONTENEUR DE CAPTURE --- */}
-          <div className="p-4" ref={ticketRef}>
-            {templateLayout ? (
-              <div className="w-95 max-w-full">
-                <InvitationRenderer
-                  templateData={templateLayout}
-                  guestData={{
-                    name: invitation.label,
-                    table: assignedTable,
-                    peopleCount: invitation.peopleCount,
-                    qrCodeData: invitation.qrCode,
-                  }}
-                  eventData={{
-                    name: invitation.event?.name,
-                    date: invitation.event?.date
-                      ? new Date(invitation.event.date).toLocaleDateString(
-                          "fr-FR",
-                          {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )
-                      : undefined,
-                    location: invitation.event?.location,
-                    peopleCount: invitation.peopleCount,
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="w-95 max-w-full bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                {/* Header */}
-                <div className="bg-primary p-6 text-center">
-                  <p className="text-[10px] font-black text-black uppercase tracking-[0.3em] mb-1">
-                    Official Digital Pass
-                  </p>
-                  <h1 className="text-xl font-black italic uppercase text-black leading-tight">
-                    {invitation.event?.name}
-                  </h1>
-                </div>
-
-                <div className="p-8 space-y-8 flex flex-col items-center">
-                  {/* QR Code avec QRCodeCanvas (mieux pour le PDF) */}
-                  <div className="bg-white p-4 rounded-3xl border-4 border-white shadow-xl w-64 h-64 flex items-center justify-center">
-                    <QRCodeCanvas
-                      value={invitation.qrCode}
-                      size={220}
-                      level="H"
-                      imageSettings={{
-                        src: LOGO_URL,
-                        height: 40,
-                        width: 40,
-                        excavate: true,
-                      }}
-                    />
-                  </div>
-
-                  {/* Infos Invité */}
-                  <div className="text-center">
-                    <h2 className="text-3xl font-black italic uppercase text-white tracking-tighter">
-                      {invitation.label}
-                    </h2>
-                    <Badge className="mt-2 bg-primary/10 text-primary border-primary/20 font-bold uppercase">
-                      {invitation.peopleCount} PLACES (PAX)
-                    </Badge>
-                  </div>
-
-                  {/* Details */}
-                  <div className="w-full grid grid-cols-1 gap-4 border-t border-white/5 pt-6">
-                    <div className="flex items-center gap-4 text-gray-400">
-                      <Calendar className="text-primary w-5 h-5" />
-                      <span className="text-sm font-medium">
-                        {new Date(invitation.event.date).toLocaleDateString(
-                          "fr-FR",
-                          {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-gray-400">
-                      <MapPin className="text-primary w-5 h-5" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white uppercase">
-                          {invitation.event.location}
-                        </span>
-                        <span className="text-[10px]">
-                          {invitation.event.fullLocation}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-gray-400">
-                      <Ticket className="text-primary w-5 h-5" />
-                      <span className="text-sm font-bold text-white uppercase italic">
-                        TABLE:{" "}
-                        {invitation.allocations?.[0]?.table.name ||
-                          "SANS PLACE"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-[8px] text-gray-300 font-bold uppercase tracking-widest text-center">
-                    Veuillez présenter ce QR Code à l&apos;accueil.
-                  </p>
-                </div>
-              </div>
-            )}
+          <div ref={ticketRef} className="w-95 max-w-full">
+            <InvitationTicket invitation={invitation} />
           </div>
 
-          {/* Actions (Hors capture) */}
-          <div className="w-95 max-w-full flex flex-col gap-3">
+          <div className="flex w-95 max-w-full flex-col gap-3">
             <Button
-              onClick={handleDownloadPDF}
-              disabled={exporting}
-              className="h-14 rounded-2xl bg-primary hover:bg-white text-black font-black uppercase italic transition-all"
+              onClick={() => handleDownload("pdf")}
+              disabled={!!exporting}
+              className="h-14 rounded-2xl bg-primary font-black uppercase italic text-black transition-all hover:bg-white"
             >
-              {exporting ? (
-                <Loader2 className="animate-spin mr-2" />
+              {exporting === "pdf" ? (
+                <Loader2 className="mr-2 animate-spin" />
               ) : (
-                <Download className="w-5 h-5 mr-2" />
+                <FileText className="mr-2 size-5" />
               )}
-              {exporting ? "Traitement..." : "Télécharger mon Pass (PDF)"}
+              {exporting === "pdf"
+                ? "Traitement..."
+                : `Telecharger PDF (${preparingSizes ? "Calcul..." : formatBytes(exportSizes.pdf)})`}
+            </Button>
+            <Button
+              onClick={() => handleDownload("image")}
+              disabled={!!exporting}
+              variant="outline"
+              className="h-14 rounded-2xl border-white/10 bg-white/5 font-black uppercase italic text-white transition-all hover:bg-white/10 hover:text-white"
+            >
+              {exporting === "image" ? (
+                <Loader2 className="mr-2 animate-spin" />
+              ) : (
+                <ImageDown className="mr-2 size-5" />
+              )}
+              {exporting === "image"
+                ? "Traitement..."
+                : `Telecharger PNG HD (${preparingSizes ? "Calcul..." : formatBytes(exportSizes.image)})`}
             </Button>
           </div>
         </motion.div>
       </AnimatePresence>
     </main>
-  );
-}
-
-function waitForImages(root: HTMLElement) {
-  const images = Array.from(root.querySelectorAll("img"));
-
-  return Promise.all(
-    images.map((image) => {
-      if (image.complete) return Promise.resolve();
-
-      return new Promise<void>((resolve) => {
-        image.onload = () => resolve();
-        image.onerror = () => resolve();
-      });
-    }),
   );
 }

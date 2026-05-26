@@ -5,7 +5,8 @@ export type InvitationTemplateElementType =
   | "variable"
   | "image"
   | "qrcode"
-  | "shape";
+  | "shape"
+  | "link";
 export type InvitationTextAlign = "left" | "center" | "right";
 export type InvitationFontStyle = "normal" | "italic";
 export type InvitationTextDecoration = "none" | "underline";
@@ -92,6 +93,14 @@ export type InvitationTemplateTextElement = InvitationTemplateElementBase & {
   style: InvitationTemplateTextStyle;
 };
 
+export type InvitationTemplateLinkElement = InvitationTemplateElementBase & {
+  type: "link";
+  content: string;
+  richContent?: string;
+  href: string;
+  style: InvitationTemplateTextStyle;
+};
+
 export type InvitationTemplateImageElement = InvitationTemplateElementBase & {
   type: "image";
   src: string;
@@ -120,6 +129,7 @@ export type InvitationTemplateShapeElement = InvitationTemplateElementBase & {
 
 export type InvitationTemplateElement =
   | InvitationTemplateTextElement
+  | InvitationTemplateLinkElement
   | InvitationTemplateImageElement
   | InvitationTemplateQRCodeElement
   | InvitationTemplateShapeElement;

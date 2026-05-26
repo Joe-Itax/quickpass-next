@@ -8,6 +8,7 @@ import type {
   InvitationShapeFillType,
   InvitationTemplateElement,
   InvitationTemplateImageElement,
+  InvitationTemplateLinkElement,
   InvitationTemplateQRCodeElement,
   InvitationTemplateLayout,
   InvitationTemplateShadow,
@@ -136,7 +137,7 @@ export function createTextElement(
     y: clampPosition(options.y ?? 18),
     width: clampSize(options.width ?? 68),
     height: clampSize(options.height ?? 10),
-    rotation: clampNumber(options.rotation ?? 0, -180, 180),
+    rotation: clampNumber(options.rotation ?? 0, -360, 360),
     zIndex: clampNumber(options.zIndex ?? 1, 0, 999),
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
@@ -162,6 +163,59 @@ export function createTextElement(
   };
 }
 
+export function createLinkElement(
+  options: Partial<InvitationTemplateLinkElement> & {
+    content?: string;
+    href?: string;
+    fontFamily?: InvitationFontFamily;
+    fontSize?: number;
+    color?: string;
+    fontWeight?: number;
+    fontStyle?: InvitationFontStyle;
+    textDecoration?: InvitationTextDecoration;
+    textAlign?: InvitationTextAlign;
+  } = {},
+): InvitationTemplateLinkElement {
+  return {
+    id: options.id || createElementId(),
+    type: "link",
+    content: options.content ?? "Votre lien",
+    richContent: options.richContent,
+    href: sanitizeHref(options.href),
+    x: clampPosition(options.x ?? 16),
+    y: clampPosition(options.y ?? 18),
+    width: clampSize(options.width ?? 60),
+    height: clampSize(options.height ?? 10),
+    rotation: clampNumber(options.rotation ?? 0, -360, 360),
+    zIndex: clampNumber(options.zIndex ?? 1, 0, 999),
+    opacity: clampNumber(options.opacity ?? 1, 0, 1),
+    locked: Boolean(options.locked),
+    shadow: sanitizeShadow(options.shadow),
+    style: {
+      fontFamily: sanitizeFont(options.fontFamily ?? options.style?.fontFamily),
+      fontSize: clampNumber(options.fontSize ?? options.style?.fontSize ?? 4, 1, 18),
+      color: sanitizeColor(options.color ?? options.style?.color, "#FFFFFF"),
+      fontWeight: clampNumber(
+        options.fontWeight ?? options.style?.fontWeight ?? 700,
+        100,
+        900,
+      ),
+      fontStyle: sanitizeFontStyle(options.fontStyle ?? options.style?.fontStyle),
+      textDecoration: sanitizeTextDecoration(
+        options.textDecoration ?? options.style?.textDecoration ?? "underline",
+      ),
+      textTransform: sanitizeTextTransform(options.style?.textTransform),
+      textAlign: sanitizeTextAlign(options.textAlign ?? options.style?.textAlign),
+      lineHeight: clampNumber(options.style?.lineHeight ?? 1.1, 0.7, 2),
+      letterSpacing: clampNumber(options.style?.letterSpacing ?? 0, -0.05, 0.3),
+      gradientEnabled: Boolean(options.style?.gradientEnabled),
+      gradientFrom: sanitizeColor(options.style?.gradientFrom, "#F59E0B"),
+      gradientTo: sanitizeColor(options.style?.gradientTo, "#FFFFFF"),
+      gradientAngle: clampNumber(Number(options.style?.gradientAngle) || 90, 0, 360),
+    },
+  };
+}
+
 export function createImageElement(
   src: string,
   options: Partial<InvitationTemplateImageElement> = {},
@@ -175,7 +229,7 @@ export function createImageElement(
     y: clampPosition(options.y ?? 22),
     width: clampSize(options.width ?? 68),
     height: clampSize(options.height ?? 28),
-    rotation: clampNumber(options.rotation ?? 0, -180, 180),
+    rotation: clampNumber(options.rotation ?? 0, -360, 360),
     zIndex: clampNumber(options.zIndex ?? 1, 0, 999),
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
@@ -195,7 +249,7 @@ export function createQRCodeElement(
     y: clampPosition(options.y ?? 40),
     width: clampSize(options.width ?? 40),
     height: clampSize(options.height ?? 40),
-    rotation: clampNumber(options.rotation ?? 0, -180, 180),
+    rotation: clampNumber(options.rotation ?? 0, -360, 360),
     zIndex: clampNumber(options.zIndex ?? 1, 0, 999),
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
@@ -217,7 +271,7 @@ export function createShapeElement(
     y: clampPosition(options.y ?? 30),
     width: clampSize(options.width ?? 36),
     height: clampSize(options.height ?? 36),
-    rotation: clampNumber(options.rotation ?? 0, -180, 180),
+    rotation: clampNumber(options.rotation ?? 0, -360, 360),
     zIndex: clampNumber(options.zIndex ?? 1, 0, 999),
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
@@ -388,6 +442,50 @@ function normalizeElement(value: unknown) {
     });
   }
 
+  if (value.type === "link" && typeof value.content === "string") {
+    const style = isRecord(value.style) ? value.style : {};
+
+    return createLinkElement({
+      id: typeof value.id === "string" ? value.id : undefined,
+      content: value.content,
+      richContent:
+        typeof value.richContent === "string" ? value.richContent : undefined,
+      href: typeof value.href === "string" ? value.href : undefined,
+      x: Number(value.x),
+      y: Number(value.y),
+      width: Number(value.width),
+      height: Number(value.height),
+      rotation: Number(value.rotation),
+      zIndex: Number(value.zIndex),
+      opacity: Number(value.opacity),
+      locked: Boolean(value.locked),
+      shadow: value.shadow as InvitationTemplateShadow,
+      fontFamily: style.fontFamily as InvitationFontFamily,
+      fontSize: Number(style.fontSize),
+      color: typeof style.color === "string" ? style.color : undefined,
+      fontWeight: Number(style.fontWeight),
+      fontStyle: style.fontStyle as InvitationFontStyle,
+      textDecoration: style.textDecoration as InvitationTextDecoration,
+      textAlign: style.textAlign as InvitationTextAlign,
+      style: {
+        fontFamily: sanitizeFont(style.fontFamily as InvitationFontFamily),
+        fontSize: Number(style.fontSize),
+        color: sanitizeColor(style.color, "#FFFFFF"),
+        fontWeight: Number(style.fontWeight),
+        fontStyle: sanitizeFontStyle(style.fontStyle),
+        textDecoration: sanitizeTextDecoration(style.textDecoration),
+        textTransform: sanitizeTextTransform(style.textTransform),
+        textAlign: sanitizeTextAlign(style.textAlign as InvitationTextAlign),
+        lineHeight: Number(style.lineHeight),
+        letterSpacing: Number(style.letterSpacing),
+        gradientEnabled: Boolean(style.gradientEnabled),
+        gradientFrom: sanitizeColor(style.gradientFrom, "#F59E0B"),
+        gradientTo: sanitizeColor(style.gradientTo, "#FFFFFF"),
+        gradientAngle: clampNumber(Number(style.gradientAngle) || 90, 0, 360),
+      },
+    });
+  }
+
   if (value.type === "qrcode") {
     return createQRCodeElement({
       id: typeof value.id === "string" ? value.id : undefined,
@@ -518,6 +616,16 @@ function sanitizeColor(value: unknown, fallback: string) {
   return typeof value === "string" && HEX_COLOR_RE.test(value)
     ? value
     : fallback;
+}
+
+function sanitizeHref(value: unknown) {
+  if (typeof value !== "string") return "https://";
+  const trimmed = value.trim();
+  if (!trimmed) return "https://";
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+
+  return `https://${trimmed.replace(/^\/+/, "")}`;
 }
 
 function numberOr(value: unknown, fallback: number) {

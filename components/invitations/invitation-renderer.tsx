@@ -10,8 +10,10 @@ import type {
   InvitationGuestData,
   InvitationImageFilters,
   InvitationTemplateElement,
+  InvitationTemplateLinkElement,
   InvitationTemplateLayout,
   InvitationTemplateShadow,
+  InvitationTemplateTextElement,
   InvitationTextTransform,
 } from "@/types/invitation-template";
 
@@ -131,7 +133,7 @@ function TemplateElement({
   ) => void;
   renderResizeHandle?: (element: InvitationTemplateElement) => React.ReactNode;
 }) {
-  const isTextElement = element.type === "text" || element.type === "variable";
+  const isTextElement = isTextLikeElement(element);
 
   return (
     <div
@@ -217,61 +219,102 @@ function TemplateElement({
             borderRadius: `${element.borderRadius}%`,
           }}
         />
-      ) : (
-        <div
-          className="flex size-full items-center"
-          style={{
-            justifyContent:
-              element.style.textAlign === "left"
-                ? "flex-start"
-                : element.style.textAlign === "right"
-                  ? "flex-end"
-                  : "center",
-            textAlign: element.style.textAlign,
-            fontFamily: fontStack(element.style.fontFamily),
-            fontSize: `${element.style.fontSize}cqw`,
-            color: element.style.gradientEnabled ? "transparent" : element.style.color,
-            backgroundImage: element.style.gradientEnabled
-              ? `linear-gradient(${element.style.gradientAngle ?? 90}deg, ${element.style.gradientFrom ?? "#F59E0B"}, ${element.style.gradientTo ?? "#FFFFFF"})`
-              : undefined,
-            backgroundClip: element.style.gradientEnabled ? "text" : undefined,
-            WebkitBackgroundClip: element.style.gradientEnabled ? "text" : undefined,
-            fontWeight: element.style.fontWeight,
-            fontStyle: element.style.fontStyle ?? "normal",
-            lineHeight: element.style.lineHeight,
-            letterSpacing: `${element.style.letterSpacing}em`,
-            textDecoration: element.style.textDecoration ?? "none",
-            whiteSpace: "pre-wrap",
-            overflowWrap: "anywhere",
-            textShadow: cssShadow(element.shadow),
-          }}
-        >
-          {element.richContent ? (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: sanitizeRichText(
-                  transformHtmlTextCase(
-                    resolveInvitationText(
-                      element.richContent,
-                      guestData,
-                      eventData,
-                    ),
-                    element.style.textTransform,
-                  ),
-                ),
-              }}
-            />
-          ) : (
-            transformTextCase(
-              resolveInvitationText(element.content, guestData, eventData),
-              element.style.textTransform,
-            )
-          )}
-        </div>
-      )}
+      ) : isTextElement ? (
+        <TextLikeElementContent
+          element={element}
+          guestData={guestData}
+          eventData={eventData}
+          interactive={interactive}
+        />
+      ) : null}
 
       {isSelected ? renderResizeHandle?.(element) : null}
     </div>
+  );
+}
+
+function TextLikeElementContent({
+  element,
+  guestData,
+  eventData,
+  interactive,
+}: {
+  element: InvitationTemplateTextElement | InvitationTemplateLinkElement;
+  guestData: InvitationGuestData;
+  eventData?: InvitationEventData;
+  interactive: boolean;
+}) {
+  const content = element.richContent ? (
+    <span
+      dangerouslySetInnerHTML={{
+        __html: sanitizeRichText(
+          transformHtmlTextCase(
+            resolveInvitationText(element.richContent, guestData, eventData),
+            element.style.textTransform,
+          ),
+        ),
+      }}
+    />
+  ) : (
+    transformTextCase(
+      resolveInvitationText(element.content, guestData, eventData),
+      element.style.textTransform,
+    )
+  );
+
+  return (
+    <div
+      className="flex size-full items-center"
+      style={{
+        justifyContent:
+          element.style.textAlign === "left"
+            ? "flex-start"
+            : element.style.textAlign === "right"
+              ? "flex-end"
+              : "center",
+        textAlign: element.style.textAlign,
+        fontFamily: fontStack(element.style.fontFamily),
+        fontSize: `${element.style.fontSize}cqw`,
+        color: element.style.gradientEnabled ? "transparent" : element.style.color,
+        backgroundImage: element.style.gradientEnabled
+          ? `linear-gradient(${element.style.gradientAngle ?? 90}deg, ${element.style.gradientFrom ?? "#F59E0B"}, ${element.style.gradientTo ?? "#FFFFFF"})`
+          : undefined,
+        backgroundClip: element.style.gradientEnabled ? "text" : undefined,
+        WebkitBackgroundClip: element.style.gradientEnabled ? "text" : undefined,
+        fontWeight: element.style.fontWeight,
+        fontStyle: element.style.fontStyle ?? "normal",
+        lineHeight: element.style.lineHeight,
+        letterSpacing: `${element.style.letterSpacing}em`,
+        textDecoration: element.style.textDecoration ?? "none",
+        whiteSpace: "pre-wrap",
+        overflowWrap: "anywhere",
+        textShadow: cssShadow(element.shadow),
+      }}
+    >
+      {element.type === "link" && !interactive ? (
+        <a
+          href={safeHref(element.href)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-inherit"
+          style={{ textDecoration: "inherit" }}
+        >
+          {content}
+        </a>
+      ) : (
+        <span>{content}</span>
+      )}
+    </div>
+  );
+}
+
+function isTextLikeElement(
+  element: InvitationTemplateElement,
+): element is InvitationTemplateTextElement | InvitationTemplateLinkElement {
+  return (
+    element.type === "text" ||
+    element.type === "variable" ||
+    element.type === "link"
   );
 }
 
@@ -307,6 +350,13 @@ function sanitizeRichText(value: string) {
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "")
     .replace(/javascript:/gi, "");
+}
+
+function safeHref(value: string) {
+  const trimmed = value.trim();
+  if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(trimmed)) return trimmed;
+
+  return "https://";
 }
 
 function transformHtmlTextCase(
