@@ -1106,7 +1106,7 @@ export function TemplateEditor({
 
           <div className="space-y-4 pt-4">
             {layout.canvas.backgroundImageUrl ? (
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                     Cadrage du fond
@@ -1478,7 +1478,7 @@ export function TemplateEditor({
           <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
             <div className="grid grid-cols-2 gap-3">
               {exportFields.length === 0 ? (
-                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-400">
+                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/3 p-4 text-sm text-gray-400">
                   Aucune variable texte detectee. Le QR reste exporte avec sa
                   valeur de preview.
                 </div>
@@ -2238,7 +2238,7 @@ function Inspector({
               }
             />
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Recolorer
@@ -2297,7 +2297,7 @@ function Inspector({
               </div>
             ) : null}
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient image
@@ -2518,7 +2518,7 @@ function Inspector({
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Rayon coins
@@ -2818,7 +2818,7 @@ function Inspector({
             />
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient texte

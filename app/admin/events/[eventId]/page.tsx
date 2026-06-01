@@ -418,7 +418,7 @@ export default function EventPage() {
           <Button
             variant="destructive"
             onClick={() => setIsDeleteDialogOpen(true)}
-            className="rounded-xl font-black uppercase italic text-[10px] px-5"
+            className="rounded-xl font-black uppercase italic text-[10px] px-5 border border-red-500/20 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
           >
             <Trash2Icon className="w-4 h-4 mr-2" /> Supprimer
           </Button>

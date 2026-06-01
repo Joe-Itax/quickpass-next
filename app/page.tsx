@@ -112,7 +112,7 @@ export default function LandingPage() {
 
           <Link
             href={sess ? "/admin" : "/login"}
-            className="group flex items-center gap-3 text-[10px] max-[390px]:text-[8px] font-black uppercase tracking-[0.2em] bg-white text-[#0B0D19] px-6 max-[390px]:px-4 py-3 max-[390px]:py-2 rounded-full hover:bg-primary hover:text-white transition-all shadow-xl"
+            className="group flex items-center gap-3 text-[10px] max-[390px]:text-[8px] font-black uppercase tracking-[0.2em] bg-white text-[#0B0D19] px-6 max-[390px]:px-4 py-3 max-[390px]:py-2 rounded-full active:scale-95 active:bg-primary/50 hover:bg-primary hover:text-white active:text-white transition-all shadow-xl"
           >
             {sess ? "Dashboard" : "Connexion"}
             <ArrowRight

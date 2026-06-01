@@ -51,7 +51,7 @@ export default function DeleteTable({
       <DialogTrigger asChild>
         <Button
           variant="destructive"
-          className="rounded-xl font-black uppercase italic text-[10px] h-11 px-6 border border-red-500/20 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
+          className="rounded-xl font-black uppercase italic text-[10px] px-5 border border-red-500/20 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
         >
           <Trash2 className="w-4 h-4 mr-2" /> Supprimer
         </Button>
