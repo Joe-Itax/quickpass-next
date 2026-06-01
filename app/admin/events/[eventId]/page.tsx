@@ -89,7 +89,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -3 }}
       className={cn(
-        "relative z-10 p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors [backface-visibility:hidden] [contain:paint]",
+        "relative z-10 p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors backface-hidden contain-[paint]",
         glow
           ? "bg-emerald-500/10 hover:bg-emerald-500/20"
           : "bg-white/5 hover:bg-white/10",
@@ -350,7 +350,7 @@ export default function EventPage() {
 
   return (
     <section className="py-6 px-2 max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
-      <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5 [backface-visibility:hidden]">
+      <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5 backface-hidden">
         <div className="space-y-4">
           <Button
             variant="ghost"
@@ -431,7 +431,7 @@ export default function EventPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="relative z-10 p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden [backface-visibility:hidden] [contain:paint]"
+            className="relative z-10 p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden backface-hidden contain-[paint]"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
@@ -459,7 +459,7 @@ export default function EventPage() {
         )}
       </AnimatePresence>
 
-      <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6 relative overflow-hidden [backface-visibility:hidden] [contain:paint]">
+      <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6 relative overflow-hidden backface-hidden contain-[paint]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black italic uppercase text-white">
@@ -857,7 +857,7 @@ function BulkInvitationExportHost({
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="pointer-events-none fixed left-[-10000px] top-0 z-[-1] flex flex-col gap-8"
+      className="pointer-events-none fixed -left-2500 top-0 z-[-1] flex flex-col gap-8"
     >
       {event.invitations.map((invitation) => (
         <div

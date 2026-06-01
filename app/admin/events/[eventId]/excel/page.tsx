@@ -265,7 +265,7 @@ export default function EventExcelPage() {
         onSearchChange={setGuestSearch}
         onAdd={addGuestRow}
       >
-        <div className="w-full min-w-[1080px]">
+        <div className="w-full min-w-270">
           <div className="sticky top-0 z-10 grid grid-cols-[70px_80px_220px_90px_220px_180px_220px_70px] border-b border-white/10 bg-[#141414] text-[10px] font-black uppercase tracking-widest text-gray-400">
             {["Ligne", "ID", "Nom", "PAX", "Email", "WhatsApp", "Table", ""].map(
               (head) => (
@@ -363,7 +363,7 @@ export default function EventExcelPage() {
         onSearchChange={setTableSearch}
         onAdd={addTableRow}
       >
-        <div className="w-full min-w-[600px]">
+        <div className="w-full min-w-150">
           <div className="sticky top-0 z-10 grid grid-cols-[70px_80px_260px_140px_70px] border-b border-white/10 bg-[#141414] text-[10px] font-black uppercase tracking-widest text-gray-400">
             {["Ligne", "ID", "Nom", "Capacite", ""].map((head) => (
               <div key={head} className="truncate px-3 py-3">
