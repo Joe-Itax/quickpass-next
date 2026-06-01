@@ -20,6 +20,9 @@ export async function POST(req: NextRequest, context: EventContext) {
   if (user instanceof NextResponse) return user;
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const sendMode = body?.sendMode === "unsent" ? "unsent" : "all";
+
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       select: {
@@ -42,7 +45,10 @@ export async function POST(req: NextRequest, context: EventContext) {
     }
 
     const guests = event.invitations.filter(
-      (guest) => isValidWhatsappPhone(guest.whatsapp) && !!guest.qrCode,
+      (guest) =>
+        isValidWhatsappPhone(guest.whatsapp) &&
+        !!guest.qrCode &&
+        (sendMode === "all" || !guest.isSentWhatsapp),
     );
 
     if (guests.length === 0) {
@@ -57,11 +63,19 @@ export async function POST(req: NextRequest, context: EventContext) {
       guests,
     });
 
+    if (result.queued > 0) {
+      await prisma.invitation.updateMany({
+        where: { id: { in: guests.map((guest) => guest.id) } },
+        data: { isSentWhatsapp: true },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       queued: result.queued,
       workerNotified: result.worker.ok,
       workerError: result.worker.ok ? undefined : result.worker.error,
+      mode: sendMode,
     });
   } catch (error) {
     console.error("WhatsApp queue error:", error);

@@ -34,6 +34,27 @@ export type InvitationImageFilters = {
   brightness: number;
   contrast: number;
   grayscale: number;
+  saturate?: number;
+  sepia?: number;
+  invert?: number;
+  hueRotate?: number;
+  tintEnabled?: boolean;
+  tintColor?: string;
+  tintOpacity?: number;
+  tintBlendMode?: "multiply" | "screen" | "overlay" | "color";
+  gradientTintEnabled?: boolean;
+  gradientTintFrom?: string;
+  gradientTintTo?: string;
+  gradientTintAngle?: number;
+};
+
+export type InvitationLocalOpacityMask = {
+  enabled: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
 };
 
 export type InvitationTemplateCanvas = {
@@ -51,6 +72,11 @@ export type InvitationTemplateCanvas = {
   showSafeZone?: boolean;
   safeZoneInset?: number;
   borderRadius: number;
+  borderRadiusLocked?: boolean;
+  borderRadiusTopLeft?: number;
+  borderRadiusTopRight?: number;
+  borderRadiusBottomRight?: number;
+  borderRadiusBottomLeft?: number;
   borderWidth?: number;
   borderColor?: string;
 };
@@ -67,6 +93,7 @@ export type InvitationTemplateElementBase = {
   opacity: number;
   locked?: boolean;
   shadow?: InvitationTemplateShadow;
+  localOpacity?: InvitationLocalOpacityMask;
 };
 
 export type InvitationTemplateTextStyle = {
@@ -125,6 +152,11 @@ export type InvitationTemplateShapeElement = InvitationTemplateElementBase & {
   gradientTo: string;
   gradientAngle: number;
   borderRadius: number;
+  borderRadiusLocked?: boolean;
+  borderRadiusTopLeft?: number;
+  borderRadiusTopRight?: number;
+  borderRadiusBottomRight?: number;
+  borderRadiusBottomLeft?: number;
 };
 
 export type InvitationTemplateElement =

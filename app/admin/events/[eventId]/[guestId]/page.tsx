@@ -296,7 +296,17 @@ export default function GuestPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                        WhatsApp {invitation.isSentWhatsapp && <CheckCircle size={10} className="text-green-500" />}
+                        WhatsApp
+                        {invitation.isSentWhatsapp ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[8px] text-green-400">
+                            <CheckCircle size={10} />
+                            Deja envoye
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[8px] text-gray-500">
+                            Jamais envoye
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm font-bold text-white tracking-tight">
                         {invitation.whatsapp}
@@ -329,7 +339,17 @@ export default function GuestPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                        Email {invitation.isSentEmail && <CheckCircle size={10} className="text-blue-500" />}
+                        Email
+                        {invitation.isSentEmail ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[8px] text-blue-400">
+                            <CheckCircle size={10} />
+                            Deja envoye
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[8px] text-gray-500">
+                            Jamais envoye
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm font-bold text-white tracking-tight break-all">
                         {invitation.email}

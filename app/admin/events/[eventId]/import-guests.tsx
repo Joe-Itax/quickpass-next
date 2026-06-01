@@ -210,7 +210,10 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all">
+        <Button
+          variant="outline"
+          className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
+        >
           <FileUp className="mr-2 size-4 text-primary" /> Import Excel
         </Button>
       </DialogTrigger>

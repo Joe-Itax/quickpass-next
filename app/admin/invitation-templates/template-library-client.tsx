@@ -317,7 +317,7 @@ function TemplateGrid({
         return (
           <article
             key={template.id}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-black/35 hover:border-primary/50 transition-colors group"
+            className="overflow-hidden rounded-2xl border border-white/10 bg-black/35 transition-colors [backface-visibility:hidden] [contain:paint] hover:border-primary/50 group"
           >
             <div className="flex justify-center bg-white/[0.03] p-5 relative">
               <div className="w-full max-w-56 pointer-events-none">

@@ -112,7 +112,7 @@ export function EventTemplateConfigurator({
   };
 
   return (
-    <section className="rounded-4xl border border-white/5 bg-white/5 p-6">
+    <section className="rounded-4xl border border-white/5 bg-white/5 p-6 [backface-visibility:hidden] [contain:paint]">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

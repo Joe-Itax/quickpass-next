@@ -3,6 +3,7 @@ import type {
   InvitationFontStyle,
   InvitationImageFilters,
   InvitationGuestData,
+  InvitationLocalOpacityMask,
   InvitationObjectFit,
   InvitationQRCodeErrorCorrection,
   InvitationShapeFillType,
@@ -101,6 +102,26 @@ const DEFAULT_IMAGE_FILTERS: InvitationImageFilters = {
   brightness: 100,
   contrast: 100,
   grayscale: 0,
+  saturate: 100,
+  sepia: 0,
+  invert: 0,
+  hueRotate: 0,
+  tintEnabled: false,
+  tintColor: "#F59E0B",
+  tintOpacity: 0.35,
+  tintBlendMode: "color",
+  gradientTintEnabled: false,
+  gradientTintFrom: "#F59E0B",
+  gradientTintTo: "#111827",
+  gradientTintAngle: 135,
+};
+const DEFAULT_LOCAL_OPACITY: InvitationLocalOpacityMask = {
+  enabled: false,
+  x: 25,
+  y: 25,
+  width: 50,
+  height: 50,
+  opacity: 0.5,
 };
 
 export function createEmptyInvitationLayout(): InvitationTemplateLayout {
@@ -142,6 +163,7 @@ export function createTextElement(
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
     shadow: sanitizeShadow(options.shadow),
+    localOpacity: sanitizeLocalOpacity(options.localOpacity),
     style: {
       fontFamily: sanitizeFont(options.fontFamily),
       fontSize: clampNumber(options.fontSize ?? 4, 1, 18),
@@ -191,6 +213,7 @@ export function createLinkElement(
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
     shadow: sanitizeShadow(options.shadow),
+    localOpacity: sanitizeLocalOpacity(options.localOpacity),
     style: {
       fontFamily: sanitizeFont(options.fontFamily ?? options.style?.fontFamily),
       fontSize: clampNumber(options.fontSize ?? options.style?.fontSize ?? 4, 1, 18),
@@ -234,6 +257,7 @@ export function createImageElement(
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
     shadow: sanitizeShadow(options.shadow),
+    localOpacity: sanitizeLocalOpacity(options.localOpacity),
     objectFit: sanitizeObjectFit(options.objectFit),
     filters: sanitizeImageFilters(options.filters),
   };
@@ -254,6 +278,7 @@ export function createQRCodeElement(
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
     shadow: sanitizeShadow(options.shadow),
+    localOpacity: sanitizeLocalOpacity(options.localOpacity),
     fgColor: sanitizeColor(options.fgColor, "#000000"),
     bgColor: sanitizeColor(options.bgColor, "#ffffff"),
     eccLevel: sanitizeQRCodeErrorCorrection(options.eccLevel),
@@ -276,12 +301,34 @@ export function createShapeElement(
     opacity: clampNumber(options.opacity ?? 1, 0, 1),
     locked: Boolean(options.locked),
     shadow: sanitizeShadow(options.shadow),
+    localOpacity: sanitizeLocalOpacity(options.localOpacity),
     fillType: sanitizeShapeFillType(options.fillType),
     fillColor: sanitizeColor(options.fillColor, "#F59E0B"),
     gradientFrom: sanitizeColor(options.gradientFrom, "#F59E0B"),
     gradientTo: sanitizeColor(options.gradientTo, "#FFFFFF"),
     gradientAngle: clampNumber(options.gradientAngle ?? 135, 0, 360),
     borderRadius: clampNumber(options.borderRadius ?? 12, 0, 100),
+    borderRadiusLocked: options.borderRadiusLocked !== false,
+    borderRadiusTopLeft: clampNumber(
+      numberOr(options.borderRadiusTopLeft, options.borderRadius ?? 12),
+      0,
+      100,
+    ),
+    borderRadiusTopRight: clampNumber(
+      numberOr(options.borderRadiusTopRight, options.borderRadius ?? 12),
+      0,
+      100,
+    ),
+    borderRadiusBottomRight: clampNumber(
+      numberOr(options.borderRadiusBottomRight, options.borderRadius ?? 12),
+      0,
+      100,
+    ),
+    borderRadiusBottomLeft: clampNumber(
+      numberOr(options.borderRadiusBottomLeft, options.borderRadius ?? 12),
+      0,
+      100,
+    ),
   };
 }
 
@@ -329,6 +376,27 @@ export function normalizeInvitationLayout(
       showSafeZone: Boolean(canvas.showSafeZone),
       safeZoneInset: clampNumber(numberOr(canvas.safeZoneInset, 6), 0, 30),
       borderRadius: clampNumber(Number(canvas.borderRadius) || 0, 0, 64),
+      borderRadiusLocked: canvas.borderRadiusLocked !== false,
+      borderRadiusTopLeft: clampNumber(
+        numberOr(canvas.borderRadiusTopLeft, Number(canvas.borderRadius) || 0),
+        0,
+        64,
+      ),
+      borderRadiusTopRight: clampNumber(
+        numberOr(canvas.borderRadiusTopRight, Number(canvas.borderRadius) || 0),
+        0,
+        64,
+      ),
+      borderRadiusBottomRight: clampNumber(
+        numberOr(canvas.borderRadiusBottomRight, Number(canvas.borderRadius) || 0),
+        0,
+        64,
+      ),
+      borderRadiusBottomLeft: clampNumber(
+        numberOr(canvas.borderRadiusBottomLeft, Number(canvas.borderRadius) || 0),
+        0,
+        64,
+      ),
       borderWidth: clampNumber(Number(canvas.borderWidth) || 0, 0, 20),
       borderColor: typeof canvas.borderColor === "string" ? canvas.borderColor : undefined,
     },
@@ -390,6 +458,7 @@ function normalizeElement(value: unknown) {
       opacity: Number(value.opacity),
       locked: Boolean(value.locked),
       shadow: value.shadow as InvitationTemplateShadow,
+      localOpacity: value.localOpacity as InvitationLocalOpacityMask,
       objectFit: value.objectFit as InvitationObjectFit,
       filters: value.filters as InvitationImageFilters,
     });
@@ -416,6 +485,7 @@ function normalizeElement(value: unknown) {
       opacity: Number(value.opacity),
       locked: Boolean(value.locked),
       shadow: value.shadow as InvitationTemplateShadow,
+      localOpacity: value.localOpacity as InvitationLocalOpacityMask,
       fontFamily: style.fontFamily as InvitationFontFamily,
       fontSize: Number(style.fontSize),
       color: typeof style.color === "string" ? style.color : undefined,
@@ -460,6 +530,7 @@ function normalizeElement(value: unknown) {
       opacity: Number(value.opacity),
       locked: Boolean(value.locked),
       shadow: value.shadow as InvitationTemplateShadow,
+      localOpacity: value.localOpacity as InvitationLocalOpacityMask,
       fontFamily: style.fontFamily as InvitationFontFamily,
       fontSize: Number(style.fontSize),
       color: typeof style.color === "string" ? style.color : undefined,
@@ -498,6 +569,7 @@ function normalizeElement(value: unknown) {
       opacity: Number(value.opacity),
       locked: Boolean(value.locked),
       shadow: value.shadow as InvitationTemplateShadow,
+      localOpacity: value.localOpacity as InvitationLocalOpacityMask,
       fgColor: typeof value.fgColor === "string" ? value.fgColor : undefined,
       bgColor: typeof value.bgColor === "string" ? value.bgColor : undefined,
       eccLevel: value.eccLevel as InvitationQRCodeErrorCorrection,
@@ -517,6 +589,7 @@ function normalizeElement(value: unknown) {
       opacity: Number(value.opacity),
       locked: Boolean(value.locked),
       shadow: value.shadow as InvitationTemplateShadow,
+      localOpacity: value.localOpacity as InvitationLocalOpacityMask,
       fillType: value.fillType as InvitationShapeFillType,
       fillColor: typeof value.fillColor === "string" ? value.fillColor : undefined,
       gradientFrom:
@@ -524,6 +597,11 @@ function normalizeElement(value: unknown) {
       gradientTo: typeof value.gradientTo === "string" ? value.gradientTo : undefined,
       gradientAngle: Number(value.gradientAngle),
       borderRadius: Number(value.borderRadius),
+      borderRadiusLocked: value.borderRadiusLocked !== false,
+      borderRadiusTopLeft: Number(value.borderRadiusTopLeft),
+      borderRadiusTopRight: Number(value.borderRadiusTopRight),
+      borderRadiusBottomRight: Number(value.borderRadiusBottomRight),
+      borderRadiusBottomLeft: Number(value.borderRadiusBottomLeft),
     });
   }
 
@@ -609,7 +687,75 @@ function sanitizeImageFilters(value: unknown): InvitationImageFilters {
       0,
       100,
     ),
+    saturate: clampNumber(
+      numberOr(filters.saturate, DEFAULT_IMAGE_FILTERS.saturate ?? 100),
+      0,
+      300,
+    ),
+    sepia: clampNumber(
+      numberOr(filters.sepia, DEFAULT_IMAGE_FILTERS.sepia ?? 0),
+      0,
+      100,
+    ),
+    invert: clampNumber(
+      numberOr(filters.invert, DEFAULT_IMAGE_FILTERS.invert ?? 0),
+      0,
+      100,
+    ),
+    hueRotate: clampNumber(
+      numberOr(filters.hueRotate, DEFAULT_IMAGE_FILTERS.hueRotate ?? 0),
+      0,
+      360,
+    ),
+    tintEnabled: Boolean(filters.tintEnabled),
+    tintColor: sanitizeColor(filters.tintColor, DEFAULT_IMAGE_FILTERS.tintColor ?? "#F59E0B"),
+    tintOpacity: clampNumber(
+      numberOr(filters.tintOpacity, DEFAULT_IMAGE_FILTERS.tintOpacity ?? 0.35),
+      0,
+      1,
+    ),
+    tintBlendMode: sanitizeBlendMode(filters.tintBlendMode),
+    gradientTintEnabled: Boolean(filters.gradientTintEnabled),
+    gradientTintFrom: sanitizeColor(
+      filters.gradientTintFrom,
+      DEFAULT_IMAGE_FILTERS.gradientTintFrom ?? "#F59E0B",
+    ),
+    gradientTintTo: sanitizeColor(
+      filters.gradientTintTo,
+      DEFAULT_IMAGE_FILTERS.gradientTintTo ?? "#111827",
+    ),
+    gradientTintAngle: clampNumber(
+      numberOr(filters.gradientTintAngle, DEFAULT_IMAGE_FILTERS.gradientTintAngle ?? 135),
+      0,
+      360,
+    ),
   };
+}
+
+function sanitizeLocalOpacity(value: unknown): InvitationLocalOpacityMask {
+  const mask = isRecord(value) ? value : {};
+
+  return {
+    enabled: Boolean(mask.enabled),
+    x: clampNumber(numberOr(mask.x, DEFAULT_LOCAL_OPACITY.x), 0, 100),
+    y: clampNumber(numberOr(mask.y, DEFAULT_LOCAL_OPACITY.y), 0, 100),
+    width: clampNumber(numberOr(mask.width, DEFAULT_LOCAL_OPACITY.width), 1, 100),
+    height: clampNumber(numberOr(mask.height, DEFAULT_LOCAL_OPACITY.height), 1, 100),
+    opacity: clampNumber(
+      numberOr(mask.opacity, DEFAULT_LOCAL_OPACITY.opacity),
+      0,
+      1,
+    ),
+  };
+}
+
+function sanitizeBlendMode(value: unknown): InvitationImageFilters["tintBlendMode"] {
+  return value === "multiply" ||
+    value === "screen" ||
+    value === "overlay" ||
+    value === "color"
+    ? value
+    : "color";
 }
 
 function sanitizeColor(value: unknown, fallback: string) {

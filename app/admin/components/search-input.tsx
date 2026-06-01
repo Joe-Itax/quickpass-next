@@ -100,8 +100,10 @@ export default function SearchInput() {
     if (open || debouncedSearchTerm !== "") {
       fetchResults();
     } else if (!open && searchTerm === "") {
-      setSearchResults({ users: [], canteenStudents: [] });
-      setIsLoading(false);
+      queueMicrotask(() => {
+        setSearchResults({ users: [], canteenStudents: [] });
+        setIsLoading(false);
+      });
     }
   }, [debouncedSearchTerm, open, searchTerm]);
 

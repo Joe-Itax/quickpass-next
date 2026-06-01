@@ -17,6 +17,9 @@ export async function POST(req: NextRequest, context: EventContext) {
   if (user instanceof NextResponse) return user;
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const sendMode = body?.sendMode === "unsent" ? "unsent" : "all";
+
     // 1. Vérification du plan de table
     const unassignedCount = await prisma.invitation.count({
       where: { eventId, allocations: { none: {} } },
@@ -61,6 +64,7 @@ export async function POST(req: NextRequest, context: EventContext) {
       where: {
         eventId,
         email: { not: null, contains: "@" },
+        ...(sendMode === "unsent" ? { isSentEmail: false } : {}),
       },
     });
 
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest, context: EventContext) {
       success: true,
       count: successIds.length,
       failed: guests.length - successIds.length,
+      mode: sendMode,
     });
   } catch (error) {
     console.error("Brevo Error:", error);

@@ -21,6 +21,8 @@ import {
   Move,
   MoveLeftIcon,
   Palette,
+  PanelLeft,
+  PanelRight,
   QrCode,
   Save,
   Square,
@@ -41,9 +43,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { InvitationRenderer } from "@/components/invitations/invitation-renderer";
 
 import { compressImageToWebP } from "@/lib/client-image-compression";
+import {
+  buildInvitationExportBlob,
+  downloadBlob,
+  safeFileName,
+} from "@/lib/client-invitation-export";
 import {
   createImageElement,
   createLinkElement,
@@ -57,6 +71,8 @@ import {
 } from "@/lib/invitation-template-layout";
 import { saveInvitationTemplateAction } from "@/app/admin/invitation-templates/actions";
 import type {
+  InvitationGuestData,
+  InvitationTemplateCanvas,
   InvitationTemplateElement,
   InvitationTemplateImageElement,
   InvitationTemplateLinkElement,
@@ -91,6 +107,29 @@ type DragMode = "move" | "resize";
 type RichTextTemplateElement =
   | InvitationTemplateTextElement
   | InvitationTemplateLinkElement;
+type ExportEventData = {
+  name: string;
+  description: string;
+  date: string;
+  durationHours: number;
+  location: string;
+  fullLocation: string;
+  invitationMessage: string;
+  peopleCount: number;
+};
+type ExportFieldDefinition =
+  | {
+      scope: "guest";
+      key: keyof InvitationGuestData;
+      label: string;
+      type?: "text" | "number";
+    }
+  | {
+      scope: "event";
+      key: keyof ExportEventData;
+      label: string;
+      type?: "text" | "number";
+    };
 
 type ActiveDrag = {
   mode: DragMode;
@@ -119,6 +158,49 @@ const PREVIEW_GUEST = {
   whatsapp: "243900000000",
   qrCodeData: "YAMBIPASS-PREVIEW-QR",
 };
+const EXPORT_FIELD_DEFINITIONS = {
+  guest_name: { scope: "guest", key: "name", label: "Nom invite" },
+  guest_table: { scope: "guest", key: "table", label: "Table" },
+  guest_people_count: {
+    scope: "guest",
+    key: "peopleCount",
+    label: "Personnes",
+    type: "number",
+  },
+  guest_email: { scope: "guest", key: "email", label: "Email" },
+  guest_whatsapp: { scope: "guest", key: "whatsapp", label: "WhatsApp" },
+  guest_seats: {
+    scope: "guest",
+    key: "seatsAssigned",
+    label: "Sieges",
+    type: "number",
+  },
+  guest_qrcode: { scope: "guest", key: "qrCodeData", label: "Donnee QR" },
+  event_name: { scope: "event", key: "name", label: "Evenement" },
+  event_description: {
+    scope: "event",
+    key: "description",
+    label: "Description",
+  },
+  event_date: { scope: "event", key: "date", label: "Date" },
+  event_duration: {
+    scope: "event",
+    key: "durationHours",
+    label: "Duree",
+    type: "number",
+  },
+  event_location: { scope: "event", key: "location", label: "Lieu" },
+  event_full_location: {
+    scope: "event",
+    key: "fullLocation",
+    label: "Adresse",
+  },
+  event_message: {
+    scope: "event",
+    key: "invitationMessage",
+    label: "Message",
+  },
+} as const satisfies Record<string, ExportFieldDefinition>;
 
 export function TemplateEditor({
   template,
@@ -127,6 +209,7 @@ export function TemplateEditor({
 }) {
   const router = useRouter();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const exportPreviewRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const activeDragRef = useRef<ActiveDrag | null>(null);
@@ -134,6 +217,22 @@ export function TemplateEditor({
   const historyFutureRef = useRef<InvitationTemplateLayout[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
+  const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
+  const [isInspectorPanelOpen, setIsInspectorPanelOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const [exportGuestData, setExportGuestData] =
+    useState<InvitationGuestData>(PREVIEW_GUEST);
+  const [exportEventData, setExportEventData] = useState<ExportEventData>({
+    name: "Evenement YambiPass",
+    description: "Description de l'evenement",
+    date: new Date().toLocaleDateString("fr-FR"),
+    durationHours: 24,
+    location: "Lieu",
+    fullLocation: "Adresse complete",
+    invitationMessage: "Vous etes invite.",
+    peopleCount: PREVIEW_GUEST.peopleCount,
+  });
   const [name, setName] = useState(template.name);
   const [category, setCategory] = useState<EditorCategory>(template.category);
   const [isPublic, setIsPublic] = useState<boolean>(template.isPublic);
@@ -152,6 +251,7 @@ export function TemplateEditor({
     layout.canvas.width,
     layout.canvas.height,
   );
+  const exportFields = useMemo(() => getExportFields(layout), [layout]);
 
   const commitLayout = (
     updater:
@@ -608,6 +708,29 @@ export function TemplateEditor({
     });
   };
 
+  const downloadCurrentInvitationImage = async () => {
+    if (!exportPreviewRef.current) return;
+    setIsExportingImage(true);
+
+    try {
+      const blob = await buildInvitationExportBlob(
+        exportPreviewRef.current,
+        "image",
+        4,
+      );
+      downloadBlob(
+        blob,
+        `Invitation_${safeFileName(name) || template.id}_preview.png`,
+      );
+      toast.success("Image HD generee.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Impossible de generer l'image.");
+    } finally {
+      setIsExportingImage(false);
+    }
+  };
+
   return (
     <section className="min-h-screen space-y-5 text-white">
       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
@@ -724,6 +847,15 @@ export function TemplateEditor({
             </label>
           </div>
           <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsExportDialogOpen(true)}
+            className="h-11 rounded-xl border-white/10 bg-white/5 px-5 font-black uppercase italic text-white hover:bg-white/10 hover:text-white"
+          >
+            <ImagePlus />
+            Export HD
+          </Button>
+          <Button
             onClick={saveTemplate}
             disabled={isPending || isUploading}
             className="h-11 rounded-xl bg-primary px-5 font-black uppercase italic text-black hover:bg-white"
@@ -734,8 +866,54 @@ export function TemplateEditor({
         </div>
       </div>
 
-      <div className="grid min-h-[calc(100vh-140px)] xl:h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)_300px] xl:overflow-hidden">
-        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 xl:overflow-y-auto custom-scrollbar">
+      <div className="flex gap-2 min-[900px]:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsToolsPanelOpen(true)}
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+        >
+          <PanelLeft className="size-4" />
+          Outils
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsInspectorPanelOpen(true)}
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+        >
+          <PanelRight className="size-4" />
+          Inspecteur
+        </Button>
+      </div>
+
+      {(isToolsPanelOpen || isInspectorPanelOpen) && (
+        <button
+          type="button"
+          aria-label="Fermer les panneaux"
+          className="fixed inset-0 z-40 bg-black/60 min-[900px]:hidden"
+          onClick={() => {
+            setIsToolsPanelOpen(false);
+            setIsInspectorPanelOpen(false);
+          }}
+        />
+      )}
+
+      <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[min(86vw,320px)] space-y-4 overflow-y-auto border-r border-white/10 bg-black/95 p-4 shadow-2xl transition-transform custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+            isToolsPanelOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setIsToolsPanelOpen(false)}
+            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
+          >
+            <MoveLeftIcon className="size-4" />
+            Fermer
+          </Button>
           <PanelTitle icon={Layers} label="Outils" />
 
           <div className="flex flex-col gap-2">
@@ -1090,26 +1268,83 @@ export function TemplateEditor({
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500">
+              <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-widest text-gray-500">
                 <span>Arrondi (Rayon)</span>
-                <span>{layout.canvas.borderRadius}px</span>
+                <label className="flex items-center gap-2">
+                  Lie
+                  <Switch
+                    checked={layout.canvas.borderRadiusLocked !== false}
+                    onCheckedChange={(checked) =>
+                      commitLayout((current) => ({
+                        ...current,
+                        canvas: {
+                          ...current.canvas,
+                          borderRadiusLocked: checked,
+                        },
+                      }))
+                    }
+                  />
+                </label>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="64"
-                value={layout.canvas.borderRadius}
-                onChange={(e) =>
-                  commitLayout((current) => ({
-                    ...current,
-                    canvas: {
-                      ...current.canvas,
-                      borderRadius: Number(e.target.value),
-                    },
-                  }))
-                }
-                className="w-full accent-primary"
-              />
+              {layout.canvas.borderRadiusLocked !== false ? (
+                <>
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    <span>4 coins</span>
+                    <span>{layout.canvas.borderRadius}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="64"
+                    value={layout.canvas.borderRadius}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      commitLayout((current) => ({
+                        ...current,
+                        canvas: {
+                          ...current.canvas,
+                          borderRadius: value,
+                          borderRadiusTopLeft: value,
+                          borderRadiusTopRight: value,
+                          borderRadiusBottomRight: value,
+                          borderRadiusBottomLeft: value,
+                        },
+                      }));
+                    }}
+                    className="w-full accent-primary"
+                  />
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ["HG", "borderRadiusTopLeft"],
+                    ["HD", "borderRadiusTopRight"],
+                    ["BD", "borderRadiusBottomRight"],
+                    ["BG", "borderRadiusBottomLeft"],
+                  ].map(([label, key]) => (
+                    <NumberInput
+                      key={key}
+                      label={label}
+                      value={
+                        Number(
+                          layout.canvas[
+                            key as keyof InvitationTemplateCanvas
+                          ],
+                        ) || 0
+                      }
+                      onChange={(value) =>
+                        commitLayout((current) => ({
+                          ...current,
+                          canvas: {
+                            ...current.canvas,
+                            [key]: clamp(value, 0, 64),
+                          },
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -1159,7 +1394,7 @@ export function TemplateEditor({
           </div>
         </aside>
 
-        <main className="flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 xl:min-h-0 xl:overflow-y-auto custom-scrollbar">
+        <main className="flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar">
           <div
             ref={canvasRef}
             className="w-full max-w-107.5 flex-none"
@@ -1193,7 +1428,20 @@ export function TemplateEditor({
           </div>
         </main>
 
-        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 xl:overflow-y-auto custom-scrollbar">
+        <aside
+          className={`fixed inset-y-0 right-0 z-50 w-[min(88vw,340px)] space-y-4 overflow-y-auto border-l border-white/10 bg-black/95 p-4 shadow-2xl transition-transform custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+            isInspectorPanelOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setIsInspectorPanelOpen(false)}
+            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
+          >
+            <MoveLeftIcon className="size-4" />
+            Fermer
+          </Button>
           <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
 
           {selectedElement ? (
@@ -1210,6 +1458,111 @@ export function TemplateEditor({
           )}
         </aside>
       </div>
+
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="max-w-3xl border-white/10 bg-[#0b0b0b] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic">
+              Export image HD
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
+            <div className="grid grid-cols-2 gap-3">
+              {exportFields.length === 0 ? (
+                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-400">
+                  Aucune variable texte detectee. Le QR reste exporte avec sa
+                  valeur de preview.
+                </div>
+              ) : null}
+              {exportFields.map((field) => (
+                <label
+                  key={`${field.scope}-${field.key}`}
+                  className="space-y-1"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    {field.label}
+                  </span>
+                  {field.type === "number" ? (
+                    <Input
+                      type="number"
+                      value={String(
+                        field.scope === "guest"
+                          ? exportGuestData[
+                              field.key as keyof InvitationGuestData
+                            ] ?? ""
+                          : exportEventData[
+                              field.key as keyof typeof exportEventData
+                            ] ?? "",
+                      )}
+                      onChange={(event) =>
+                        updateExportField(
+                          field,
+                          Number(event.target.value),
+                          setExportGuestData,
+                          setExportEventData,
+                        )
+                      }
+                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+                    />
+                  ) : (
+                    <Input
+                      value={String(
+                        field.scope === "guest"
+                          ? exportGuestData[
+                              field.key as keyof InvitationGuestData
+                            ] ?? ""
+                          : exportEventData[
+                              field.key as keyof typeof exportEventData
+                            ] ?? "",
+                      )}
+                      onChange={(event) =>
+                        updateExportField(
+                          field,
+                          event.target.value,
+                          setExportGuestData,
+                          setExportEventData,
+                        )
+                      }
+                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <div ref={exportPreviewRef} className="w-full">
+                <InvitationRenderer
+                  templateData={layout}
+                  guestData={exportGuestData}
+                  eventData={exportEventData}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            >
+              Fermer
+            </Button>
+            <Button
+              type="button"
+              onClick={downloadCurrentInvitationImage}
+              disabled={isExportingImage}
+              className="bg-primary font-black uppercase italic text-black hover:bg-white"
+            >
+              {isExportingImage ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+              Telecharger PNG HD
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -1547,6 +1900,101 @@ function Inspector({
         ) : null}
       </div>
 
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+            Zone d&apos;opacite
+          </p>
+          <Switch
+            checked={Boolean(element.localOpacity?.enabled)}
+            onCheckedChange={(checked) =>
+              onChange((current) => ({
+                ...current,
+                localOpacity: {
+                  ...(current.localOpacity ?? {
+                    x: 25,
+                    y: 25,
+                    width: 50,
+                    height: 50,
+                    opacity: 0.5,
+                  }),
+                  enabled: checked,
+                },
+              }))
+            }
+          />
+        </div>
+        {element.localOpacity?.enabled ? (
+          <div className="grid grid-cols-2 gap-3">
+            <NumberInput
+              label="X"
+              value={element.localOpacity.x}
+              onChange={(value) =>
+                onChange((current) => ({
+                  ...current,
+                  localOpacity: {
+                    ...current.localOpacity!,
+                    x: clamp(value, 0, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Y"
+              value={element.localOpacity.y}
+              onChange={(value) =>
+                onChange((current) => ({
+                  ...current,
+                  localOpacity: {
+                    ...current.localOpacity!,
+                    y: clamp(value, 0, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Largeur"
+              value={element.localOpacity.width}
+              onChange={(value) =>
+                onChange((current) => ({
+                  ...current,
+                  localOpacity: {
+                    ...current.localOpacity!,
+                    width: clamp(value, 1, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Hauteur"
+              value={element.localOpacity.height}
+              onChange={(value) =>
+                onChange((current) => ({
+                  ...current,
+                  localOpacity: {
+                    ...current.localOpacity!,
+                    height: clamp(value, 1, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Opacite %"
+              value={Math.round(element.localOpacity.opacity * 100)}
+              onChange={(value) =>
+                onChange((current) => ({
+                  ...current,
+                  localOpacity: {
+                    ...current.localOpacity!,
+                    opacity: clamp(value, 0, 100) / 100,
+                  },
+                }))
+              }
+            />
+          </div>
+        ) : null}
+      </div>
+
       <div className="space-y-2">
         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
           Alignement Horizontal (Canva)
@@ -1661,7 +2109,7 @@ function Inspector({
               <SelectItem value="fill">Etirer</SelectItem>
             </SelectContent>
           </Select>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <NumberInput
               label="Lum."
               value={element.filters?.brightness ?? 100}
@@ -1713,6 +2161,211 @@ function Inspector({
                 }))
               }
             />
+            <NumberInput
+              label="Saturation"
+              value={element.filters?.saturate ?? 100}
+              onChange={(value) =>
+                updateImage((current) => ({
+                  ...current,
+                  filters: {
+                    ...(current.filters ?? {
+                      brightness: 100,
+                      contrast: 100,
+                      grayscale: 0,
+                    }),
+                    saturate: clamp(value, 0, 300),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Sepia"
+              value={element.filters?.sepia ?? 0}
+              onChange={(value) =>
+                updateImage((current) => ({
+                  ...current,
+                  filters: {
+                    ...(current.filters ?? {
+                      brightness: 100,
+                      contrast: 100,
+                      grayscale: 0,
+                    }),
+                    sepia: clamp(value, 0, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Inverser"
+              value={element.filters?.invert ?? 0}
+              onChange={(value) =>
+                updateImage((current) => ({
+                  ...current,
+                  filters: {
+                    ...(current.filters ?? {
+                      brightness: 100,
+                      contrast: 100,
+                      grayscale: 0,
+                    }),
+                    invert: clamp(value, 0, 100),
+                  },
+                }))
+              }
+            />
+            <NumberInput
+              label="Teinte"
+              value={element.filters?.hueRotate ?? 0}
+              onChange={(value) =>
+                updateImage((current) => ({
+                  ...current,
+                  filters: {
+                    ...(current.filters ?? {
+                      brightness: 100,
+                      contrast: 100,
+                      grayscale: 0,
+                    }),
+                    hueRotate: clamp(value, 0, 360),
+                  },
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Recolorer
+              </p>
+              <Switch
+                checked={Boolean(element.filters?.tintEnabled)}
+                onCheckedChange={(checked) =>
+                  updateImage((current) => ({
+                    ...current,
+                    filters: {
+                      ...(current.filters ?? {
+                        brightness: 100,
+                        contrast: 100,
+                        grayscale: 0,
+                      }),
+                      tintEnabled: checked,
+                    },
+                  }))
+                }
+              />
+            </div>
+            {element.filters?.tintEnabled ? (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    Couleur
+                  </span>
+                  <Input
+                    type="color"
+                    value={element.filters.tintColor ?? "#F59E0B"}
+                    onChange={(event) =>
+                      updateImage((current) => ({
+                        ...current,
+                        filters: {
+                          ...current.filters!,
+                          tintColor: event.target.value,
+                        },
+                      }))
+                    }
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                  />
+                </label>
+                <NumberInput
+                  label="Opacite %"
+                  value={Math.round((element.filters.tintOpacity ?? 0.35) * 100)}
+                  onChange={(value) =>
+                    updateImage((current) => ({
+                      ...current,
+                      filters: {
+                        ...current.filters!,
+                        tintOpacity: clamp(value, 0, 100) / 100,
+                      },
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Gradient image
+              </p>
+              <Switch
+                checked={Boolean(element.filters?.gradientTintEnabled)}
+                onCheckedChange={(checked) =>
+                  updateImage((current) => ({
+                    ...current,
+                    filters: {
+                      ...(current.filters ?? {
+                        brightness: 100,
+                        contrast: 100,
+                        grayscale: 0,
+                      }),
+                      gradientTintEnabled: checked,
+                    },
+                  }))
+                }
+              />
+            </div>
+            {element.filters?.gradientTintEnabled ? (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    De
+                  </span>
+                  <Input
+                    type="color"
+                    value={element.filters.gradientTintFrom ?? "#F59E0B"}
+                    onChange={(event) =>
+                      updateImage((current) => ({
+                        ...current,
+                        filters: {
+                          ...current.filters!,
+                          gradientTintFrom: event.target.value,
+                        },
+                      }))
+                    }
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    A
+                  </span>
+                  <Input
+                    type="color"
+                    value={element.filters.gradientTintTo ?? "#111827"}
+                    onChange={(event) =>
+                      updateImage((current) => ({
+                        ...current,
+                        filters: {
+                          ...current.filters!,
+                          gradientTintTo: event.target.value,
+                        },
+                      }))
+                    }
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                  />
+                </label>
+                <NumberInput
+                  label="Angle"
+                  value={element.filters.gradientTintAngle ?? 135}
+                  onChange={(value) =>
+                    updateImage((current) => ({
+                      ...current,
+                      filters: {
+                        ...current.filters!,
+                        gradientTintAngle: clamp(value, 0, 360),
+                      },
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       ) : element.type === "qrcode" ? (
@@ -1833,16 +2486,93 @@ function Inspector({
                 className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </label>
-            <NumberInput
-              label="Rayon %"
-              value={element.borderRadius}
-              onChange={(value) =>
-                updateShape((current) => ({
-                  ...current,
-                  borderRadius: clamp(value, 0, 100),
-                }))
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                updateShape((current) => {
+                  const radius = 100;
+                  return {
+                    ...current,
+                    height: clamp(current.width, 2, 200),
+                    borderRadius: radius,
+                    borderRadiusLocked: true,
+                    borderRadiusTopLeft: radius,
+                    borderRadiusTopRight: radius,
+                    borderRadiusBottomRight: radius,
+                    borderRadiusBottomLeft: radius,
+                  };
+                })
               }
-            />
+              className="self-end h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            >
+              Cercle
+            </Button>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Rayon coins
+              </span>
+              <label className="flex items-center gap-2 text-[10px] font-bold uppercase text-gray-500">
+                Lie
+                <Switch
+                  checked={element.borderRadiusLocked !== false}
+                  onCheckedChange={(checked) =>
+                    updateShape((current) => ({
+                      ...current,
+                      borderRadiusLocked: checked,
+                    }))
+                  }
+                />
+              </label>
+            </div>
+            {element.borderRadiusLocked !== false ? (
+              <NumberInput
+                label="4 coins %"
+                value={element.borderRadius}
+                onChange={(value) =>
+                  updateShape((current) => {
+                    const radius = clamp(value, 0, 100);
+
+                    return {
+                      ...current,
+                      borderRadius: radius,
+                      borderRadiusTopLeft: radius,
+                      borderRadiusTopRight: radius,
+                      borderRadiusBottomRight: radius,
+                      borderRadiusBottomLeft: radius,
+                    };
+                  })
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["HG", "borderRadiusTopLeft"],
+                  ["HD", "borderRadiusTopRight"],
+                  ["BD", "borderRadiusBottomRight"],
+                  ["BG", "borderRadiusBottomLeft"],
+                ].map(([label, key]) => (
+                  <NumberInput
+                    key={key}
+                    label={label}
+                    value={
+                      Number(
+                        element[key as keyof InvitationTemplateShapeElement],
+                      ) || 0
+                    }
+                    onChange={(value) =>
+                      updateShape((current) => ({
+                        ...current,
+                        [key]: clamp(value, 0, 100),
+                      }))
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {element.fillType === "gradient" ? (
@@ -2402,6 +3132,49 @@ function NumberInput({
       />
     </label>
   );
+}
+
+function getExportFields(
+  layout: InvitationTemplateLayout,
+): ExportFieldDefinition[] {
+  const tokens = new Set<keyof typeof EXPORT_FIELD_DEFINITIONS>();
+
+  for (const element of layout.elements) {
+    if (element.type === "qrcode") {
+      tokens.add("guest_qrcode");
+      continue;
+    }
+
+    if (!isRichTextElement(element)) continue;
+
+    const source = `${element.content} ${element.richContent ?? ""}`;
+    for (const match of source.matchAll(/{{\s*([a-z_]+)\s*}}/gi)) {
+      const token = match[1] as keyof typeof EXPORT_FIELD_DEFINITIONS;
+      if (token in EXPORT_FIELD_DEFINITIONS) tokens.add(token);
+    }
+  }
+
+  return Array.from(tokens).map((token) => EXPORT_FIELD_DEFINITIONS[token]);
+}
+
+function updateExportField(
+  field: ExportFieldDefinition,
+  value: string | number,
+  setGuestData: React.Dispatch<React.SetStateAction<InvitationGuestData>>,
+  setEventData: React.Dispatch<React.SetStateAction<ExportEventData>>,
+) {
+  if (field.scope === "guest") {
+    setGuestData((current) => ({
+      ...current,
+      [field.key]: value,
+    }));
+    return;
+  }
+
+  setEventData((current) => ({
+    ...current,
+    [field.key]: value,
+  }));
 }
 
 function ToolButton({

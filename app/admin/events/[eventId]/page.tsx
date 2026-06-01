@@ -89,7 +89,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -3 }}
       className={cn(
-        "relative z-10 transform-gpu will-change-transform p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors",
+        "relative z-10 p-5 rounded-4xl border border-white/5 flex flex-col items-center text-center gap-2 overflow-hidden transition-colors [backface-visibility:hidden] [contain:paint]",
         glow
           ? "bg-emerald-500/10 hover:bg-emerald-500/20"
           : "bg-white/5 hover:bg-white/10",
@@ -117,6 +117,9 @@ export default function EventPage() {
   const [isExportingInvitations, setIsExportingInvitations] = useState(false);
   const [bulkExportFormat, setBulkExportFormat] =
     useState<InvitationExportFormat>("pdf");
+  const [broadcastMode, setBroadcastMode] = useState<"all" | "unsent">(
+    "unsent",
+  );
   const bulkExportRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -176,6 +179,8 @@ export default function EventPage() {
     try {
       const res = await fetch(`/api/events/${eventId}/broadcast/email`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendMode: broadcastMode }),
       });
       const result = await res.json();
       if (res.ok) {
@@ -195,6 +200,8 @@ export default function EventPage() {
     try {
       const res = await fetch(`/api/events/${eventId}/broadcast/whatsapp`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendMode: broadcastMode }),
       });
       const result = await res.json();
 
@@ -343,7 +350,7 @@ export default function EventPage() {
 
   return (
     <section className="py-6 px-2 max-w-7xl mx-auto space-y-8 bg-background min-h-screen">
-      <div className="relative z-10 transform-gpu backface-hidden flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
+      <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5 [backface-visibility:hidden]">
         <div className="space-y-4">
           <Button
             variant="ghost"
@@ -378,7 +385,7 @@ export default function EventPage() {
             </Badge>
           </div>
 
-          <div className="transform-gpu flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
+          <div className="flex flex-wrap items-center gap-6 text-gray-400 text-[10px] font-black uppercase tracking-[0.15em]">
             <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
               <Calendar size={14} className="text-primary" />{" "}
               {formatDateTime(event.date)}
@@ -397,6 +404,16 @@ export default function EventPage() {
           <ModifyEvent event={event} />
           <AddGuest eventId={event.id} />
           <ImportGuests eventId={event.id} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push(`/admin/events/${event.id}/excel`)}
+            // className="rounded-xl border-white/10 bg-white/5 px-5 text-[10px] font-black uppercase italic text-white hover:bg-white/10 hover:text-white"
+            className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
+          >
+            <FileSpreadsheet className="size-4 mr-2 text-primary" />{" "}
+            Tableur
+          </Button>
           <AddTable eventId={event.id} />
           <Button
             variant="destructive"
@@ -414,7 +431,7 @@ export default function EventPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="relative z-10 transform-gpu will-change-[height,opacity] p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden"
+            className="relative z-10 p-8 rounded-[3rem] border border-red-500/30 bg-red-950/40 space-y-6 overflow-hidden [backface-visibility:hidden] [contain:paint]"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-red-500/20 pb-6">
               <div className="flex items-center gap-4">
@@ -442,7 +459,7 @@ export default function EventPage() {
         )}
       </AnimatePresence>
 
-      <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6 relative overflow-hidden">
+      <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6 relative overflow-hidden [backface-visibility:hidden] [contain:paint]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black italic uppercase text-white">
@@ -462,6 +479,20 @@ export default function EventPage() {
               </span>
             </div>
           )}
+          <Select
+            value={broadcastMode}
+            onValueChange={(value) =>
+              setBroadcastMode(value as "all" | "unsent")
+            }
+          >
+            <SelectTrigger className="h-11 w-full rounded-2xl border-white/10 bg-black/30 text-white md:w-68">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
+              <SelectItem value="unsent">Seulement ceux non envoyes</SelectItem>
+              <SelectItem value="all">Tout le monde</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">

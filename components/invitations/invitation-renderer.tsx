@@ -59,7 +59,7 @@ export function InvitationRenderer({
         aspectRatio,
         containerType: "inline-size",
         backgroundColor: layout.canvas.backgroundColor,
-        borderRadius: layout.canvas.borderRadius,
+        borderRadius: canvasBorderRadius(layout),
         borderWidth: layout.canvas.borderWidth ? `${layout.canvas.borderWidth}px` : undefined,
         borderColor: layout.canvas.borderColor,
         borderStyle: layout.canvas.borderWidth ? "solid" : undefined,
@@ -88,6 +88,9 @@ export function InvitationRenderer({
         <TemplateElement
           key={element.id}
           element={element}
+          canvasWidth={layout.canvas.width}
+          canvasHeight={layout.canvas.height}
+          canvasBackgroundColor={layout.canvas.backgroundColor}
           guestData={guestData}
           eventData={eventData}
           interactive={interactive}
@@ -113,6 +116,9 @@ export function InvitationRenderer({
 
 function TemplateElement({
   element,
+  canvasWidth,
+  canvasHeight,
+  canvasBackgroundColor,
   guestData,
   eventData,
   interactive,
@@ -122,6 +128,9 @@ function TemplateElement({
   renderResizeHandle,
 }: {
   element: InvitationTemplateElement;
+  canvasWidth: number;
+  canvasHeight: number;
+  canvasBackgroundColor: string;
   guestData: InvitationGuestData;
   eventData?: InvitationEventData;
   interactive: boolean;
@@ -134,6 +143,10 @@ function TemplateElement({
   renderResizeHandle?: (element: InvitationTemplateElement) => React.ReactNode;
 }) {
   const isTextElement = isTextLikeElement(element);
+  const renderedHeight =
+    element.type === "shape"
+      ? element.height * (canvasWidth / canvasHeight)
+      : element.height;
 
   return (
     <div
@@ -152,7 +165,7 @@ function TemplateElement({
         left: `${element.x}%`,
         top: `${element.y}%`,
         width: `${element.width}%`,
-        height: `${element.height}%`,
+        height: `${renderedHeight}%`,
         zIndex: element.zIndex,
         opacity: element.opacity,
         transform: `rotate(${element.rotation}deg)`,
@@ -172,16 +185,38 @@ function TemplateElement({
       }}
     >
       {element.type === "image" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={element.src}
-          alt={element.alt || "Invitation asset"}
-          className="pointer-events-none size-full"
-          style={{
-            filter: imageFilter(element.filters),
-            objectFit: element.objectFit,
-          }}
-        />
+        <div className="relative size-full overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={element.src}
+            alt={element.alt || "Invitation asset"}
+            className="pointer-events-none size-full"
+            style={{
+              filter: imageFilter(element.filters),
+              objectFit: element.objectFit,
+            }}
+          />
+          {element.filters?.tintEnabled ? (
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundColor: element.filters.tintColor,
+                opacity: element.filters.tintOpacity,
+                mixBlendMode: element.filters.tintBlendMode,
+              }}
+            />
+          ) : null}
+          {element.filters?.gradientTintEnabled ? (
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: `linear-gradient(${element.filters.gradientTintAngle ?? 135}deg, ${element.filters.gradientTintFrom ?? "#F59E0B"}, ${element.filters.gradientTintTo ?? "#111827"})`,
+                opacity: element.filters.tintOpacity ?? 0.35,
+                mixBlendMode: element.filters.tintBlendMode ?? "color",
+              }}
+            />
+          ) : null}
+        </div>
       ) : element.type === "qrcode" ? (
         <div
           className="flex size-full items-center justify-center overflow-hidden"
@@ -216,7 +251,7 @@ function TemplateElement({
               element.fillType === "gradient"
                 ? `linear-gradient(${element.gradientAngle}deg, ${element.gradientFrom}, ${element.gradientTo})`
                 : element.fillColor,
-            borderRadius: `${element.borderRadius}%`,
+            borderRadius: shapeBorderRadius(element),
           }}
         />
       ) : isTextElement ? (
@@ -225,6 +260,21 @@ function TemplateElement({
           guestData={guestData}
           eventData={eventData}
           interactive={interactive}
+        />
+      ) : null}
+
+      {element.localOpacity?.enabled ? (
+        <div
+          className="pointer-events-none absolute"
+          style={{
+            left: `${element.localOpacity.x}%`,
+            top: `${element.localOpacity.y}%`,
+            width: `${element.localOpacity.width}%`,
+            height: `${element.localOpacity.height}%`,
+            backgroundColor: canvasBackgroundColor,
+            opacity: 1 - element.localOpacity.opacity,
+            zIndex: 5,
+          }}
         />
       ) : null}
 
@@ -322,8 +372,29 @@ function imageFilter(filters?: InvitationImageFilters) {
   const brightness = filters?.brightness ?? 100;
   const contrast = filters?.contrast ?? 100;
   const grayscale = filters?.grayscale ?? 0;
+  const saturate = filters?.saturate ?? 100;
+  const sepia = filters?.sepia ?? 0;
+  const invert = filters?.invert ?? 0;
+  const hueRotate = filters?.hueRotate ?? 0;
 
-  return `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
+  return `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%) saturate(${saturate}%) sepia(${sepia}%) invert(${invert}%) hue-rotate(${hueRotate}deg)`;
+}
+
+function canvasBorderRadius(layout: InvitationTemplateLayout) {
+  const canvas = layout.canvas;
+  if (canvas.borderRadiusLocked !== false) return canvas.borderRadius;
+
+  return `${canvas.borderRadiusTopLeft ?? canvas.borderRadius}px ${canvas.borderRadiusTopRight ?? canvas.borderRadius}px ${canvas.borderRadiusBottomRight ?? canvas.borderRadius}px ${canvas.borderRadiusBottomLeft ?? canvas.borderRadius}px`;
+}
+
+function shapeBorderRadius(
+  element: Extract<InvitationTemplateElement, { type: "shape" }>,
+) {
+  if (element.borderRadiusLocked !== false) {
+    return `${element.borderRadius}%`;
+  }
+
+  return `${element.borderRadiusTopLeft ?? element.borderRadius}% ${element.borderRadiusTopRight ?? element.borderRadius}% ${element.borderRadiusBottomRight ?? element.borderRadius}% ${element.borderRadiusBottomLeft ?? element.borderRadius}%`;
 }
 
 function cssShadow(shadow?: InvitationTemplateShadow) {

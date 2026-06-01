@@ -111,6 +111,13 @@ export async function POST(req: NextRequest, context: Context) {
       guests: [guest],
     });
 
+    if (result.queued > 0) {
+      await prisma.invitation.update({
+        where: { id: guestId },
+        data: { isSentWhatsapp: true },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       queued: result.queued,
