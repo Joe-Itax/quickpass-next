@@ -5,6 +5,9 @@ import jsPDF from "jspdf";
 
 export type InvitationExportFormat = "pdf" | "image";
 
+const DEFAULT_EXPORT_TARGET_WIDTH = 3000;
+const MAX_EXPORT_SCALE = 10;
+
 export async function captureInvitationElement(
   element: HTMLElement,
   scale = 4,
@@ -15,10 +18,11 @@ export async function captureInvitationElement(
   await waitForBackgroundImages(element);
 
   return html2canvas(element, {
-    scale,
+    scale: resolveExportScale(element, scale),
     useCORS: true,
     backgroundColor: null,
     removeContainer: true,
+    imageTimeout: 30000,
   });
 }
 
@@ -68,6 +72,18 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement) {
       reject(new Error("Impossible de generer l'image PNG."));
     }, "image/png");
   });
+}
+
+function resolveExportScale(element: HTMLElement, minimumScale: number) {
+  const rect = element.getBoundingClientRect();
+  const renderedWidth = rect.width || element.offsetWidth;
+
+  if (!renderedWidth) return Math.min(MAX_EXPORT_SCALE, minimumScale);
+
+  return Math.min(
+    MAX_EXPORT_SCALE,
+    Math.max(minimumScale, DEFAULT_EXPORT_TARGET_WIDTH / renderedWidth),
+  );
 }
 
 export function downloadBlob(blob: Blob, fileName: string) {

@@ -70,10 +70,6 @@ export function InvitationRenderer({
         <div
           className="pointer-events-none absolute inset-0"
           style={{
-            backgroundImage: `url(${layout.canvas.backgroundImageUrl})`,
-            backgroundPosition: `${layout.canvas.backgroundImageX ?? 50}% ${layout.canvas.backgroundImageY ?? 50}%`,
-            backgroundRepeat: "no-repeat",
-            backgroundSize: `${layout.canvas.backgroundImageScale ?? 100}%`,
             filter: imageFilter({
               brightness: layout.canvas.backgroundImageBrightness ?? 100,
               contrast: layout.canvas.backgroundImageContrast ?? 100,
@@ -81,7 +77,23 @@ export function InvitationRenderer({
             }),
             zIndex: 0,
           }}
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={layout.canvas.backgroundImageUrl}
+            alt=""
+            crossOrigin="anonymous"
+            decoding="sync"
+            loading="eager"
+            className="absolute h-auto max-w-none select-none"
+            style={{
+              left: `${layout.canvas.backgroundImageX ?? 50}%`,
+              top: `${layout.canvas.backgroundImageY ?? 50}%`,
+              width: `${layout.canvas.backgroundImageScale ?? 100}%`,
+              transform: `translate(-${layout.canvas.backgroundImageX ?? 50}%, -${layout.canvas.backgroundImageY ?? 50}%)`,
+            }}
+          />
+        </div>
       ) : null}
 
       {layout.elements.map((element) => (
@@ -144,7 +156,7 @@ function TemplateElement({
 }) {
   const isTextElement = isTextLikeElement(element);
   const renderedHeight =
-    element.type === "shape"
+    element.type === "shape" || element.type === "qrcode"
       ? element.height * (canvasWidth / canvasHeight)
       : element.height;
 
@@ -376,6 +388,18 @@ function imageFilter(filters?: InvitationImageFilters) {
   const sepia = filters?.sepia ?? 0;
   const invert = filters?.invert ?? 0;
   const hueRotate = filters?.hueRotate ?? 0;
+
+  if (
+    brightness === 100 &&
+    contrast === 100 &&
+    grayscale === 0 &&
+    saturate === 100 &&
+    sepia === 0 &&
+    invert === 0 &&
+    hueRotate === 0
+  ) {
+    return undefined;
+  }
 
   return `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%) saturate(${saturate}%) sepia(${sepia}%) invert(${invert}%) hue-rotate(${hueRotate}deg)`;
 }

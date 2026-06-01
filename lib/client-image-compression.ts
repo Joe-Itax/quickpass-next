@@ -8,10 +8,10 @@ type CompressionOptions = {
 };
 
 const DEFAULT_OPTIONS = {
-  maxWidth: 800,
-  targetBytes: 100 * 1024,
-  initialQuality: 0.82,
-  minQuality: 0.48,
+  maxWidth: 4096,
+  targetBytes: 4 * 1024 * 1024,
+  initialQuality: 0.96,
+  minQuality: 0.86,
 };
 
 export async function compressImageToWebP(
@@ -20,7 +20,16 @@ export async function compressImageToWebP(
 ) {
   const config = { ...DEFAULT_OPTIONS, ...options };
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, config.maxWidth / bitmap.width);
+
+  if (
+    Math.max(bitmap.width, bitmap.height) <= config.maxWidth &&
+    file.size <= config.targetBytes
+  ) {
+    bitmap.close();
+    return file;
+  }
+
+  const scale = Math.min(1, config.maxWidth / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);
 
@@ -48,6 +57,10 @@ export async function compressImageToWebP(
   while (blob.size > config.targetBytes && quality > config.minQuality) {
     quality = Math.max(config.minQuality, quality - 0.08);
     blob = await canvasToBlob(canvas, quality);
+  }
+
+  if (blob.size >= file.size) {
+    return file;
   }
 
   const baseName = file.name.replace(/\.[^.]+$/, "") || "invitation-asset";

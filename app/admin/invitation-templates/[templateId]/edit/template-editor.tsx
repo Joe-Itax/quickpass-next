@@ -468,12 +468,15 @@ export function TemplateEditor({
     setSelectedId(copy.id);
   };
 
-  const uploadImage = async (file: File) => {
+  const uploadImage = async (
+    file: File,
+    options?: Parameters<typeof compressImageToWebP>[1],
+  ) => {
     setIsUploading(true);
 
     try {
       const isSvg = file.type === "image/svg+xml";
-      const fileToUpload = isSvg ? file : await compressImageToWebP(file);
+      const fileToUpload = isSvg ? file : await compressImageToWebP(file, options);
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
@@ -510,7 +513,7 @@ export function TemplateEditor({
           objectFit: "cover",
         }),
       );
-      toast.success("Image compressee et ajoutee.");
+      toast.success("Image ajoutee en haute qualite.");
     } catch (error) {
       console.error(error);
       toast.error(
@@ -523,12 +526,17 @@ export function TemplateEditor({
     if (!file) return;
 
     try {
-      const publicUrl = await uploadImage(file);
+      const publicUrl = await uploadImage(file, {
+        maxWidth: 6000,
+        targetBytes: 8 * 1024 * 1024,
+        initialQuality: 0.98,
+        minQuality: 0.92,
+      });
       commitLayout((current) => ({
         ...current,
         canvas: { ...current.canvas, backgroundImageUrl: publicUrl },
       }));
-      toast.success("Fond compresse et applique.");
+      toast.success("Fond applique en haute qualite.");
     } catch (error) {
       console.error(error);
       toast.error("Upload du fond impossible.");
