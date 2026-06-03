@@ -8,7 +8,6 @@ import {
   Clock3,
   Loader2,
   MessageCircle,
-  RefreshCw,
   RotateCcw,
   Send,
   XCircle,
@@ -35,6 +34,10 @@ interface WhatsappQueueItem {
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
+  phoneCheck?: {
+    code: "NOT_ON_WHATSAPP" | "SEND_FAILED";
+    label: string;
+  } | null;
   guest?: {
     id: number;
     label: string;
@@ -45,6 +48,16 @@ interface WhatsappQueueItem {
 interface WhatsappQueueResponse {
   summary: Record<QueueStatus, number>;
   total: number;
+  activeCount: number;
+  estimate: {
+    activeCount: number;
+    minSeconds: number;
+    maxSeconds: number;
+    minPauseCount: number;
+    maxPauseCount: number;
+    batchMin: number;
+    batchMax: number;
+  };
   items: WhatsappQueueItem[];
 }
 
@@ -134,7 +147,7 @@ export default function WhatsappQueuePage() {
       if (result.workerError) {
         toast.warning("File relancee. Le worker reprendra via sa boucle.");
       }
-      fetchQueue();
+      void fetchQueue();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur reseau");
     } finally {
@@ -196,18 +209,14 @@ export default function WhatsappQueuePage() {
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <Button
-            onClick={fetchQueue}
-            variant="outline"
-            className="rounded-xl border-white/10 bg-white/5 text-white"
-          >
-            <RefreshCw className="size-4" /> Actualiser
-          </Button>
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+          <Badge className="justify-center rounded-xl border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+            Temps reel actif
+          </Badge>
           <Button
             onClick={triggerWorker}
             disabled={isTriggering}
-            className="rounded-xl bg-[#25D366] text-white font-black uppercase"
+            className="rounded-xl bg-[#25D366] text-white font-black uppercase hover:bg-[#25D366]/90"
           >
             {isTriggering ? (
               <Loader2 className="size-4 animate-spin" />
@@ -219,7 +228,7 @@ export default function WhatsappQueuePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         {(
           ["PENDING", "PROCESSING", "COMPLETED", "FAILED"] as QueueStatus[]
         ).map((status) => {
@@ -253,12 +262,31 @@ export default function WhatsappQueuePage() {
             </p>
           </CardContent>
         </Card>
+        <Card className="col-span-2 border-white/10 bg-white/5 lg:col-span-1">
+          <CardContent className="p-5">
+            <Clock3 className="size-5 mb-3 text-primary" />
+            <p className="text-lg font-black text-white">
+              {formatDurationRange(data?.estimate)}
+            </p>
+            <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">
+              Temps restant
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {data?.activeCount ? (
+        <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs font-bold text-amber-100">
+          {data.activeCount} message(s) encore dans la file. Les nouveaux envois
+          WhatsApp seront ajoutes a la suite et partiront automatiquement apres
+          le lot en cours.
+        </div>
+      ) : null}
 
       <Card className="bg-white/3 border-white/10 rounded-4xl overflow-hidden">
         <CardHeader className="border-b border-white/10">
           <CardTitle className="text-sm font-black uppercase italic text-primary">
-            Derniers messages ({data?.items.length || 0})
+            Derniers messages ({data?.total || 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -299,6 +327,18 @@ export default function WhatsappQueuePage() {
                           {item.errorMessage}
                         </p>
                       )}
+                      {item.phoneCheck ? (
+                        <Badge
+                          className={cn(
+                            "w-fit border text-[10px] font-black uppercase",
+                            item.phoneCheck.code === "NOT_ON_WHATSAPP"
+                              ? "border-orange-500/20 bg-orange-500/10 text-orange-300"
+                              : "border-red-500/20 bg-red-500/10 text-red-300",
+                          )}
+                        >
+                          {item.phoneCheck.label}
+                        </Badge>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-[10px] text-gray-500 font-bold uppercase">
@@ -308,7 +348,7 @@ export default function WhatsappQueuePage() {
                         <Button
                           onClick={() => retry(item.id)}
                           disabled={busyId === item.id}
-                          className="rounded-xl bg-[#25D366] text-white font-black uppercase text-[10px]"
+                          className="rounded-xl bg-[#25D366] text-white font-black uppercase text-[10px] hover:bg-[#25D366]/90"
                         >
                           {busyId === item.id ? (
                             <Loader2 className="size-4 animate-spin" />
@@ -328,4 +368,26 @@ export default function WhatsappQueuePage() {
       </Card>
     </section>
   );
+}
+
+function formatDurationRange(
+  estimate?: WhatsappQueueResponse["estimate"] | null,
+) {
+  if (!estimate?.activeCount) return "0 min";
+
+  const min = formatDuration(estimate.minSeconds);
+  const max = formatDuration(estimate.maxSeconds);
+
+  return min === max ? min : `${min} - ${max}`;
+}
+
+function formatDuration(seconds: number) {
+  const totalMinutes = Math.max(0, Math.round(seconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} h`;
+
+  return `${hours} h ${minutes} min`;
 }

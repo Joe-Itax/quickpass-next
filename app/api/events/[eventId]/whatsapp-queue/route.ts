@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEventAccess } from "@/lib/auth-guards";
-import { triggerWhatsappWorker } from "@/lib/whatsapp-queue";
+import {
+  classifyWhatsappQueueError,
+  estimateWhatsappQueueDuration,
+  triggerWhatsappWorker,
+} from "@/lib/whatsapp-queue";
 
 interface EventContext {
   params: Promise<{
@@ -52,11 +56,16 @@ export async function GET(req: NextRequest, context: EventContext) {
     summary[row.status] = row._count._all;
   }
 
+  const activeCount = summary.PENDING + summary.PROCESSING;
+
   return NextResponse.json({
     summary,
-    total: items.length,
+    total: Object.values(summary).reduce((total, count) => total + count, 0),
+    activeCount,
+    estimate: estimateWhatsappQueueDuration(activeCount),
     items: items.map((item) => ({
       ...item,
+      phoneCheck: classifyWhatsappQueueError(item.errorMessage),
       guest: guestById.get(item.guestId) || null,
     })),
   });

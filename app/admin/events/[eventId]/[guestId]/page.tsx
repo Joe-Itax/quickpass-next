@@ -170,7 +170,11 @@ export default function GuestPage() {
 
       if (res.ok) {
         if (channel === "whatsapp") {
-          toast.success(`${data.queued || 1} message WhatsApp planifie`);
+          toast.success(
+            data.queuedBehindExisting
+              ? `${data.queued || 1} message WhatsApp ajoute a la suite de la file active`
+              : `${data.queued || 1} message WhatsApp planifie`,
+          );
           if (data.workerError) {
             toast.warning("File creee. Le worker reprendra via sa boucle.");
           }

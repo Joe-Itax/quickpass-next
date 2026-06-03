@@ -145,4 +145,19 @@
   body {
     @apply size-full scroll-smooth bg-background text-foreground;
   }
+
+  button:not(:disabled),
+  a[href] {
+    @apply transition-all;
+  }
+
+  button:not(:disabled):hover,
+  a[href]:hover {
+    @apply opacity-90;
+  }
+
+  button:not(:disabled):active,
+  a[href]:active {
+    @apply scale-95;
+  }
 }

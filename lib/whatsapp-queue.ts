@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import type { Invitation } from "@prisma/client";
 
+const WHATSAPP_BATCH_MIN = 35;
+const WHATSAPP_BATCH_MAX = 45;
+const WHATSAPP_MESSAGE_DELAY_MIN_SECONDS = 35;
+const WHATSAPP_MESSAGE_DELAY_MAX_SECONDS = 50;
+const WHATSAPP_BATCH_PAUSE_MIN_SECONDS = 10 * 60;
+const WHATSAPP_BATCH_PAUSE_MAX_SECONDS = 20 * 60;
+
 type EventForWhatsapp = {
   id: number;
   name: string;
@@ -17,6 +24,71 @@ export function formatWhatsappPhone(phone: string) {
 
 export function isValidWhatsappPhone(phone?: string | null) {
   return !!phone && formatWhatsappPhone(phone).length >= 9;
+}
+
+export function estimateWhatsappQueueDuration(messageCount: number) {
+  const count = Math.max(0, Math.floor(messageCount));
+
+  if (count === 0) {
+    return {
+      activeCount: 0,
+      minSeconds: 0,
+      maxSeconds: 0,
+      minPauseCount: 0,
+      maxPauseCount: 0,
+      batchMin: WHATSAPP_BATCH_MIN,
+      batchMax: WHATSAPP_BATCH_MAX,
+    };
+  }
+
+  const minPauseCount = Math.floor((count - 1) / WHATSAPP_BATCH_MAX);
+  const maxPauseCount = Math.floor((count - 1) / WHATSAPP_BATCH_MIN);
+
+  return {
+    activeCount: count,
+    minSeconds:
+      count * WHATSAPP_MESSAGE_DELAY_MIN_SECONDS +
+      minPauseCount * WHATSAPP_BATCH_PAUSE_MIN_SECONDS,
+    maxSeconds:
+      count * WHATSAPP_MESSAGE_DELAY_MAX_SECONDS +
+      maxPauseCount * WHATSAPP_BATCH_PAUSE_MAX_SECONDS,
+    minPauseCount,
+    maxPauseCount,
+    batchMin: WHATSAPP_BATCH_MIN,
+    batchMax: WHATSAPP_BATCH_MAX,
+  };
+}
+
+export function classifyWhatsappQueueError(errorMessage?: string | null) {
+  if (!errorMessage) return null;
+
+  const normalized = errorMessage
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const notWhatsappPatterns = [
+    "not on whatsapp",
+    "not a whatsapp",
+    "not registered",
+    "not exists",
+    "does not exist",
+    "jid does not exist",
+    "invalid jid",
+    "numero non whatsapp",
+    "pas sur whatsapp",
+  ];
+
+  if (notWhatsappPatterns.some((pattern) => normalized.includes(pattern))) {
+    return {
+      code: "NOT_ON_WHATSAPP",
+      label: "Numero probablement absent de WhatsApp",
+    };
+  }
+
+  return {
+    code: "SEND_FAILED",
+    label: "Echec d'envoi",
+  };
 }
 
 function getBaseUrl() {
@@ -54,9 +126,12 @@ export function buildWhatsappMessage(
     `Lieu : ${location}`,
     `Places reservees : ${guest.peopleCount}`,
     "",
-    `Votre pass digital : ${getBaseUrl()}/invitation/${guest.qrCode}`,
+    `Votre Invitation : ${getBaseUrl()}/invitation/${guest.qrCode}`,
     "",
-    "Pour confirmer la bonne reception de votre pass, repondez simplement : Bien recu.",
+    "Vous présenterez ce QRCode (L'image ci-haut) à l'entrée pour votre accès.",
+    "(Note: Le QRCode est unique et pour votre accès seul. A ne surtout pas le partager)",
+    "",
+    "Pour confirmer la bonne reception de votre invitation, repondez simplement : Bien recu.",
   ].join("\n");
 }
 
@@ -121,6 +196,13 @@ export async function queueWhatsappInvitations(params: {
     return { queued: 0, worker: { ok: false, error: "Aucun destinataire" } };
   }
 
+  const activeBefore = await prisma.whatsappQueue.count({
+    where: {
+      eventId: String(params.event.id),
+      status: { in: ["PENDING", "PROCESSING"] },
+    },
+  });
+
   await prisma.whatsappQueue.createMany({
     data: queueItems,
   });
@@ -129,6 +211,9 @@ export async function queueWhatsappInvitations(params: {
 
   return {
     queued: queueItems.length,
+    activeBefore,
+    queuedBehindExisting: activeBefore > 0,
+    estimate: estimateWhatsappQueueDuration(activeBefore + queueItems.length),
     worker,
   };
 }

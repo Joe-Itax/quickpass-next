@@ -73,6 +73,9 @@ export async function POST(req: NextRequest, context: EventContext) {
     return NextResponse.json({
       success: true,
       queued: result.queued,
+      activeBefore: result.activeBefore,
+      queuedBehindExisting: result.queuedBehindExisting,
+      estimate: result.estimate,
       workerNotified: result.worker.ok,
       workerError: result.worker.ok ? undefined : result.worker.error,
       mode: sendMode,

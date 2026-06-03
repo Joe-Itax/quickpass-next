@@ -206,7 +206,11 @@ export default function EventPage() {
       const result = await res.json();
 
       if (res.ok) {
-        toast.success(`${result.queued} message(s) WhatsApp planifie(s)`);
+        toast.success(
+          result.queuedBehindExisting
+            ? `${result.queued} message(s) ajoute(s) a la suite de la file active`
+            : `${result.queued} message(s) WhatsApp planifie(s)`,
+        );
         if (result.workerError) {
           toast.warning("File creee. Le worker reprendra via sa boucle.");
         }
