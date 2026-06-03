@@ -10,7 +10,6 @@ interface EventContext {
   params: Promise<{ eventId: string }>;
 }
 
-// Type étendu pour l'invitation avec le nombre de sièges assignés
 type InvitationWithSeats = Invitation & {
   totalSeatsAssigned: number;
 };
@@ -44,10 +43,17 @@ export async function POST(req: NextRequest, context: EventContext) {
           },
         });
 
+        // On ajoute un flag "needsCapacityUpdate" pour optimiser les requêtes
         const tableNameMap = new Map<
           string,
-          { id: number; capacity: number; assigned: number }
+          {
+            id: number;
+            capacity: number;
+            assigned: number;
+            needsCapacityUpdate: boolean;
+          }
         >();
+
         for (const t of existingTables) {
           const alreadyAssigned = t.allocations.reduce(
             (sum, a) => sum + a.seatsAssigned,
@@ -57,6 +63,7 @@ export async function POST(req: NextRequest, context: EventContext) {
             id: t.id,
             capacity: t.capacity,
             assigned: alreadyAssigned,
+            needsCapacityUpdate: false,
           });
         }
 
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest, context: EventContext) {
               .filter((g: { tableName: string }) => g.tableName)
               .map((g: { tableName: string }) => g.tableName),
           ),
-        ];
+        ] as string[];
 
         for (const tableName of uniqueTableNames) {
           if (!tableNameMap.has(tableName)) {
@@ -82,11 +89,12 @@ export async function POST(req: NextRequest, context: EventContext) {
               id: newTable.id,
               capacity: 4,
               assigned: 0,
+              needsCapacityUpdate: false,
             });
           }
         }
 
-        // ----- 3. Traiter les invités et ajuster les capacités -----
+        // ----- 3. Traiter les invités -----
         let totalNewPeople = 0;
         const createdInvitations: InvitationWithSeats[] = [];
 
@@ -106,6 +114,7 @@ export async function POST(req: NextRequest, context: EventContext) {
             eventId,
             ts: Date.now(),
           };
+
           const qr = await qrEncode(payload);
           const updatedInv = await tx.invitation.update({
             where: { id: inv.id },
@@ -119,12 +128,10 @@ export async function POST(req: NextRequest, context: EventContext) {
               const seatsToAdd = guest.peopleCount || 1;
               const newTotalAssigned = tableInfo.assigned + seatsToAdd;
 
+              // On met à jour la mémoire locale au lieu d'appeler la BDD
               if (newTotalAssigned > tableInfo.capacity) {
-                await tx.table.update({
-                  where: { id: tableInfo.id },
-                  data: { capacity: newTotalAssigned },
-                });
                 tableInfo.capacity = newTotalAssigned;
+                tableInfo.needsCapacityUpdate = true;
               }
 
               await tx.tableAllocation.create({
@@ -141,11 +148,21 @@ export async function POST(req: NextRequest, context: EventContext) {
           }
 
           totalNewPeople += guest.peopleCount || 1;
-          // On enrichit l'objet Prisma avec la propriété temporaire
           createdInvitations.push({
             ...updatedInv,
             totalSeatsAssigned,
           });
+        }
+
+        // ----- 3.5 On Met à jour les capacités des tables modifiées EN LOT -----
+        // Cela évite des dizaines de requêtes d'UPDATE superflues dans la boucle
+        for (const [_, info] of Array.from(tableNameMap.entries())) {
+          if (info.needsCapacityUpdate) {
+            await tx.table.update({
+              where: { id: info.id },
+              data: { capacity: info.capacity },
+            });
+          }
         }
 
         // ----- 4. Mise à jour des stats -----
@@ -167,6 +184,7 @@ export async function POST(req: NextRequest, context: EventContext) {
           _sum: { capacity: true },
           where: { eventId },
         });
+
         await tx.eventStats.update({
           where: { eventId },
           data: {
@@ -180,7 +198,8 @@ export async function POST(req: NextRequest, context: EventContext) {
           invitations: createdInvitations,
         };
       },
-      { timeout: 20000 },
+      // On augmente le timeout à 2 minutes (120 000 ms)
+      { timeout: 120000 },
     );
 
     return NextResponse.json(result);
