@@ -32,7 +32,6 @@ function GuestCard({
   eventId: number;
   refetch: () => void;
 }) {
-  const router = useRouter();
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
 
