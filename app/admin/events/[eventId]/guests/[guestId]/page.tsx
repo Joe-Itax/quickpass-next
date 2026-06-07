@@ -200,7 +200,7 @@ export default function GuestPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           <button
-            onClick={() => router.push(`/admin/events/${eventId}`)}
+            onClick={() => router.push(`/admin/events/${eventId}/guests`)}
             className="group size-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all cursor-pointer"
           >
             <MoveLeftIcon className="text-gray-500 group-hover:text-primary transition-colors" />

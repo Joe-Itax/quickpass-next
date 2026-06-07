@@ -795,8 +795,15 @@ export default function EventPage() {
 
           <Card className="bg-white/2 border-white/5 rounded-4xl overflow-hidden">
             <CardHeader className="border-b border-white/5 p-6">
-              <CardTitle className="text-sm font-black uppercase italic text-primary">
+              <CardTitle className="flex items-center justify-between text-sm font-black uppercase italic text-primary">
                 Dernières Invitations
+                <Button
+                  onClick={() => router.push(`/admin/events/${eventId}/guests`)}
+                  variant="outline"
+                  className="rounded-xl border-primary/20 text-primary text-[10px] uppercase italic"
+                >
+                  <Users className="size-4 mr-2" /> Voir tout
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-3 max-h-125 overflow-y-auto custom-scrollbar">
@@ -804,7 +811,7 @@ export default function EventPage() {
                 <div
                   key={inv.id}
                   onClick={() =>
-                    router.push(`/admin/events/${eventId}/${inv.id}`)
+                    router.push(`/admin/events/${eventId}/guests/${inv.id}`)
                   }
                   className="p-4 rounded-2xl border border-white/5 bg-white/1 hover:bg-white/5 transition-all cursor-pointer group flex justify-between items-center"
                 >

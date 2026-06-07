@@ -186,7 +186,7 @@ export default function TableDetailPage() {
                 <div
                   key={guest.id}
                   onClick={() =>
-                    router.push(`/admin/events/${eventId}/${guest.id}`)
+                    router.push(`/admin/events/${eventId}/guests/${guest.id}`)
                   }
                   className="group flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer"
                 >
