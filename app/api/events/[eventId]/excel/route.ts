@@ -38,22 +38,29 @@ export async function POST(req: NextRequest, context: EventContext) {
   const user = await requireEventAccess(req, eventId);
   if (user instanceof NextResponse) return user;
 
-  const payload = (await req.json().catch(() => null)) as
-    | { guests?: GuestRow[]; tables?: TableRow[] }
-    | null;
+  const payload = (await req.json().catch(() => null)) as {
+    guests?: GuestRow[];
+    tables?: TableRow[];
+  } | null;
 
   const guests = payload?.guests ?? [];
   const tables = payload?.tables ?? [];
   const errors = validatePayload(guests, tables);
 
   if (errors.length > 0) {
-    return NextResponse.json({ error: "Validation echouee", errors }, { status: 422 });
+    return NextResponse.json(
+      { error: "Validation echouee", errors },
+      { status: 422 },
+    );
   }
 
   try {
     const result = await prisma.$transaction(
       async (tx) => {
-        const tableNameMap = new Map<string, { id: number; capacity: number }>();
+        const tableNameMap = new Map<
+          string,
+          { id: number; capacity: number }
+        >();
         const tableIdsToKeep: number[] = [];
         const assignedCapacityByTable = getAssignedCapacityByTable(guests);
 
@@ -90,55 +97,138 @@ export async function POST(req: NextRequest, context: EventContext) {
         await tx.invitation.deleteMany({
           where: {
             eventId,
-            id: { notIn: submittedGuestIds.length > 0 ? submittedGuestIds : [0] },
+            id: {
+              notIn: submittedGuestIds.length > 0 ? submittedGuestIds : [0],
+            },
           },
         });
 
-        for (const row of guests) {
-          const data = {
-            label: normalizeName(row.label),
-            peopleCount: Math.max(1, Math.round(Number(row.peopleCount))),
-            email: normalizeNullable(row.email),
-            whatsapp: normalizeNullable(row.whatsapp),
-            eventId,
-          };
-
-          const invitation = row.id
-            ? await tx.invitation.update({
-                where: { id: row.id, eventId },
-                data,
-              })
-            : await tx.invitation.create({ data });
-
-          if (!invitation.qrCode) {
-            const qrCode = await qrEncode({
-              invitationId: invitation.id,
-              eventId,
-              ts: Date.now(),
-            });
-            await tx.invitation.update({
-              where: { id: invitation.id },
-              data: { qrCode },
-            });
-          }
-
+        // 1. Supprimer d'un coup toutes les allocations des invités existants
+        if (submittedGuestIds.length > 0) {
           await tx.tableAllocation.deleteMany({
-            where: { invitationId: invitation.id },
+            where: { invitationId: { in: submittedGuestIds } },
+          });
+        }
+
+        const finalInvitations: { id: number; data: GuestRow }[] = [];
+
+        // Séparation : Créations vs Mises à jour
+        const guestsToUpdate = guests.filter((g) => !!g.id);
+        const guestsToCreate = guests.filter((g) => !g.id);
+
+        // --- BULK UPDATE pour les existants ---
+        if (guestsToUpdate.length > 0) {
+          const updateIds = guestsToUpdate.map((g) => g.id as number);
+          const updateLabels = guestsToUpdate.map((g) =>
+            normalizeName(g.label),
+          );
+          const updatePeopleCounts = guestsToUpdate.map((g) =>
+            Math.max(1, Math.round(Number(g.peopleCount))),
+          );
+          const updateEmails = guestsToUpdate.map((g) =>
+            normalizeNullable(g.email),
+          );
+          const updateWhatsapps = guestsToUpdate.map((g) =>
+            normalizeNullable(g.whatsapp),
+          );
+
+          await tx.$executeRaw`
+            UPDATE "Invitation"
+            SET 
+              label = data.label,
+              "peopleCount" = data."peopleCount",
+              email = data.email,
+              whatsapp = data.whatsapp
+            FROM (
+              SELECT 
+                unnest(${updateIds}::int[]) as id,
+                unnest(${updateLabels}::text[]) as label,
+                unnest(${updatePeopleCounts}::int[]) as "peopleCount",
+                unnest(${updateEmails}::text[]) as email,
+                unnest(${updateWhatsapps}::text[]) as whatsapp
+            ) AS data
+            WHERE "Invitation".id = data.id AND "Invitation"."eventId" = ${eventId}
+          `;
+
+          guestsToUpdate.forEach((g) => {
+            finalInvitations.push({ id: g.id as number, data: g });
+          });
+        }
+
+        // --- BULK CREATE pour les nouveaux ---
+        if (guestsToCreate.length > 0) {
+          const guestsDataToCreate = guestsToCreate.map((g) => ({
+            label: normalizeName(g.label),
+            peopleCount: Math.max(1, Math.round(Number(g.peopleCount))),
+            email: normalizeNullable(g.email),
+            whatsapp: normalizeNullable(g.whatsapp),
+            eventId,
+          }));
+
+          const created = await tx.invitation.createManyAndReturn({
+            data: guestsDataToCreate,
           });
 
-          const tableName = normalizeName(row.tableName);
+          // Génération des QR codes
+          const qrUpdates = await Promise.all(
+            created.map(async (inv) => {
+              const qr = await qrEncode({
+                invitationId: inv.id,
+                eventId,
+                ts: Date.now(),
+              });
+              return { id: inv.id, qrCode: qr };
+            }),
+          );
+
+          // Bulk Update des QR codes via executeRaw
+          const qrIds = qrUpdates.map((q) => q.id);
+          const qrCodes = qrUpdates.map((q) => q.qrCode);
+
+          await tx.$executeRaw`
+            UPDATE "Invitation"
+            SET "qrCode" = data."qrCode"
+            FROM (
+              SELECT 
+                unnest(${qrIds}::int[]) as id, 
+                unnest(${qrCodes}::text[]) as "qrCode"
+            ) AS data
+            WHERE "Invitation".id = data.id
+          `;
+
+          for (let i = 0; i < guestsToCreate.length; i++) {
+            finalInvitations.push({
+              id: created[i].id,
+              data: guestsToCreate[i],
+            });
+          }
+        }
+
+        // 2. Créer toutes les allocations en une seule requête (Bulk Insert)
+        const allocationsToCreate = [];
+        for (const item of finalInvitations) {
+          const tableName = normalizeName(item.data.tableName);
           if (tableName) {
-            const tableInfo = tableNameMap.get(tableName.toLocaleLowerCase("fr-FR"));
+            const tableInfo = tableNameMap.get(
+              tableName.toLocaleLowerCase("fr-FR"),
+            );
             if (tableInfo) {
-              await tx.tableAllocation.create({
-                data: {
-                  invitationId: invitation.id,
-                  tableId: tableInfo.id,
-                  seatsAssigned: data.peopleCount,
-                },
+              allocationsToCreate.push({
+                invitationId: item.id,
+                tableId: tableInfo.id,
+                seatsAssigned: Math.max(
+                  1,
+                  Math.round(Number(item.data.peopleCount)),
+                ),
               });
             }
           }
+        }
+
+        if (allocationsToCreate.length > 0) {
+          await tx.tableAllocation.createMany({
+            data: allocationsToCreate,
+          });
         }
 
         await tx.table.deleteMany({
@@ -213,7 +303,7 @@ export async function POST(req: NextRequest, context: EventContext) {
           tables: eventTables.length,
         };
       },
-      { timeout: 30000 },
+      { timeout: 120000 },
     );
 
     return NextResponse.json({ success: true, ...result });
@@ -236,7 +326,12 @@ function validatePayload(guests: GuestRow[], tables: TableRow[]) {
     const name = normalizeName(table.name);
 
     if (!name) {
-      errors.push({ sheet: "tables", row, column: "Nom", message: "Nom requis." });
+      errors.push({
+        sheet: "tables",
+        row,
+        column: "Nom",
+        message: "Nom requis.",
+      });
     }
     if (name && tableNames.has(name.toLocaleLowerCase("fr-FR"))) {
       errors.push({
@@ -247,7 +342,10 @@ function validatePayload(guests: GuestRow[], tables: TableRow[]) {
       });
     }
     if (name) tableNames.add(name.toLocaleLowerCase("fr-FR"));
-    if (!Number.isInteger(Number(table.capacity)) || Number(table.capacity) < 1) {
+    if (
+      !Number.isInteger(Number(table.capacity)) ||
+      Number(table.capacity) < 1
+    ) {
       errors.push({
         sheet: "tables",
         row,
@@ -265,9 +363,17 @@ function validatePayload(guests: GuestRow[], tables: TableRow[]) {
     const tableName = normalizeName(guest.tableName);
 
     if (!label) {
-      errors.push({ sheet: "guests", row, column: "Nom", message: "Nom requis." });
+      errors.push({
+        sheet: "guests",
+        row,
+        column: "Nom",
+        message: "Nom requis.",
+      });
     }
-    if (!Number.isInteger(Number(guest.peopleCount)) || Number(guest.peopleCount) < 1) {
+    if (
+      !Number.isInteger(Number(guest.peopleCount)) ||
+      Number(guest.peopleCount) < 1
+    ) {
       errors.push({
         sheet: "guests",
         row,
@@ -321,7 +427,8 @@ function getAssignedCapacityByTable(guests: GuestRow[]) {
     if (!tableName) continue;
     assigned.set(
       tableName,
-      (assigned.get(tableName) ?? 0) + Math.max(1, Number(guest.peopleCount) || 1),
+      (assigned.get(tableName) ?? 0) +
+        Math.max(1, Number(guest.peopleCount) || 1),
     );
   }
 

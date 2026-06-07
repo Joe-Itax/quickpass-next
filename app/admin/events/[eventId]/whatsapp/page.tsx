@@ -116,17 +116,22 @@ export default function WhatsappQueuePage() {
     }
   }, [eventId]);
 
+  // Realtime Supabase (instant quand ça marche)
   useRealtimeSync({
     eventId: Number(eventId),
     onUpdate: fetchQueue,
   });
 
+  // Polling fiable toutes les 5s (backup si le realtime ne déclenche pas)
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      void fetchQueue();
-    }, 0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchQueue();
 
-    return () => window.clearTimeout(timeout);
+    const interval = window.setInterval(() => {
+      void fetchQueue();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
   }, [fetchQueue]);
 
   const completionRate = useMemo(() => {

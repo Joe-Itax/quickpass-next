@@ -2,17 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEventAccess } from "@/lib/auth-guards";
 import { qrEncode } from "@/lib/qr";
-import type { Invitation } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 interface EventContext {
   params: Promise<{ eventId: string }>;
 }
-
-type InvitationWithSeats = Invitation & {
-  totalSeatsAssigned: number;
-};
 
 export async function POST(req: NextRequest, context: EventContext) {
   const { eventId: rawEventId } = await context.params;
@@ -43,7 +38,6 @@ export async function POST(req: NextRequest, context: EventContext) {
           },
         });
 
-        // On ajoute un flag "needsCapacityUpdate" pour optimiser les requêtes
         const tableNameMap = new Map<
           string,
           {
@@ -67,7 +61,7 @@ export async function POST(req: NextRequest, context: EventContext) {
           });
         }
 
-        // ----- 2. Créer les tables manquantes (capacité par défaut : 4) -----
+        // ----- 2. Créer les tables manquantes -----
         const uniqueTableNames = [
           ...new Set(
             guests
@@ -94,68 +88,91 @@ export async function POST(req: NextRequest, context: EventContext) {
           }
         }
 
-        // ----- 3. Traiter les invités -----
+        // ----- 3. Création des invités en BULK (1 seule requête) -----
         let totalNewPeople = 0;
-        const createdInvitations: InvitationWithSeats[] = [];
 
-        for (const guest of guests) {
-          const inv = await tx.invitation.create({
-            data: {
-              label: guest.label,
-              peopleCount: guest.peopleCount || 1,
-              email: guest.email || null,
-              whatsapp: guest.whatsapp || null,
+        const guestsDataToCreate = guests.map((g) => ({
+          label: g.label,
+          peopleCount: g.peopleCount || 1,
+          email: g.email || null,
+          whatsapp: g.whatsapp || null,
+          eventId,
+        }));
+
+        // createManyAndReturn est très rapide et retourne les IDs
+        const createdInvitations = await tx.invitation.createManyAndReturn({
+          data: guestsDataToCreate,
+        });
+
+        // Générer les QR codes rapidement en mémoire
+        const qrUpdates = await Promise.all(
+          createdInvitations.map(async (inv) => {
+            const qr = await qrEncode({
+              invitationId: inv.id,
               eventId,
-            },
-          });
+              ts: Date.now(),
+            });
+            return { id: inv.id, qrCode: qr };
+          }),
+        );
 
-          const payload = {
-            invitationId: inv.id,
-            eventId,
-            ts: Date.now(),
-          };
+        // Mettre à jour tous les QR Codes d'un seul coup via requête SQL Raw (Bulk Update)
+        const updateIds = qrUpdates.map((q) => q.id);
+        const updateQrs = qrUpdates.map((q) => q.qrCode);
 
-          const qr = await qrEncode(payload);
-          const updatedInv = await tx.invitation.update({
-            where: { id: inv.id },
-            data: { qrCode: qr },
-          });
+        if (updateIds.length > 0) {
+          await tx.$executeRaw`
+            UPDATE "Invitation"
+            SET "qrCode" = data."qrCode"
+            FROM (
+              SELECT 
+                unnest(${updateIds}::int[]) as id, 
+                unnest(${updateQrs}::text[]) as "qrCode"
+            ) AS data
+            WHERE "Invitation".id = data.id
+          `;
+        }
 
-          let totalSeatsAssigned = 0;
+        // ----- 4. Traiter les allocations de tables en BULK -----
+        const allocationsToCreate: {
+          invitationId: number;
+          tableId: number;
+          seatsAssigned: number;
+        }[] = [];
+
+        for (let i = 0; i < guests.length; i++) {
+          const guest = guests[i];
+          const inv = createdInvitations[i];
+
+          totalNewPeople += guest.peopleCount || 1;
+
           if (guest.tableName) {
             const tableInfo = tableNameMap.get(guest.tableName);
             if (tableInfo) {
               const seatsToAdd = guest.peopleCount || 1;
-              const newTotalAssigned = tableInfo.assigned + seatsToAdd;
-
-              // On met à jour la mémoire locale au lieu d'appeler la BDD
-              if (newTotalAssigned > tableInfo.capacity) {
-                tableInfo.capacity = newTotalAssigned;
+              tableInfo.assigned += seatsToAdd;
+              if (tableInfo.assigned > tableInfo.capacity) {
+                tableInfo.capacity = tableInfo.assigned;
                 tableInfo.needsCapacityUpdate = true;
               }
 
-              await tx.tableAllocation.create({
-                data: {
-                  invitationId: inv.id,
-                  tableId: tableInfo.id,
-                  seatsAssigned: seatsToAdd,
-                },
+              allocationsToCreate.push({
+                invitationId: inv.id,
+                tableId: tableInfo.id,
+                seatsAssigned: seatsToAdd,
               });
-
-              tableInfo.assigned = newTotalAssigned;
-              totalSeatsAssigned = seatsToAdd;
             }
           }
+        }
 
-          totalNewPeople += guest.peopleCount || 1;
-          createdInvitations.push({
-            ...updatedInv,
-            totalSeatsAssigned,
+        if (allocationsToCreate.length > 0) {
+          await tx.tableAllocation.createMany({
+            data: allocationsToCreate,
           });
         }
 
-        // ----- 3.5 On Met à jour les capacités des tables modifiées EN LOT -----
-        // Cela évite des dizaines de requêtes d'UPDATE superflues dans la boucle
+        // ----- 5. On Met à jour les capacités des tables modifiées EN LOT -----
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for (const [_, info] of Array.from(tableNameMap.entries())) {
           if (info.needsCapacityUpdate) {
             await tx.table.update({
@@ -165,9 +182,9 @@ export async function POST(req: NextRequest, context: EventContext) {
           }
         }
 
-        // ----- 4. Mise à jour des stats -----
-        const totalSeatsAssigned = createdInvitations.reduce(
-          (sum, inv) => sum + inv.totalSeatsAssigned,
+        // ----- 6. Mise à jour des stats -----
+        const totalSeatsAssigned = allocationsToCreate.reduce(
+          (sum, a) => sum + a.seatsAssigned,
           0,
         );
 
@@ -198,7 +215,6 @@ export async function POST(req: NextRequest, context: EventContext) {
           invitations: createdInvitations,
         };
       },
-      // On augmente le timeout à 2 minutes (120 000 ms)
       { timeout: 120000 },
     );
 
