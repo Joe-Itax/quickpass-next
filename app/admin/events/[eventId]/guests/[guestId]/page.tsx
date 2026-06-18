@@ -17,6 +17,8 @@ import {
   MessageCircle,
   Send,
   Loader2,
+  Undo2,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useInvitation } from "@/hooks/use-event";
@@ -34,6 +36,8 @@ export default function GuestPage() {
   const [isDeleteGuestDialogOpen, setIsDeleteGuestDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
+  const [isManualScanning, setIsManualScanning] = useState(false);
+  const [isManualScanReversing, setIsManualScanReversing] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
   const LOGO_URL = "/logo-app/icon-1024.png";
@@ -194,6 +198,36 @@ export default function GuestPage() {
     }
   };
 
+  const handleManualScan = async (action: "scan" | "reverse") => {
+    if (action === "scan") setIsManualScanning(true);
+    if (action === "reverse") setIsManualScanReversing(true);
+
+    try {
+      const response = await fetch(
+        `/api/events/${eventId}/invitations/${guestId}/manual-scan`,
+        { method: action === "scan" ? "POST" : "DELETE" },
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || "Action impossible.");
+        return;
+      }
+
+      toast.success(
+        action === "scan"
+          ? "Presence marquee."
+          : "Scan annule avec succes.",
+      );
+      await refetch();
+    } catch {
+      toast.error("Erreur reseau. Verifiez votre connexion.");
+    } finally {
+      if (action === "scan") setIsManualScanning(false);
+      if (action === "reverse") setIsManualScanReversing(false);
+    }
+  };
+
   return (
     <section className="min-h-screen bg-[#050505] p-4 md:p-10 space-y-10">
       {/* --- NAV BAR --- */}
@@ -275,12 +309,70 @@ export default function GuestPage() {
                   Scans Totaux
                 </p>
                 <p className="text-xl font-black italic uppercase text-white">
-                  {invitation.scannedCount}{" "}
+                  {invitation.scannedCount}/{invitation.peopleCount}{" "}
                   <span className="text-[10px] text-gray-600">
                     utilisations
                   </span>
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
+                  Scan manuel
+                </p>
+                <p className="text-xs font-bold text-gray-500">
+                  Ajustement direct de la presence, limite au PAX de
+                  l&apos;invitation.
+                </p>
+              </div>
+              <Badge className="border-none bg-black/40 text-white">
+                {invitation.peopleCount - invitation.scannedCount} restant(s)
+              </Badge>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button
+                type="button"
+                onClick={() => handleManualScan("scan")}
+                disabled={
+                  isManualScanning ||
+                  invitation.scannedCount >= invitation.peopleCount
+                }
+                className={cn(
+                  "h-12 rounded-2xl font-black uppercase italic",
+                  invitation.scannedCount >= invitation.peopleCount
+                    ? "bg-white/5 text-gray-600"
+                    : "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500 hover:text-white",
+                )}
+              >
+                {isManualScanning ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <UserCheck className="size-4" />
+                )}
+                Marquer present
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleManualScan("reverse")}
+                disabled={isManualScanReversing || invitation.scannedCount <= 0}
+                className={cn(
+                  "h-12 rounded-2xl font-black uppercase italic",
+                  invitation.scannedCount <= 0
+                    ? "bg-white/5 text-gray-600"
+                    : "bg-orange-500/15 text-orange-300 hover:bg-orange-500 hover:text-white",
+                )}
+              >
+                {isManualScanReversing ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Undo2 className="size-4" />
+                )}
+                Annuler un scan
+              </Button>
             </div>
           </div>
 

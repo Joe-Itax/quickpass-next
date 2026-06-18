@@ -114,6 +114,8 @@ export default function EventPage() {
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
   const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
   const [isExportingStats, setIsExportingStats] = useState(false);
+  const [isExportingGuestStructure, setIsExportingGuestStructure] =
+    useState(false);
   const [isExportingInvitations, setIsExportingInvitations] = useState(false);
   const [bulkExportFormat, setBulkExportFormat] =
     useState<InvitationExportFormat>("pdf");
@@ -274,6 +276,43 @@ export default function EventPage() {
     }
   };
 
+  const handleExportGuestStructure = async () => {
+    if (!event) return;
+    setIsExportingGuestStructure(true);
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/guests/export`);
+
+      if (!response.ok) {
+        let message = "Erreur lors de l'export des invites";
+
+        try {
+          const payload = await response.json();
+          message = payload.error || message;
+        } catch {
+          // The server may return a non-JSON error page in development.
+        }
+
+        toast.error(message);
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const fileName =
+        contentDisposition?.match(/filename="?([^"]+)"?/i)?.[1] ||
+        `YambiPass_Invites_Event_${event.id}.xlsx`;
+
+      downloadBlob(blob, fileName);
+      toast.success("Structure des invites exportee.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de l'export des invites");
+    } finally {
+      setIsExportingGuestStructure(false);
+    }
+  };
+
   const handleExportInvitationsZip = async () => {
     if (!event?.invitations?.length) {
       toast.error("Aucune invitation a exporter.");
@@ -417,6 +456,20 @@ export default function EventPage() {
           >
             <FileSpreadsheet className="size-4 mr-2 text-primary" />{" "}
             Tableur
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportGuestStructure}
+            disabled={isExportingGuestStructure}
+            className="rounded-xl border-white/10 bg-white/5 font-black uppercase italic text-[10px] tracking-widest transition-all hover:bg-white/10 hover:text-primary"
+          >
+            {isExportingGuestStructure ? (
+              <Loader2 className="mr-2 size-4 animate-spin text-primary" />
+            ) : (
+              <FileSpreadsheet className="mr-2 size-4 text-primary" />
+            )}
+            Export invites
           </Button>
           <AddTable eventId={event.id} />
           <Button
