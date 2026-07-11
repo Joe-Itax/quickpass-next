@@ -31,49 +31,58 @@ export async function POST(req: NextRequest, context: Context) {
   if (user instanceof NextResponse) return user;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const event = await tx.event.findUnique({
-        where: { id: eventId },
-        select: { eventCode: true },
-      });
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        event: { select: { eventCode: true } },
+        allocations: { include: { table: true } },
+      },
+    });
 
-      if (!event) return { status: "event_not_found" as const };
-
-      const invitation = await tx.invitation.findFirst({
-        where: { id: invitationId, eventId },
-        include: { allocations: { include: { table: true } } },
-      });
-
-      if (!invitation) return { status: "not_found" as const };
-
-      if (invitation.scannedCount >= invitation.peopleCount) {
-        await tx.scanLog.create({
-          data: {
-            eventCode: event.eventCode,
-            invitationId: invitation.id,
-            guestName: invitation.label,
-            status: "ERROR",
-            errorMessage: "Capacite atteinte - scan manuel",
-            terminalCode: MANUAL_SCAN_TERMINAL_CODE,
-            assignedTable: getAssignedTable(invitation),
-          },
-        });
-
-        return { status: "full" as const, invitation };
-      }
-
-      const assignedTable = getAssignedTableForScanIndex(
-        invitation,
-        invitation.scannedCount,
+    if (!invitation || invitation.eventId !== eventId) {
+      return NextResponse.json(
+        { error: "Invitation introuvable" },
+        { status: 404 },
       );
-      const updated = await tx.invitation.update({
+    }
+
+    const eventCode = invitation.event.eventCode;
+
+    if (invitation.scannedCount >= invitation.peopleCount) {
+      await prisma.scanLog.create({
+        data: {
+          eventCode,
+          invitationId: invitation.id,
+          guestName: invitation.label,
+          status: "ERROR",
+          errorMessage: "Capacite atteinte - scan manuel",
+          terminalCode: MANUAL_SCAN_TERMINAL_CODE,
+          assignedTable: getAssignedTable(invitation as any),
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error: "Capacite atteinte",
+          invitation,
+        },
+        { status: 400 },
+      );
+    }
+
+    const assignedTable = getAssignedTableForScanIndex(
+      invitation as any,
+      invitation.scannedCount,
+    );
+
+    const [updated] = await prisma.$transaction([
+      prisma.invitation.update({
         where: { id: invitation.id },
         data: { scannedCount: { increment: 1 } },
-      });
-
-      await tx.scanLog.create({
+      }),
+      prisma.scanLog.create({
         data: {
-          eventCode: event.eventCode,
+          eventCode,
           invitationId: invitation.id,
           guestName: invitation.label,
           status: "SUCCESS",
@@ -81,38 +90,17 @@ export async function POST(req: NextRequest, context: Context) {
           terminalCode: MANUAL_SCAN_TERMINAL_CODE,
           assignedTable,
         },
-      });
-
-      await tx.eventStats.update({
+      }),
+      prisma.eventStats.update({
         where: { eventId },
         data: { totalScanned: { increment: 1 } },
-      });
-
-      return { status: "ok" as const, invitation: updated, assignedTable };
-    });
-
-    if (result.status === "event_not_found") {
-      return NextResponse.json({ error: "Evenement introuvable" }, { status: 404 });
-    }
-
-    if (result.status === "not_found") {
-      return NextResponse.json({ error: "Invitation introuvable" }, { status: 404 });
-    }
-
-    if (result.status === "full") {
-      return NextResponse.json(
-        {
-          error: "Capacite atteinte",
-          invitation: result.invitation,
-        },
-        { status: 400 },
-      );
-    }
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
-      invitation: result.invitation,
-      assignedTable: result.assignedTable,
+      invitation: updated,
+      assignedTable,
     });
   } catch (error) {
     console.error("[MANUAL_SCAN]", error);
@@ -142,36 +130,46 @@ export async function DELETE(req: NextRequest, context: Context) {
   if (user instanceof NextResponse) return user;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const event = await tx.event.findUnique({
-        where: { id: eventId },
-        select: { eventCode: true },
-      });
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        event: { select: { eventCode: true } },
+        allocations: { include: { table: true } },
+      },
+    });
 
-      if (!event) return { status: "event_not_found" as const };
-
-      const invitation = await tx.invitation.findFirst({
-        where: { id: invitationId, eventId },
-        include: { allocations: { include: { table: true } } },
-      });
-
-      if (!invitation) return { status: "not_found" as const };
-      if (invitation.scannedCount <= 0) {
-        return { status: "empty" as const, invitation };
-      }
-
-      const assignedTable = getAssignedTableForScanIndex(
-        invitation,
-        invitation.scannedCount - 1,
+    if (!invitation || invitation.eventId !== eventId) {
+      return NextResponse.json(
+        { error: "Invitation introuvable" },
+        { status: 404 },
       );
-      const updated = await tx.invitation.update({
+    }
+
+    const eventCode = invitation.event.eventCode;
+
+    if (invitation.scannedCount <= 0) {
+      return NextResponse.json(
+        {
+          error: "Aucun scan a annuler",
+          invitation,
+        },
+        { status: 400 },
+      );
+    }
+
+    const assignedTable = getAssignedTableForScanIndex(
+      invitation as any,
+      invitation.scannedCount - 1,
+    );
+
+    const [updated] = await prisma.$transaction([
+      prisma.invitation.update({
         where: { id: invitation.id },
         data: { scannedCount: { decrement: 1 } },
-      });
-
-      await tx.scanLog.create({
+      }),
+      prisma.scanLog.create({
         data: {
-          eventCode: event.eventCode,
+          eventCode,
           invitationId: invitation.id,
           guestName: invitation.label,
           status: "REVERSED",
@@ -179,38 +177,17 @@ export async function DELETE(req: NextRequest, context: Context) {
           terminalCode: MANUAL_SCAN_TERMINAL_CODE,
           assignedTable,
         },
-      });
-
-      await tx.eventStats.update({
+      }),
+      prisma.eventStats.update({
         where: { eventId },
         data: { totalScanned: { decrement: 1 } },
-      });
-
-      return { status: "ok" as const, invitation: updated, assignedTable };
-    });
-
-    if (result.status === "event_not_found") {
-      return NextResponse.json({ error: "Evenement introuvable" }, { status: 404 });
-    }
-
-    if (result.status === "not_found") {
-      return NextResponse.json({ error: "Invitation introuvable" }, { status: 404 });
-    }
-
-    if (result.status === "empty") {
-      return NextResponse.json(
-        {
-          error: "Aucun scan a annuler",
-          invitation: result.invitation,
-        },
-        { status: 400 },
-      );
-    }
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
-      invitation: result.invitation,
-      assignedTable: result.assignedTable,
+      invitation: updated,
+      assignedTable,
     });
   } catch (error) {
     console.error("[MANUAL_SCAN_REVERSE]", error);

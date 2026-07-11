@@ -13,6 +13,8 @@ import {
   Send,
   Loader2,
   CheckCircle,
+  UserCheck,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,8 @@ function GuestCard({
 }) {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
+  const [isManualScanning, setIsManualScanning] = useState(false);
+  const [isManualScanReversing, setIsManualScanReversing] = useState(false);
 
   const handleSendSingle = async (channel: "email" | "whatsapp") => {
     if (channel === "email") setIsSendingEmail(true);
@@ -74,6 +78,36 @@ function GuestCard({
     } finally {
       if (channel === "email") setIsSendingEmail(false);
       if (channel === "whatsapp") setIsSendingWhatsapp(false);
+    }
+  };
+
+  const handleManualScan = async (action: "scan" | "reverse") => {
+    if (action === "scan") setIsManualScanning(true);
+    if (action === "reverse") setIsManualScanReversing(true);
+
+    try {
+      const response = await fetch(
+        `/api/events/${eventId}/invitations/${invitation.id}/manual-scan`,
+        { method: action === "scan" ? "POST" : "DELETE" },
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || "Action impossible.");
+        return;
+      }
+
+      toast.success(
+        action === "scan"
+          ? "Presence marquee."
+          : "Scan annule avec succes.",
+      );
+      refetch();
+    } catch {
+      toast.error("Erreur reseau. Verifiez votre connexion.");
+    } finally {
+      if (action === "scan") setIsManualScanning(false);
+      if (action === "reverse") setIsManualScanReversing(false);
     }
   };
 
@@ -182,6 +216,59 @@ function GuestCard({
               Aucun contact enregistré
             </p>
           )}
+        </div>
+        
+        {/* Manual Scan Buttons */}
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
+              Scan manuel
+            </p>
+            <p className="text-[9px] font-bold text-gray-500 uppercase">
+              {invitation.scannedCount}/{invitation.peopleCount}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleManualScan("scan")}
+              disabled={
+                isManualScanning ||
+                invitation.scannedCount >= invitation.peopleCount
+              }
+              className={cn(
+                "h-9 flex items-center justify-center gap-2 rounded-xl text-[9px] font-black uppercase italic transition-all",
+                invitation.scannedCount >= invitation.peopleCount
+                  ? "bg-white/5 text-gray-600"
+                  : "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500 hover:text-white",
+              )}
+            >
+              {isManualScanning ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <UserCheck className="size-3" />
+              )}
+              Présent
+            </button>
+            <button
+              type="button"
+              onClick={() => handleManualScan("reverse")}
+              disabled={isManualScanReversing || invitation.scannedCount <= 0}
+              className={cn(
+                "h-9 flex items-center justify-center gap-2 rounded-xl text-[9px] font-black uppercase italic transition-all",
+                invitation.scannedCount <= 0
+                  ? "bg-white/5 text-gray-600"
+                  : "bg-orange-500/15 text-orange-300 hover:bg-orange-500 hover:text-white",
+              )}
+            >
+              {isManualScanReversing ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Undo2 className="size-3" />
+              )}
+              Annuler
+            </button>
+          </div>
         </div>
       </div>
 

@@ -318,7 +318,7 @@ export default function GuestPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-4">
+          <div className="rounded-4xl border border-white/10 bg-white/5 p-4">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
