@@ -54,12 +54,37 @@ interface UniversalVerifyResult {
   };
   scanHistory?: Array<{
     scannedAt: string;
+    status?: string;
     terminalName: string;
     terminalCode?: string;
   }>;
   error?: string;
   details?: string;
 }
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface DetectedCode {
+  boundingBox: BoundingBox;
+  cornerPoints: Point[];
+}
+
+const qrScannerConstraints: MediaTrackConstraints = {
+  facingMode: { ideal: "environment" },
+  width: { min: 640, ideal: 1080, max: 1920 },
+  height: { min: 640, ideal: 1080, max: 1920 },
+  aspectRatio: { ideal: 1 },
+};
 
 export default function UniversalVerifyGuestPage() {
   const { data: session, isPending, error, refetch } = authClient.useSession();
@@ -101,6 +126,29 @@ export default function UniversalVerifyGuestPage() {
   const resetScanner = () => {
     setResult(null);
     setViewState("scanner");
+  };
+
+  const highlightCodeOnCanvas = (
+    detectedCodes: DetectedCode[],
+    ctx: CanvasRenderingContext2D,
+  ) => {
+    detectedCodes.forEach((detectedCode) => {
+      const { boundingBox, cornerPoints } = detectedCode;
+      ctx.strokeStyle = "#00FF00";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(
+        boundingBox.x,
+        boundingBox.y,
+        boundingBox.width,
+        boundingBox.height,
+      );
+      ctx.fillStyle = "#FDB623";
+      cornerPoints.forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    });
   };
 
   if (isPending || error || !user) {
@@ -175,19 +223,23 @@ export default function UniversalVerifyGuestPage() {
               className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl"
             >
               <div className="max-w-sm mx-auto">
-                <div className="relative w-full aspect-square rounded-3xl overflow-hidden border-2 border-slate-700 bg-black mb-8 group shadow-inner">
+                <div className="relative mb-8 w-full max-w-sm min-h-87.5 aspect-square overflow-hidden rounded-[3rem] border-2 border-white/10 bg-black shadow-2xl">
                   <Scanner
                     onScan={handleScan}
                     onError={(error) => console.error(error)}
+                    formats={["qr_code"]}
                     allowMultiple={false}
-                    constraints={{ facingMode: "environment", aspectRatio: 1 }}
-                    components={{ finder: true, torch: true }}
+                    scanDelay={250}
+                    constraints={qrScannerConstraints}
+                    components={{
+                      onOff: true,
+                      torch: true,
+                      zoom: true,
+                      finder: true,
+                      tracker: highlightCodeOnCanvas,
+                    }}
                     styles={{
-                      video: {
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      },
+                      video: { width: "100%", height: "100%", objectFit: "cover" },
                       container: {
                         width: "100%",
                         height: "100%",
@@ -197,7 +249,6 @@ export default function UniversalVerifyGuestPage() {
                       },
                     }}
                   />
-                  <div className="absolute inset-0 border-40 border-black/20 pointer-events-none" />
                 </div>
                 <div className="flex items-center justify-center gap-3 text-slate-400 animate-pulse">
                   <div className="w-2 h-2 rounded-full bg-primary" />
@@ -438,7 +489,9 @@ export default function UniversalVerifyGuestPage() {
                                 {scan.terminalName}
                               </span>
                               <span className="text-[10px] font-mono text-slate-500">
-                                {scan.terminalCode || "Terminal Standard"}
+                                {scan.status === "REVERSED"
+                                  ? "SCAN ANNULE"
+                                  : scan.terminalCode || "Terminal Standard"}
                               </span>
                             </div>
                             <div className="text-right flex flex-col items-end">

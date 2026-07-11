@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireEventAccess } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { MANUAL_SCAN_TERMINAL_CODE } from "@/lib/scan-log-display";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest, context: Context) {
             guestName: invitation.label,
             status: "ERROR",
             errorMessage: "Capacite atteinte - scan manuel",
+            terminalCode: MANUAL_SCAN_TERMINAL_CODE,
             assignedTable: getAssignedTable(invitation),
           },
         });
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest, context: Context) {
           guestName: invitation.label,
           status: "SUCCESS",
           errorMessage: "Scan manuel admin",
+          terminalCode: MANUAL_SCAN_TERMINAL_CODE,
           assignedTable,
         },
       });
@@ -173,6 +176,7 @@ export async function DELETE(req: NextRequest, context: Context) {
           guestName: invitation.label,
           status: "REVERSED",
           errorMessage: "Scan manuel annule par un administrateur",
+          terminalCode: MANUAL_SCAN_TERMINAL_CODE,
           assignedTable,
         },
       });

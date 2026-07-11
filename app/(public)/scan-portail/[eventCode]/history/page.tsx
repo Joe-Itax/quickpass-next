@@ -11,6 +11,7 @@ import {
   MonitorSmartphone,
   XCircle,
   Loader2Icon,
+  Undo2,
 } from "lucide-react";
 import DataStatusDisplay from "@/components/data-status-display";
 import { Log } from "@/types/types";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import { getScanLogTerminalName } from "@/lib/scan-log-display";
 
 export default function HistoryPage() {
   const { eventCode } = useParams() as { eventCode: string };
@@ -44,7 +46,7 @@ export default function HistoryPage() {
   const terminals = useMemo((): string[] => {
     if (!logs) return [];
     const names = logs
-      .map((l: Log) => l.terminal?.name || l.terminalCode)
+      .map((l: Log) => getScanLogTerminalName(l))
       .filter(Boolean);
     return Array.from(new Set(names)) as string[];
   }, [logs]);
@@ -56,7 +58,7 @@ export default function HistoryPage() {
         log.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.errorMessage?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const terminalName = log.terminal?.name || log.terminalCode;
+      const terminalName = getScanLogTerminalName(log);
       const matchesTerminal =
         !selectedTerminal || terminalName === selectedTerminal;
 
@@ -176,6 +178,9 @@ export default function HistoryPage() {
         ) : (
           filteredLogs.map((log: Log) => {
             const dateObj = new Date(log.scannedAt);
+            const terminalLabel =
+              getScanLogTerminalName(log) || "Terminal Inconnu";
+            const isReversed = log.status === "REVERSED";
 
             return (
               <div
@@ -183,6 +188,8 @@ export default function HistoryPage() {
                 className={`p-4 rounded-2xl border backdrop-blur-sm transition-all shadow-lg ${
                   log.status === "SUCCESS"
                     ? "bg-white/2 border-white/5"
+                    : isReversed
+                      ? "bg-orange-500/5 border-orange-500/20"
                     : "bg-red-500/5 border-red-500/20"
                 }`}
               >
@@ -192,11 +199,15 @@ export default function HistoryPage() {
                     className={`size-10 shrink-0 rounded-xl flex items-center justify-center ${
                       log.status === "SUCCESS"
                         ? "text-green-400 bg-green-400/10"
+                        : isReversed
+                          ? "text-orange-400 bg-orange-400/10"
                         : "text-red-400 bg-red-400/10"
                     }`}
                   >
                     {log.status === "SUCCESS" ? (
                       <ShieldCheck size={22} />
+                    ) : isReversed ? (
+                      <Undo2 size={22} />
                     ) : (
                       <ShieldAlert size={22} />
                     )}
@@ -238,12 +249,18 @@ export default function HistoryPage() {
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         <Badge
                           variant="secondary"
-                          className="bg-white/5 text-[9px] text-gray-400 border-none px-1.5 py-0 h-4"
+                          className={`border-none px-1.5 py-0 text-[9px] h-4 ${
+                            isReversed
+                              ? "bg-orange-500/10 text-orange-300"
+                              : "bg-white/5 text-gray-400"
+                          }`}
                         >
-                          <MonitorSmartphone size={10} className="mr-1" />
-                          {log.terminal?.name ||
-                            log.terminalCode ||
-                            "Terminal Inconnu"}
+                          {isReversed ? (
+                            <Undo2 size={10} className="mr-1" />
+                          ) : (
+                            <MonitorSmartphone size={10} className="mr-1" />
+                          )}
+                          {terminalLabel}
                         </Badge>
                       </div>
                     )}

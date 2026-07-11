@@ -46,6 +46,13 @@ interface DetectedCode {
   cornerPoints: Point[];
 }
 
+const qrScannerConstraints: MediaTrackConstraints = {
+  facingMode: { ideal: "environment" },
+  width: { min: 640, ideal: 1080, max: 1920 },
+  height: { min: 640, ideal: 1080, max: 1920 },
+  aspectRatio: { ideal: 1 },
+};
+
 export default function ScanPage() {
   const { data: session } = authClient.useSession();
   const { eventCode } = useParams() as { eventCode: string };
@@ -260,13 +267,10 @@ export default function ScanPage() {
             <Scanner
               onScan={handleScan}
               onError={(error) => console.error(error)}
+              formats={["qr_code"]}
               allowMultiple={false}
-              constraints={{
-                facingMode: "environment",
-                aspectRatio: 1,
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-              }}
+              scanDelay={250}
+              constraints={qrScannerConstraints}
               components={{
                 onOff: true,
                 torch: true,

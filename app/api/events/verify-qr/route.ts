@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { qrDecode } from "@/lib/qr";
 import { requireAdmin } from "@/lib/auth-guards";
+import {
+  getScanLogTerminalCode,
+  getScanLogTerminalName,
+} from "@/lib/scan-log-display";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest) {
     const previousScans = await prisma.scanLog.findMany({
       where: {
         invitationId: invitation.id,
-        status: "SUCCESS",
+        status: { in: ["SUCCESS", "REVERSED"] },
       },
       include: {
         terminal: {
@@ -94,8 +98,9 @@ export async function POST(req: NextRequest) {
       },
       scanHistory: previousScans.map((log) => ({
         scannedAt: log.scannedAt,
-        terminalName: log.terminal?.name || "Terminal Inconnu",
-        terminalCode: log.terminal?.code || log.terminalCode || "N/A",
+        status: log.status,
+        terminalName: getScanLogTerminalName(log) || "Terminal Inconnu",
+        terminalCode: getScanLogTerminalCode(log) || "N/A",
       })),
       scanStatus: {
         hasBeenScanned: invitation.scannedCount > 0,
