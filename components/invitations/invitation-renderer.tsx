@@ -32,6 +32,7 @@ type InvitationRendererProps = {
     element: InvitationTemplateElement,
   ) => void;
   renderResizeHandle?: (element: InvitationTemplateElement) => React.ReactNode;
+  suppressInteractiveChrome?: boolean;
 };
 
 export function InvitationRenderer({
@@ -44,6 +45,7 @@ export function InvitationRenderer({
   onSelectElement,
   onPointerDownElement,
   renderResizeHandle,
+  suppressInteractiveChrome = false,
 }: InvitationRendererProps) {
   const layout = normalizeInvitationLayout(templateData);
   const aspectRatio = `${layout.canvas.width} / ${layout.canvas.height}`;
@@ -51,7 +53,7 @@ export function InvitationRenderer({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden bg-white shadow-2xl",
+        "relative isolate w-full overflow-hidden bg-white shadow-2xl",
         interactive && "select-none",
         className,
       )}
@@ -110,10 +112,11 @@ export function InvitationRenderer({
           onSelectElement={onSelectElement}
           onPointerDownElement={onPointerDownElement}
           renderResizeHandle={renderResizeHandle}
+          suppressInteractiveChrome={suppressInteractiveChrome}
         />
       ))}
 
-      {interactive && layout.canvas.showSafeZone ? (
+      {interactive && !suppressInteractiveChrome && layout.canvas.showSafeZone ? (
         <div
           className="pointer-events-none absolute border border-dashed border-primary/70"
           style={{
@@ -138,6 +141,7 @@ function TemplateElement({
   onSelectElement,
   onPointerDownElement,
   renderResizeHandle,
+  suppressInteractiveChrome,
 }: {
   element: InvitationTemplateElement;
   canvasWidth: number;
@@ -153,6 +157,7 @@ function TemplateElement({
     element: InvitationTemplateElement,
   ) => void;
   renderResizeHandle?: (element: InvitationTemplateElement) => React.ReactNode;
+  suppressInteractiveChrome: boolean;
 }) {
   const isTextElement = isTextLikeElement(element);
   const renderedHeight =
@@ -171,7 +176,9 @@ function TemplateElement({
           !element.locked &&
           "cursor-move touch-none outline-none",
         interactive && element.locked && "cursor-default outline-none",
-        isSelected && "ring-2 ring-amber-400 ring-offset-2 ring-offset-black/80",
+        isSelected &&
+          !suppressInteractiveChrome &&
+          "ring-2 ring-amber-400 ring-offset-2 ring-offset-black/80",
       )}
       style={{
         left: `${element.x}%`,
@@ -290,7 +297,9 @@ function TemplateElement({
         />
       ) : null}
 
-      {isSelected ? renderResizeHandle?.(element) : null}
+      {isSelected && !suppressInteractiveChrome
+        ? renderResizeHandle?.(element)
+        : null}
     </div>
   );
 }

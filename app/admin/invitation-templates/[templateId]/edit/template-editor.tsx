@@ -247,6 +247,7 @@ export function TemplateEditor({
     () => layout.elements.find((element) => element.id === selectedId) ?? null,
     [layout.elements, selectedId],
   );
+  const isFloatingPanelOpen = isToolsPanelOpen || isInspectorPanelOpen;
   const canvasFormatValue = getCanvasFormatValue(
     layout.canvas.width,
     layout.canvas.height,
@@ -895,11 +896,11 @@ export function TemplateEditor({
         </Button>
       </div>
 
-      {(isToolsPanelOpen || isInspectorPanelOpen) && (
+      {isFloatingPanelOpen && (
         <button
           type="button"
           aria-label="Fermer les panneaux"
-          className="fixed inset-0 z-40 bg-black/75 backface-hidden contain-[paint] hover:opacity-100 active:scale-100 min-[900px]:hidden"
+          className="fixed inset-0 z-[80] touch-none bg-black/75 backface-hidden contain-[paint] hover:opacity-100 active:scale-100 min-[900px]:hidden"
           onClick={() => {
             setIsToolsPanelOpen(false);
             setIsInspectorPanelOpen(false);
@@ -909,7 +910,7 @@ export function TemplateEditor({
 
       <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
         <aside
-          className={`fixed inset-y-0 left-0 isolate z-50 w-[min(86vw,320px)] space-y-4 overflow-y-auto overscroll-contain border-r border-white/10 bg-[#050505] p-4 shadow-2xl backface-hidden contain-[paint] transition-transform duration-200 ease-out transform-gpu custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+          className={`fixed inset-y-0 left-0 isolate z-[90] w-[min(86vw,320px)] space-y-4 overflow-y-auto overscroll-contain border-r border-white/10 bg-[#050505] p-4 shadow-2xl backface-hidden contain-[paint] transition-transform duration-200 ease-out will-change-transform transform-gpu custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none min-[900px]:will-change-auto ${
             isToolsPanelOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -1402,7 +1403,13 @@ export function TemplateEditor({
           </div>
         </aside>
 
-        <main className="flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar">
+        <main
+          className={`relative isolate z-0 flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar ${
+            isFloatingPanelOpen
+              ? "max-[899px]:pointer-events-none max-[899px]:select-none"
+              : ""
+          }`}
+        >
           <div
             ref={canvasRef}
             className="w-full max-w-107.5 flex-none"
@@ -1419,6 +1426,7 @@ export function TemplateEditor({
               onPointerDownElement={(event, element) =>
                 startDrag(event, element, "move")
               }
+              suppressInteractiveChrome={isFloatingPanelOpen}
               renderResizeHandle={(element) =>
                 element.locked ? null : (
                   <button
@@ -1437,7 +1445,7 @@ export function TemplateEditor({
         </main>
 
         <aside
-          className={`fixed inset-y-0 right-0 isolate z-50 w-[min(88vw,340px)] space-y-4 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#050505] p-4 shadow-2xl backface-hidden contain-[paint] transition-transform duration-200 ease-out transform-gpu custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+          className={`fixed inset-y-0 right-0 isolate z-[90] w-[min(88vw,340px)] space-y-4 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#050505] p-4 shadow-2xl backface-hidden contain-[paint] transition-transform duration-200 ease-out will-change-transform transform-gpu custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:w-auto min-[900px]:translate-x-0 min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none min-[900px]:will-change-auto ${
             isInspectorPanelOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
