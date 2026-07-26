@@ -164,48 +164,8 @@
 
 @layer components {
   @media (max-width: 899px) {
-    .invitation-editor-mobile-drawer {
-      background-color: #050505 !important;
-      background-image: none !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      background-clip: padding-box;
-      -webkit-overflow-scrolling: auto;
-    }
-
-    .invitation-editor-mobile-drawer [class*="shadow"] {
-      box-shadow: none !important;
-    }
-
-    .invitation-editor-mobile-drawer [class*="bg-white/"],
-    .invitation-editor-mobile-drawer [data-slot="input"],
-    .invitation-editor-mobile-drawer [data-slot="select-trigger"] {
-      background-color: #101010 !important;
-    }
-
-    .invitation-editor-mobile-drawer button:not(:disabled),
-    .invitation-editor-mobile-drawer a[href],
-    .invitation-editor-mobile-drawer [data-slot="button"] {
-      transform: none !important;
-      transition-property: opacity !important;
-      transition-duration: 120ms !important;
-    }
-
-    .invitation-editor-mobile-drawer button:not(:disabled):active,
-    .invitation-editor-mobile-drawer a[href]:active,
-    .invitation-editor-mobile-drawer [data-slot="button"]:active {
-      transform: none !important;
-      opacity: 0.9;
-    }
-
-    .invitation-editor-mobile-drawer [data-slot="switch"] {
-      box-shadow: none !important;
-      transition-property: background-color, border-color, opacity !important;
-    }
-
-    .invitation-editor-mobile-drawer [data-slot="switch-thumb"] {
-      transition-property: transform !important;
+    .invitation-editor-mobile-overlay::backdrop {
+      background-color: rgb(0 0 0 / 85%);
     }
   }
 }

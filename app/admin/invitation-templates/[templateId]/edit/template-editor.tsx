@@ -8,7 +8,6 @@ import {
   useState,
   useTransition,
 } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -272,21 +271,6 @@ export function TemplateEditor({
 
     return () => mediaQuery.removeEventListener("change", updateViewport);
   }, []);
-
-  useEffect(() => {
-    if (!isMobileViewport || !isFloatingPanelOpen) return;
-
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, [isFloatingPanelOpen, isMobileViewport]);
 
   const commitLayout = (
     updater:
@@ -1626,42 +1610,51 @@ function ResponsiveEditorPanel({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const isLeft = side === "left";
-  const mobilePanel = (
-    <aside
-      className={`invitation-editor-mobile-drawer fixed top-0 z-[220] h-svh space-y-4 overflow-y-scroll overscroll-contain border-white/10 bg-[#050505] p-4 ${
-        isLeft
-          ? "left-0 w-[min(86vw,320px)] border-r"
-          : "right-0 w-[min(88vw,340px)] border-l"
-      }`}
-    >
-      {children}
-    </aside>
-  );
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  return (
-    <>
-      {!isMobileViewport ? (
-        <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isMobileViewport && isOpen) {
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+
+    if (dialog.open) dialog.close();
+  }, [isMobileViewport, isOpen]);
+
+  if (isMobileViewport) {
+    return (
+      <dialog
+        ref={dialogRef}
+        aria-label={side === "left" ? "Outils de l'editeur" : "Inspecteur"}
+        className="invitation-editor-mobile-overlay fixed inset-0 m-0 h-svh max-h-none w-full max-w-none overflow-x-hidden overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-white"
+        onCancel={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      >
+        <aside
+          className={`min-h-svh space-y-4 bg-[#050505] p-4 ${
+            side === "left"
+              ? "w-[min(86vw,320px)] border-r border-white/10"
+              : "ml-auto w-[min(88vw,340px)] border-l border-white/10"
+          }`}
+        >
           {children}
         </aside>
-      ) : null}
+      </dialog>
+    );
+  }
 
-      {isMobileViewport && isOpen && typeof document !== "undefined"
-        ? createPortal(
-            <>
-              <button
-                type="button"
-                aria-label="Fermer le panneau"
-                className="fixed inset-0 z-[210] bg-black/85 active:opacity-90"
-                onClick={onClose}
-              />
-              {mobilePanel}
-            </>,
-            document.body,
-          )
-        : null}
-    </>
+  return (
+    <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
+      {children}
+    </aside>
   );
 }
 
