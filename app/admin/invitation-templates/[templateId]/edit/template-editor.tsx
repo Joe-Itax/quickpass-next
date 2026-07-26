@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -219,6 +227,7 @@ export function TemplateEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
   const [isInspectorPanelOpen, setIsInspectorPanelOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [exportGuestData, setExportGuestData] =
@@ -253,6 +262,31 @@ export function TemplateEditor({
     layout.canvas.height,
   );
   const exportFields = useMemo(() => getExportFields(layout), [layout]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 899px)");
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport || !isFloatingPanelOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isFloatingPanelOpen, isMobileViewport]);
 
   const commitLayout = (
     updater:
@@ -879,7 +913,10 @@ export function TemplateEditor({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setIsToolsPanelOpen(true)}
+          onClick={() => {
+            setIsInspectorPanelOpen(false);
+            setIsToolsPanelOpen(true);
+          }}
           className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
         >
           <PanelLeft className="size-4" />
@@ -888,7 +925,10 @@ export function TemplateEditor({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setIsInspectorPanelOpen(true)}
+          onClick={() => {
+            setIsToolsPanelOpen(false);
+            setIsInspectorPanelOpen(true);
+          }}
           className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
         >
           <PanelRight className="size-4" />
@@ -896,23 +936,12 @@ export function TemplateEditor({
         </Button>
       </div>
 
-      {isFloatingPanelOpen && (
-        <button
-          type="button"
-          aria-label="Fermer les panneaux"
-          className="fixed inset-0 z-[110] touch-none bg-black/80 hover:opacity-100 active:scale-100 min-[900px]:hidden"
-          onClick={() => {
-            setIsToolsPanelOpen(false);
-            setIsInspectorPanelOpen(false);
-          }}
-        />
-      )}
-
       <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
-        <aside
-          className={`invitation-editor-mobile-panel fixed left-0 top-0 isolate z-[120] h-[100dvh] w-[min(86vw,320px)] space-y-4 overflow-y-auto overscroll-contain border-r border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
-            isToolsPanelOpen ? "max-[899px]:block" : "max-[899px]:hidden"
-          }`}
+        <ResponsiveEditorPanel
+          side="left"
+          isOpen={isToolsPanelOpen}
+          isMobileViewport={isMobileViewport}
+          onClose={() => setIsToolsPanelOpen(false)}
         >
           <Button
             type="button"
@@ -1401,7 +1430,7 @@ export function TemplateEditor({
               </div>
             )}
           </div>
-        </aside>
+        </ResponsiveEditorPanel>
 
         <main
           className={`relative isolate z-0 flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar ${
@@ -1444,10 +1473,11 @@ export function TemplateEditor({
           </div>
         </main>
 
-        <aside
-          className={`invitation-editor-mobile-panel fixed right-0 top-0 isolate z-[120] h-[100dvh] w-[min(88vw,340px)] space-y-4 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
-            isInspectorPanelOpen ? "max-[899px]:block" : "max-[899px]:hidden"
-          }`}
+        <ResponsiveEditorPanel
+          side="right"
+          isOpen={isInspectorPanelOpen}
+          isMobileViewport={isMobileViewport}
+          onClose={() => setIsInspectorPanelOpen(false)}
         >
           <Button
             type="button"
@@ -1472,7 +1502,7 @@ export function TemplateEditor({
               Selectionnez un element du canvas pour modifier son style.
             </div>
           )}
-        </aside>
+        </ResponsiveEditorPanel>
       </div>
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
@@ -1580,6 +1610,58 @@ export function TemplateEditor({
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+function ResponsiveEditorPanel({
+  side,
+  isOpen,
+  isMobileViewport,
+  onClose,
+  children,
+}: {
+  side: "left" | "right";
+  isOpen: boolean;
+  isMobileViewport: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const isLeft = side === "left";
+  const mobilePanel = (
+    <aside
+      className={`invitation-editor-mobile-drawer fixed top-0 z-[220] h-svh space-y-4 overflow-y-scroll overscroll-contain border-white/10 bg-[#050505] p-4 ${
+        isLeft
+          ? "left-0 w-[min(86vw,320px)] border-r"
+          : "right-0 w-[min(88vw,340px)] border-l"
+      }`}
+    >
+      {children}
+    </aside>
+  );
+
+  return (
+    <>
+      {!isMobileViewport ? (
+        <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
+          {children}
+        </aside>
+      ) : null}
+
+      {isMobileViewport && isOpen && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="Fermer le panneau"
+                className="fixed inset-0 z-[210] bg-black/85 active:opacity-90"
+                onClick={onClose}
+              />
+              {mobilePanel}
+            </>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
