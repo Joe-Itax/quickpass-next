@@ -880,7 +880,7 @@ export function TemplateEditor({
           type="button"
           variant="outline"
           onClick={() => setIsToolsPanelOpen(true)}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
         >
           <PanelLeft className="size-4" />
           Outils
@@ -889,7 +889,7 @@ export function TemplateEditor({
           type="button"
           variant="outline"
           onClick={() => setIsInspectorPanelOpen(true)}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
         >
           <PanelRight className="size-4" />
           Inspecteur
@@ -910,7 +910,7 @@ export function TemplateEditor({
 
       <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
         <aside
-          className={`fixed left-0 top-0 isolate z-[120] h-[100dvh] w-[min(86vw,320px)] space-y-4 overflow-y-auto overscroll-contain border-r border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+          className={`invitation-editor-mobile-panel fixed left-0 top-0 isolate z-[120] h-[100dvh] w-[min(86vw,320px)] space-y-4 overflow-y-auto overscroll-contain border-r border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
             isToolsPanelOpen ? "max-[899px]:block" : "max-[899px]:hidden"
           }`}
         >
@@ -1445,7 +1445,7 @@ export function TemplateEditor({
         </main>
 
         <aside
-          className={`fixed right-0 top-0 isolate z-[120] h-[100dvh] w-[min(88vw,340px)] space-y-4 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
+          className={`invitation-editor-mobile-panel fixed right-0 top-0 isolate z-[120] h-[100dvh] w-[min(88vw,340px)] space-y-4 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#050505] p-4 shadow-2xl custom-scrollbar min-[900px]:static min-[900px]:z-auto min-[900px]:block min-[900px]:h-auto min-[900px]:w-auto min-[900px]:rounded-2xl min-[900px]:border min-[900px]:bg-black/40 min-[900px]:shadow-none ${
             isInspectorPanelOpen ? "max-[899px]:block" : "max-[899px]:hidden"
           }`}
         >
