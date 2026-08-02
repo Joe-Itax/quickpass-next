@@ -162,10 +162,4 @@
   }
 }
 
-@layer components {
-  @media (max-width: 899px) {
-    .invitation-editor-mobile-overlay::backdrop {
-      background-color: rgb(0 0 0 / 85%);
-    }
-  }
-}
+

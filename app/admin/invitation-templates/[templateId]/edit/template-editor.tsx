@@ -1610,36 +1610,39 @@ function ResponsiveEditorPanel({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
+  // Bloquer le scroll du body quand le panneau mobile est ouvert
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isMobileViewport && isOpen) {
-      if (!dialog.open) dialog.showModal();
-      return;
+    if (!isMobileViewport) return;
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
-
-    if (dialog.open) dialog.close();
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isMobileViewport, isOpen]);
 
   if (isMobileViewport) {
+    if (!isOpen) return null;
     return (
-      <dialog
-        ref={dialogRef}
+      <div
+        aria-modal="true"
+        role="dialog"
         aria-label={side === "left" ? "Outils de l'editeur" : "Inspecteur"}
-        className="invitation-editor-mobile-overlay fixed inset-0 m-0 h-svh max-h-none w-full max-w-none overflow-x-hidden overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-white"
-        onCancel={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) onClose();
-        }}
+        className="fixed inset-0 z-50 flex"
+        style={{ isolation: "isolate" }}
       >
+        {/* Backdrop — clic pour fermer */}
+        <div
+          className="absolute inset-0 bg-black/85"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+
+        {/* Panneau latéral */}
         <aside
-          className={`min-h-svh space-y-4 bg-[#050505] p-4 ${
+          className={`relative z-10 min-h-full space-y-4 overflow-y-auto overscroll-contain bg-[#050505] p-4 ${
             side === "left"
               ? "w-[min(86vw,320px)] border-r border-white/10"
               : "ml-auto w-[min(88vw,340px)] border-l border-white/10"
@@ -1647,7 +1650,7 @@ function ResponsiveEditorPanel({
         >
           {children}
         </aside>
-      </dialog>
+      </div>
     );
   }
 
