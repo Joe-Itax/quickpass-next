@@ -36,7 +36,7 @@ export default async function AdminLayout({
       {/* Sidebar avec effet de flou */}
       <AdminSidebar
         variant="inset"
-        className="bg-[#050505]/95 border-r border-white/5"
+        className="bg-black/40 backdrop-blur-xl border-r border-white/5"
       />
 
       <SidebarInset className="bg-[#050505] bg-[url(/bg-1.svg)] bg-center bg-no-repeat bg-cover">

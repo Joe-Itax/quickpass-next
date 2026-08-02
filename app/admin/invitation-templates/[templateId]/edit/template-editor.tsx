@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -21,6 +28,8 @@ import {
   Move,
   MoveLeftIcon,
   Palette,
+  PanelLeft,
+  PanelRight,
   QrCode,
   Save,
   Square,
@@ -217,6 +226,7 @@ export function TemplateEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
   const [isInspectorPanelOpen, setIsInspectorPanelOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [exportGuestData, setExportGuestData] =
@@ -251,6 +261,16 @@ export function TemplateEditor({
     layout.canvas.height,
   );
   const exportFields = useMemo(() => getExportFields(layout), [layout]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 899px)");
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   const commitLayout = (
     updater:
@@ -328,60 +348,60 @@ export function TemplateEditor({
               color: "#FFFFFF",
               textDecoration: "underline",
             })
-          : tool === "qrcode"
-            ? createQRCodeElement({
+        : tool === "qrcode"
+          ? createQRCodeElement({
+              x: base.x,
+              y: base.y,
+              width: 30,
+              height: 30,
+            })
+          : tool === "shape"
+            ? createShapeElement({
                 x: base.x,
                 y: base.y,
-                width: 30,
-                height: 30,
+                width: 34,
+                height: 34,
+                fillColor: "#FBBF24",
+                borderRadius: 0,
               })
-            : tool === "shape"
-              ? createShapeElement({
-                  x: base.x,
-                  y: base.y,
-                  width: 34,
-                  height: 34,
-                  fillColor: "#FBBF24",
-                  borderRadius: 0,
-                })
-              : createTextElement({
-                  type: "variable",
-                  content:
-                    tool === "guest_name"
-                      ? "{{guest_name}}"
-                      : tool === "guest_table"
-                        ? "Table {{guest_table}}"
-                        : tool === "guest_people_count"
-                          ? "{{guest_people_count}} pers."
-                          : tool === "event_name"
-                            ? "{{event_name}}"
-                            : tool === "event_description"
-                              ? "{{event_description}}"
-                              : tool === "event_date"
-                                ? "{{event_date}}"
-                                : tool === "event_duration"
-                                  ? "{{event_duration}} h"
-                                  : tool === "event_location"
-                                    ? "{{event_location}}"
-                                    : tool === "event_full_location"
-                                      ? "{{event_full_location}}"
-                                      : tool === "event_message"
-                                        ? "{{event_message}}"
-                                        : tool === "guest_email"
-                                          ? "{{guest_email}}"
-                                          : tool === "guest_whatsapp"
-                                            ? "{{guest_whatsapp}}"
-                                            : tool === "guest_seats"
-                                              ? "{{guest_seats}} places"
-                                              : `{{${tool}}}`,
-                  x: base.x,
-                  y: base.y,
-                  width: tool === "guest_name" ? 66 : 52,
-                  height: 8,
-                  fontSize: tool === "guest_name" ? 4.3 : 3.2,
-                  color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
-                  fontWeight: 800,
-                });
+            : createTextElement({
+                type: "variable",
+                content:
+                  tool === "guest_name"
+                    ? "{{guest_name}}"
+                    : tool === "guest_table"
+                      ? "Table {{guest_table}}"
+                      : tool === "guest_people_count"
+                        ? "{{guest_people_count}} pers."
+                        : tool === "event_name"
+                          ? "{{event_name}}"
+                          : tool === "event_description"
+                            ? "{{event_description}}"
+                            : tool === "event_date"
+                              ? "{{event_date}}"
+                              : tool === "event_duration"
+                                ? "{{event_duration}} h"
+                                : tool === "event_location"
+                                  ? "{{event_location}}"
+                                  : tool === "event_full_location"
+                                    ? "{{event_full_location}}"
+                                    : tool === "event_message"
+                                      ? "{{event_message}}"
+                                      : tool === "guest_email"
+                                        ? "{{guest_email}}"
+                                        : tool === "guest_whatsapp"
+                                          ? "{{guest_whatsapp}}"
+                                          : tool === "guest_seats"
+                                            ? "{{guest_seats}} places"
+                                            : `{{${tool}}}`,
+                x: base.x,
+                y: base.y,
+                width: tool === "guest_name" ? 66 : 52,
+                height: 8,
+                fontSize: tool === "guest_name" ? 4.3 : 3.2,
+                color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
+                fontWeight: 800,
+              });
 
     pushElement(element);
   };
@@ -475,9 +495,7 @@ export function TemplateEditor({
 
     try {
       const isSvg = file.type === "image/svg+xml";
-      const fileToUpload = isSvg
-        ? file
-        : await compressImageToWebP(file, options);
+      const fileToUpload = isSvg ? file : await compressImageToWebP(file, options);
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
@@ -748,7 +766,7 @@ export function TemplateEditor({
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/invitation-templates")}
-            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-[#161616] hover:text-white"
+            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-white/5 hover:text-white"
           >
             <MoveLeftIcon className="mr-2 h-4 w-4" />
             Retour
@@ -768,14 +786,14 @@ export function TemplateEditor({
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="h-11 w-72 rounded-xl border-white/10 bg-[#161616] text-white"
+            className="h-11 w-72 rounded-xl border-white/10 bg-white/5 text-white"
             placeholder="Nom du modele"
           />
           <Select
             value={category}
             onValueChange={(value) => setCategory(value as EditorCategory)}
           >
-            <SelectTrigger className="h-11 w-48 rounded-xl border-white/10 bg-[#161616] text-white">
+            <SelectTrigger className="h-11 w-48 rounded-xl border-white/10 bg-white/5 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -786,7 +804,7 @@ export function TemplateEditor({
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#161616] px-3 h-11">
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 h-11">
             <span className="text-xs font-bold uppercase text-gray-400">
               Public
             </span>
@@ -807,7 +825,7 @@ export function TemplateEditor({
               }));
             }}
           >
-            <SelectTrigger className="h-11 w-44 rounded-xl border-white/10 bg-[#161616] text-white">
+            <SelectTrigger className="h-11 w-44 rounded-xl border-white/10 bg-white/5 text-white">
               <SelectValue placeholder="Format" />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -835,7 +853,7 @@ export function TemplateEditor({
                 onChange={(event) =>
                   updateCanvasDimension("width", Number(event.target.value))
                 }
-                className="h-11 w-24 rounded-xl border-white/10 bg-[#161616] text-white"
+                className="h-11 w-24 rounded-xl border-white/10 bg-white/5 text-white"
               />
             </label>
             <label className="space-y-1">
@@ -851,7 +869,7 @@ export function TemplateEditor({
                 onChange={(event) =>
                   updateCanvasDimension("height", Number(event.target.value))
                 }
-                className="h-11 w-24 rounded-xl border-white/10 bg-[#161616] text-white"
+                className="h-11 w-24 rounded-xl border-white/10 bg-white/5 text-white"
               />
             </label>
           </div>
@@ -859,7 +877,7 @@ export function TemplateEditor({
             type="button"
             variant="outline"
             onClick={() => setIsExportDialogOpen(true)}
-            className="h-11 rounded-xl border-white/10 bg-[#161616] px-5 font-black uppercase italic text-white hover:bg-[#222222] hover:text-white"
+            className="h-11 rounded-xl border-white/10 bg-white/5 px-5 font-black uppercase italic text-white hover:bg-white/10 hover:text-white"
           >
             <ImagePlus />
             Export HD
@@ -875,10 +893,49 @@ export function TemplateEditor({
         </div>
       </div>
 
-      {/* ── Desktop: 3-column layout ───────────────────────────────────── */}
-      <div className="hidden min-[900px]:grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-[260px_minmax(0,1fr)_300px] overflow-hidden gap-5">
-        {/* Desktop left panel */}
-        <aside className="invitation-editor-panel space-y-4 rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 overflow-y-auto">
+      <div className="flex gap-2 min-[900px]:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setIsInspectorPanelOpen(false);
+            setIsToolsPanelOpen(true);
+          }}
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
+        >
+          <PanelLeft className="size-4" />
+          Outils
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setIsToolsPanelOpen(false);
+            setIsInspectorPanelOpen(true);
+          }}
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
+        >
+          <PanelRight className="size-4" />
+          Inspecteur
+        </Button>
+      </div>
+
+      <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
+        <ResponsiveEditorPanel
+          side="left"
+          isOpen={isToolsPanelOpen}
+          isMobileViewport={isMobileViewport}
+          onClose={() => setIsToolsPanelOpen(false)}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setIsToolsPanelOpen(false)}
+            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
+          >
+            <MoveLeftIcon className="size-4" />
+            Fermer
+          </Button>
           <PanelTitle icon={Layers} label="Outils" />
 
           <div className="flex flex-col gap-2">
@@ -1021,7 +1078,7 @@ export function TemplateEditor({
             variant="outline"
             disabled={isUploading}
             onClick={() => imageInputRef.current?.click()}
-            className="h-12 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-12 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             {isUploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
             Image (WebP / SVG)
@@ -1032,7 +1089,7 @@ export function TemplateEditor({
               variant="outline"
               disabled={isUploading}
               onClick={() => backgroundInputRef.current?.click()}
-              className="h-12 flex-1 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+              className="h-12 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
             >
               <Palette />
               Fond
@@ -1063,7 +1120,7 @@ export function TemplateEditor({
 
           <div className="space-y-4 pt-4">
             {layout.canvas.backgroundImageUrl ? (
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                     Cadrage du fond
@@ -1177,7 +1234,7 @@ export function TemplateEditor({
               </div>
             ) : null}
 
-            <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Zone de securite
@@ -1228,7 +1285,7 @@ export function TemplateEditor({
                     },
                   }))
                 }
-                className="h-11 rounded-xl border-white/10 bg-[#161616] p-1"
+                className="h-11 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </div>
 
@@ -1292,7 +1349,9 @@ export function TemplateEditor({
                       label={label}
                       value={
                         Number(
-                          layout.canvas[key as keyof InvitationTemplateCanvas],
+                          layout.canvas[
+                            key as keyof InvitationTemplateCanvas
+                          ],
                         ) || 0
                       }
                       onChange={(value) =>
@@ -1350,14 +1409,20 @@ export function TemplateEditor({
                       },
                     }))
                   }
-                  className="h-11 rounded-xl border-white/10 bg-[#161616] p-1"
+                  className="h-11 rounded-xl border-white/10 bg-white/5 p-1"
                 />
               </div>
             )}
           </div>
-        </aside>
+        </ResponsiveEditorPanel>
 
-        <main className="relative isolate z-0 flex items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 overflow-y-auto custom-scrollbar">
+        <main
+          className={`relative isolate z-0 flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar ${
+            isFloatingPanelOpen
+              ? "max-[899px]:pointer-events-none max-[899px]:select-none"
+              : ""
+          }`}
+        >
           <div
             ref={canvasRef}
             className="w-full max-w-107.5 flex-none"
@@ -1392,8 +1457,21 @@ export function TemplateEditor({
           </div>
         </main>
 
-        {/* Desktop right panel */}
-        <aside className="invitation-editor-panel space-y-4 rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 overflow-y-auto">
+        <ResponsiveEditorPanel
+          side="right"
+          isOpen={isInspectorPanelOpen}
+          isMobileViewport={isMobileViewport}
+          onClose={() => setIsInspectorPanelOpen(false)}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setIsInspectorPanelOpen(false)}
+            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
+          >
+            <MoveLeftIcon className="size-4" />
+            Fermer
+          </Button>
           <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
 
           {selectedElement ? (
@@ -1408,286 +1486,7 @@ export function TemplateEditor({
               Selectionnez un element du canvas pour modifier son style.
             </div>
           )}
-        </aside>
-      </div>
-
-      {/* ── Mobile: canvas + inline tab panel (zero fixed/absolute overlays) ── */}
-      <div className="flex flex-col gap-4 min-[900px]:hidden">
-        {/* Canvas */}
-        <main className="relative isolate z-0 flex items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4">
-          <div
-            ref={canvasRef}
-            className="w-full max-w-107.5 flex-none"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleDrop}
-            onPointerDown={() => setSelectedId(null)}
-          >
-            <InvitationRenderer
-              templateData={layout}
-              guestData={PREVIEW_GUEST}
-              interactive
-              selectedElementId={selectedId}
-              onSelectElement={setSelectedId}
-              onPointerDownElement={(event, element) =>
-                startDrag(event, element, "move")
-              }
-              suppressInteractiveChrome={false}
-              renderResizeHandle={(element) =>
-                element.locked ? null : (
-                  <button
-                    type="button"
-                    aria-label="Redimensionner"
-                    className="absolute -bottom-2 -right-2 size-5 rounded-full border border-black bg-primary shadow-lg"
-                    onPointerDown={(event) => {
-                      event.stopPropagation();
-                      startDrag(event, element, "resize");
-                    }}
-                  />
-                )
-              }
-            />
-          </div>
-        </main>
-
-        {/* Tab switcher — sticky, ne flotte PAS, reste dans le flux */}
-        <div className="sticky top-0 z-10 flex rounded-2xl border border-white/10 bg-[#0b0b0b] p-1 gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              setIsToolsPanelOpen(true);
-              setIsInspectorPanelOpen(false);
-            }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-colors ${
-              isToolsPanelOpen
-                ? "bg-primary text-black"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Layers className="size-3.5" />
-            Outils
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsInspectorPanelOpen(true);
-              setIsToolsPanelOpen(false);
-            }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-colors ${
-              isInspectorPanelOpen
-                ? "bg-primary text-black"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <SquareDashedMousePointer className="size-3.5" />
-            Inspecteur
-          </button>
-        </div>
-
-        {/* Panel content — dans le flux normal, zéro overlay */}
-        {isToolsPanelOpen && (
-          <div className="invitation-editor-panel rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
-            <PanelTitle icon={Layers} label="Outils" />
-
-            <div className="flex flex-col gap-2">
-              <ToolButton
-                icon={Type}
-                label="Texte"
-                onClick={() => addTool("text")}
-                dragType="text"
-              />
-              <ToolButton
-                icon={Link2}
-                label="Lien"
-                onClick={() => addTool("link")}
-                dragType="link"
-              />
-              <ToolButton
-                icon={QrCode}
-                label="QR Code"
-                onClick={() => addTool("qrcode")}
-                dragType="qrcode"
-              />
-              <ToolButton
-                icon={Square}
-                label="Cadre"
-                onClick={() => addTool("shape")}
-                dragType="shape"
-              />
-            </div>
-
-            <p className="pt-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
-              Invité
-            </p>
-            <div className="flex flex-col gap-2">
-              <ToolButton
-                icon={Braces}
-                label="{{guest_name}}"
-                onClick={() => addTool("guest_name")}
-                dragType="guest_name"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{guest_table}}"
-                onClick={() => addTool("guest_table")}
-                dragType="guest_table"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{guest_seats}}"
-                onClick={() => addTool("guest_seats")}
-                dragType="guest_seats"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{guest_people_count}}"
-                onClick={() => addTool("guest_people_count")}
-                dragType="guest_people_count"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{guest_email}}"
-                onClick={() => addTool("guest_email")}
-                dragType="guest_email"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{guest_whatsapp}}"
-                onClick={() => addTool("guest_whatsapp")}
-                dragType="guest_whatsapp"
-              />
-            </div>
-
-            <p className="pt-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
-              Événement
-            </p>
-            <div className="flex flex-col gap-2">
-              <ToolButton
-                icon={Braces}
-                label="{{event_name}}"
-                onClick={() => addTool("event_name")}
-                dragType="event_name"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_date}}"
-                onClick={() => addTool("event_date")}
-                dragType="event_date"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_duration}}"
-                onClick={() => addTool("event_duration")}
-                dragType="event_duration"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_location}}"
-                onClick={() => addTool("event_location")}
-                dragType="event_location"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_full_location}}"
-                onClick={() => addTool("event_full_location")}
-                dragType="event_full_location"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_description}}"
-                onClick={() => addTool("event_description")}
-                dragType="event_description"
-              />
-              <ToolButton
-                icon={Braces}
-                label="{{event_message}}"
-                onClick={() => addTool("event_message")}
-                dragType="event_message"
-              />
-            </div>
-
-            <div className="h-px bg-white/10" />
-
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => handleImageUpload(event.target.files?.[0])}
-            />
-            <input
-              ref={backgroundInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) =>
-                handleBackgroundUpload(event.target.files?.[0])
-              }
-            />
-
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isUploading}
-              onClick={() => imageInputRef.current?.click()}
-              className="h-12 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
-            >
-              {isUploading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <ImagePlus />
-              )}
-              Image (WebP / SVG)
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isUploading}
-                onClick={() => backgroundInputRef.current?.click()}
-                className="h-12 flex-1 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
-              >
-                <Palette />
-                Fond
-              </Button>
-              {layout.canvas.backgroundImageUrl && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => {
-                    if (layout.canvas.backgroundImageUrl)
-                      deleteImage(layout.canvas.backgroundImageUrl);
-                    commitLayout((c) => ({
-                      ...c,
-                      canvas: { ...c.canvas, backgroundImageUrl: undefined },
-                    }));
-                  }}
-                  className="h-12 w-12 flex-none rounded-xl p-0"
-                  title="Supprimer le fond"
-                >
-                  <Trash2 className="size-5" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {isInspectorPanelOpen && (
-          <div className="invitation-editor-panel rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
-            <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
-            {selectedElement ? (
-              <Inspector
-                element={selectedElement}
-                onChange={updateSelectedElement}
-                onDuplicate={duplicateSelectedElement}
-                onDelete={deleteSelectedElement}
-              />
-            ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm text-gray-500">
-                Selectionnez un element du canvas pour modifier son style.
-              </div>
-            )}
-          </div>
-        )}
+        </ResponsiveEditorPanel>
       </div>
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
@@ -1701,7 +1500,7 @@ export function TemplateEditor({
           <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
             <div className="grid grid-cols-2 gap-3">
               {exportFields.length === 0 ? (
-                <div className="col-span-2 rounded-2xl border border-white/10 bg-[#111111] p-4 text-sm text-gray-400">
+                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/3 p-4 text-sm text-gray-400">
                   Aucune variable texte detectee. Le QR reste exporte avec sa
                   valeur de preview.
                 </div>
@@ -1719,12 +1518,12 @@ export function TemplateEditor({
                       type="number"
                       value={String(
                         field.scope === "guest"
-                          ? (exportGuestData[
+                          ? exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? "")
-                          : (exportEventData[
+                            ] ?? ""
+                          : exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? ""),
+                            ] ?? "",
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1734,18 +1533,18 @@ export function TemplateEditor({
                           setExportEventData,
                         )
                       }
-                      className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
+                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
                     />
                   ) : (
                     <Input
                       value={String(
                         field.scope === "guest"
-                          ? (exportGuestData[
+                          ? exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? "")
-                          : (exportEventData[
+                            ] ?? ""
+                          : exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? ""),
+                            ] ?? "",
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1755,7 +1554,7 @@ export function TemplateEditor({
                           setExportEventData,
                         )
                       }
-                      className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
+                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
                     />
                   )}
                 </label>
@@ -1778,7 +1577,7 @@ export function TemplateEditor({
               type="button"
               variant="outline"
               onClick={() => setIsExportDialogOpen(false)}
-              className="border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
             >
               Fermer
             </Button>
@@ -1788,17 +1587,74 @@ export function TemplateEditor({
               disabled={isExportingImage}
               className="bg-primary font-black uppercase italic text-black hover:bg-white"
             >
-              {isExportingImage ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <ImagePlus />
-              )}
+              {isExportingImage ? <Loader2 className="animate-spin" /> : <ImagePlus />}
               Telecharger PNG HD
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+function ResponsiveEditorPanel({
+  side,
+  isOpen,
+  isMobileViewport,
+  onClose,
+  children,
+}: {
+  side: "left" | "right";
+  isOpen: boolean;
+  isMobileViewport: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isMobileViewport && isOpen) {
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+
+    if (dialog.open) dialog.close();
+  }, [isMobileViewport, isOpen]);
+
+  if (isMobileViewport) {
+    return (
+      <dialog
+        ref={dialogRef}
+        aria-label={side === "left" ? "Outils de l'editeur" : "Inspecteur"}
+        className="invitation-editor-mobile-overlay fixed inset-0 m-0 h-svh max-h-none w-full max-w-none overflow-x-hidden overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-white"
+        onCancel={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      >
+        <aside
+          className={`min-h-svh space-y-4 bg-[#050505] p-4 ${
+            side === "left"
+              ? "w-[min(86vw,320px)] border-r border-white/10"
+              : "ml-auto w-[min(88vw,340px)] border-l border-white/10"
+          }`}
+        >
+          {children}
+        </aside>
+      </dialog>
+    );
+  }
+
+  return (
+    <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
+      {children}
+    </aside>
   );
 }
 
@@ -1957,7 +1813,7 @@ function Inspector({
                 zIndex: clamp(current.zIndex + 1, 0, 999),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <Layers className="size-4" />
             Plus haut
@@ -1971,7 +1827,7 @@ function Inspector({
                 zIndex: clamp(current.zIndex - 1, 0, 999),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <Layers className="size-4" />
             Plus bas
@@ -1985,7 +1841,7 @@ function Inspector({
                 zIndex: 0,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             Arriere
           </Button>
@@ -1998,7 +1854,7 @@ function Inspector({
                 zIndex: 999,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             Avant
           </Button>
@@ -2017,7 +1873,7 @@ function Inspector({
         className={`h-11 w-full rounded-xl border-white/10 ${
           element.locked
             ? "bg-primary text-black hover:bg-white"
-            : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
         }`}
       >
         {element.locked ? <Lock /> : <Unlock />}
@@ -2028,13 +1884,13 @@ function Inspector({
         type="button"
         variant="outline"
         onClick={onDuplicate}
-        className="h-11 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+        className="h-11 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
       >
         <Copy />
         Dupliquer
       </Button>
 
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             Ombre
@@ -2128,14 +1984,14 @@ function Inspector({
                     },
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </label>
           </div>
         ) : null}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             Zone d&apos;opacite
@@ -2240,7 +2096,7 @@ function Inspector({
             variant="outline"
             title="Aligner a gauche"
             onClick={() => onChange((current) => ({ ...current, x: 0 }))}
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignLeft className="size-4" />
           </Button>
@@ -2254,7 +2110,7 @@ function Inspector({
                 x: (100 - current.width) / 2,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignCenter className="size-4" />
           </Button>
@@ -2265,7 +2121,7 @@ function Inspector({
             onClick={() =>
               onChange((current) => ({ ...current, x: 100 - current.width }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignRight className="size-4" />
           </Button>
@@ -2282,7 +2138,7 @@ function Inspector({
             variant="outline"
             title="Aligner en haut"
             onClick={() => onChange((current) => ({ ...current, y: 0 }))}
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignVerticalJustifyStart className="size-4" />
           </Button>
@@ -2300,7 +2156,7 @@ function Inspector({
                 };
               })
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignVerticalJustifyCenter className="size-4" />
           </Button>
@@ -2314,7 +2170,7 @@ function Inspector({
                 y: Math.max(0, 100 - current.height),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
           >
             <AlignVerticalJustifyEnd className="size-4" />
           </Button>
@@ -2335,7 +2191,7 @@ function Inspector({
               }))
             }
           >
-            <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
+            <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2465,7 +2321,7 @@ function Inspector({
               }
             />
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Recolorer
@@ -2505,14 +2361,12 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                   />
                 </label>
                 <NumberInput
                   label="Opacite %"
-                  value={Math.round(
-                    (element.filters.tintOpacity ?? 0.35) * 100,
-                  )}
+                  value={Math.round((element.filters.tintOpacity ?? 0.35) * 100)}
                   onChange={(value) =>
                     updateImage((current) => ({
                       ...current,
@@ -2526,7 +2380,7 @@ function Inspector({
               </div>
             ) : null}
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient image
@@ -2566,7 +2420,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                   />
                 </label>
                 <label className="space-y-1">
@@ -2585,7 +2439,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                   />
                 </label>
                 <NumberInput
@@ -2621,7 +2475,7 @@ function Inspector({
                     fgColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </label>
             <label className="space-y-2">
@@ -2637,7 +2491,7 @@ function Inspector({
                     bgColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </label>
           </div>
@@ -2656,7 +2510,7 @@ function Inspector({
                   }))
                 }
               >
-                <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
+                <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2667,7 +2521,7 @@ function Inspector({
                 </SelectContent>
               </Select>
             </label>
-            <label className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-[#161616] px-3 text-xs font-bold uppercase text-gray-400">
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-bold uppercase text-gray-400">
               Logo
               <Switch
                 checked={element.showLogo}
@@ -2696,7 +2550,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2720,7 +2574,7 @@ function Inspector({
                     fillColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
               />
             </label>
             <Button
@@ -2741,13 +2595,13 @@ function Inspector({
                   };
                 })
               }
-              className="self-end h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+              className="self-end h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
             >
               Cercle
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-white/10 bg-[#111111] p-3">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Rayon coins
@@ -2827,7 +2681,7 @@ function Inspector({
                       gradientFrom: event.target.value,
                     }))
                   }
-                  className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                  className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                 />
               </label>
               <label className="space-y-2">
@@ -2843,7 +2697,7 @@ function Inspector({
                       gradientTo: event.target.value,
                     }))
                   }
-                  className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                  className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                 />
               </label>
               <NumberInput
@@ -2882,7 +2736,7 @@ function Inspector({
                   }))
                 }
                 placeholder="https://yambipass.com"
-                className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
+                className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
               />
             </div>
           ) : null}
@@ -2934,7 +2788,7 @@ function Inspector({
               className={`h-10 rounded-xl border-white/10 ${
                 element.style.fontStyle === "italic"
                   ? "bg-primary text-black"
-                  : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+                  : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
               }`}
             >
               <Italic className="size-4" />
@@ -2958,7 +2812,7 @@ function Inspector({
               className={`h-10 rounded-xl border-white/10 ${
                 element.style.textDecoration === "underline"
                   ? "bg-primary text-black"
-                  : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+                  : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
               }`}
             >
               <Underline className="size-4" />
@@ -2983,7 +2837,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -3013,7 +2867,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -3043,11 +2897,11 @@ function Inspector({
                   style: { ...current.style, color: event.target.value },
                 }))
               }
-              className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+              className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
             />
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient texte
@@ -3083,7 +2937,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                   />
                 </label>
                 <label className="space-y-2">
@@ -3102,7 +2956,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
+                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
                   />
                 </label>
                 <NumberInput
@@ -3144,7 +2998,7 @@ function Inspector({
                 className={`h-10 rounded-xl border-white/10 ${
                   element.style.textAlign === value
                     ? "bg-primary text-black"
-                    : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
+                    : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <Icon />
@@ -3275,8 +3129,8 @@ function RichTextEditor({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#161616]">
-      <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-[#0a0a0a] p-2">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
+      <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-black/30 p-2">
         <Button
           type="button"
           variant="ghost"
@@ -3285,7 +3139,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("bold");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
         >
           <Bold className="size-4" />
         </Button>
@@ -3297,7 +3151,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("italic");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
         >
           <Italic className="size-4" />
         </Button>
@@ -3309,7 +3163,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("underline");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
         >
           <Underline className="size-4" />
         </Button>
@@ -3318,7 +3172,7 @@ function RichTextEditor({
           title="Couleur du texte selectionne"
           onPointerDown={saveSelection}
           onChange={(event) => applyColor(event.target.value)}
-          className="h-9 w-12 rounded-lg border-white/10 bg-[#161616] p-1"
+          className="h-9 w-12 rounded-lg border-white/10 bg-white/5 p-1"
         />
       </div>
       <div
@@ -3365,7 +3219,7 @@ function NumberInput({
         disabled={disabled}
         value={Number(value.toFixed(2))}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
+        className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
       />
     </label>
   );
@@ -3428,11 +3282,12 @@ function ToolButton({
   return (
     <button
       type="button"
+      draggable
       onClick={onClick}
       onDragStart={(event) =>
         event.dataTransfer.setData("application/x-yambipass-tool", dragType)
       }
-      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-[#161616] px-4 text-left text-sm font-bold text-white transition-colors hover:bg-[#222222] hover:text-white"
+      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 text-left text-sm font-bold text-white transition hover:bg-white/10 hover:text-white hover:opacity-90 active:scale-95"
     >
       <Icon className="size-4 text-primary" />
       {label}

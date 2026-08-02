@@ -148,44 +148,24 @@
 
   button:not(:disabled),
   a[href] {
-    @apply transition-colors;
+    @apply transition-all;
   }
 
   button:not(:disabled):hover,
   a[href]:hover {
     @apply opacity-90;
   }
+
+  button:not(:disabled):active,
+  a[href]:active {
+    @apply scale-95;
+  }
 }
 
-/* ==========================================================================
-   CORRECTIFS ARTEFACTS GPU — CHROMIUM MOBILE (Chrome / Brave Android)
-   Élimine les trainées de rastérisation sur les panneaux de l'éditeur
-   ========================================================================== */
-
-/* Désactive les animations de transform sur les inputs pour éviter la création
-   de couches GPU supplémentaires lors du tap/focus sur mobile Chromium */
-input[type="color"],
-input[type="range"],
-input[type="number"] {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-/* Empêche Chromium de promouvoir les éléments en couches GPU composites
-   inutiles dans les panneaux de l'éditeur */
-.invitation-editor-panel {
-  transform: translateZ(0);
-  will-change: auto;
-  isolation: isolate;
-  -webkit-overflow-scrolling: touch;
-  backface-visibility: hidden;
-}
-
-/* Supprime les ombres portées des box sur les éléments de formulaire
-   qui causent des stencil buffer repaints sur Android Chrome */
-.invitation-editor-panel input,
-.invitation-editor-panel button,
-.invitation-editor-panel [data-slot="select-trigger"] {
-  box-shadow: none !important;
-  -webkit-box-shadow: none !important;
+@layer components {
+  @media (max-width: 899px) {
+    .invitation-editor-mobile-overlay::backdrop {
+      background-color: rgb(0 0 0 / 85%);
+    }
+  }
 }
