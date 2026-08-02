@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -29,8 +21,6 @@ import {
   Move,
   MoveLeftIcon,
   Palette,
-  PanelLeft,
-  PanelRight,
   QrCode,
   Save,
   Square,
@@ -227,7 +217,6 @@ export function TemplateEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
   const [isInspectorPanelOpen, setIsInspectorPanelOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [exportGuestData, setExportGuestData] =
@@ -262,16 +251,6 @@ export function TemplateEditor({
     layout.canvas.height,
   );
   const exportFields = useMemo(() => getExportFields(layout), [layout]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 899px)");
-    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
-
-    updateViewport();
-    mediaQuery.addEventListener("change", updateViewport);
-
-    return () => mediaQuery.removeEventListener("change", updateViewport);
-  }, []);
 
   const commitLayout = (
     updater:
@@ -349,60 +328,60 @@ export function TemplateEditor({
               color: "#FFFFFF",
               textDecoration: "underline",
             })
-        : tool === "qrcode"
-          ? createQRCodeElement({
-              x: base.x,
-              y: base.y,
-              width: 30,
-              height: 30,
-            })
-          : tool === "shape"
-            ? createShapeElement({
+          : tool === "qrcode"
+            ? createQRCodeElement({
                 x: base.x,
                 y: base.y,
-                width: 34,
-                height: 34,
-                fillColor: "#FBBF24",
-                borderRadius: 0,
+                width: 30,
+                height: 30,
               })
-            : createTextElement({
-                type: "variable",
-                content:
-                  tool === "guest_name"
-                    ? "{{guest_name}}"
-                    : tool === "guest_table"
-                      ? "Table {{guest_table}}"
-                      : tool === "guest_people_count"
-                        ? "{{guest_people_count}} pers."
-                        : tool === "event_name"
-                          ? "{{event_name}}"
-                          : tool === "event_description"
-                            ? "{{event_description}}"
-                            : tool === "event_date"
-                              ? "{{event_date}}"
-                              : tool === "event_duration"
-                                ? "{{event_duration}} h"
-                                : tool === "event_location"
-                                  ? "{{event_location}}"
-                                  : tool === "event_full_location"
-                                    ? "{{event_full_location}}"
-                                    : tool === "event_message"
-                                      ? "{{event_message}}"
-                                      : tool === "guest_email"
-                                        ? "{{guest_email}}"
-                                        : tool === "guest_whatsapp"
-                                          ? "{{guest_whatsapp}}"
-                                          : tool === "guest_seats"
-                                            ? "{{guest_seats}} places"
-                                            : `{{${tool}}}`,
-                x: base.x,
-                y: base.y,
-                width: tool === "guest_name" ? 66 : 52,
-                height: 8,
-                fontSize: tool === "guest_name" ? 4.3 : 3.2,
-                color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
-                fontWeight: 800,
-              });
+            : tool === "shape"
+              ? createShapeElement({
+                  x: base.x,
+                  y: base.y,
+                  width: 34,
+                  height: 34,
+                  fillColor: "#FBBF24",
+                  borderRadius: 0,
+                })
+              : createTextElement({
+                  type: "variable",
+                  content:
+                    tool === "guest_name"
+                      ? "{{guest_name}}"
+                      : tool === "guest_table"
+                        ? "Table {{guest_table}}"
+                        : tool === "guest_people_count"
+                          ? "{{guest_people_count}} pers."
+                          : tool === "event_name"
+                            ? "{{event_name}}"
+                            : tool === "event_description"
+                              ? "{{event_description}}"
+                              : tool === "event_date"
+                                ? "{{event_date}}"
+                                : tool === "event_duration"
+                                  ? "{{event_duration}} h"
+                                  : tool === "event_location"
+                                    ? "{{event_location}}"
+                                    : tool === "event_full_location"
+                                      ? "{{event_full_location}}"
+                                      : tool === "event_message"
+                                        ? "{{event_message}}"
+                                        : tool === "guest_email"
+                                          ? "{{guest_email}}"
+                                          : tool === "guest_whatsapp"
+                                            ? "{{guest_whatsapp}}"
+                                            : tool === "guest_seats"
+                                              ? "{{guest_seats}} places"
+                                              : `{{${tool}}}`,
+                  x: base.x,
+                  y: base.y,
+                  width: tool === "guest_name" ? 66 : 52,
+                  height: 8,
+                  fontSize: tool === "guest_name" ? 4.3 : 3.2,
+                  color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
+                  fontWeight: 800,
+                });
 
     pushElement(element);
   };
@@ -496,7 +475,9 @@ export function TemplateEditor({
 
     try {
       const isSvg = file.type === "image/svg+xml";
-      const fileToUpload = isSvg ? file : await compressImageToWebP(file, options);
+      const fileToUpload = isSvg
+        ? file
+        : await compressImageToWebP(file, options);
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
@@ -894,49 +875,10 @@ export function TemplateEditor({
         </div>
       </div>
 
-      <div className="flex gap-2 min-[900px]:hidden">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setIsInspectorPanelOpen(false);
-            setIsToolsPanelOpen(true);
-          }}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
-        >
-          <PanelLeft className="size-4" />
-          Outils
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setIsToolsPanelOpen(false);
-            setIsInspectorPanelOpen(true);
-          }}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
-        >
-          <PanelRight className="size-4" />
-          Inspecteur
-        </Button>
-      </div>
-
-      <div className="grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-1 gap-5 min-[900px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[900px]:overflow-hidden">
-        <ResponsiveEditorPanel
-          side="left"
-          isOpen={isToolsPanelOpen}
-          isMobileViewport={isMobileViewport}
-          onClose={() => setIsToolsPanelOpen(false)}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setIsToolsPanelOpen(false)}
-            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
-          >
-            <MoveLeftIcon className="size-4" />
-            Fermer
-          </Button>
+      {/* ── Desktop: 3-column layout ───────────────────────────────────── */}
+      <div className="hidden min-[900px]:grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-[260px_minmax(0,1fr)_300px] overflow-hidden gap-5">
+        {/* Desktop left panel */}
+        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 overflow-y-auto">
           <PanelTitle icon={Layers} label="Outils" />
 
           <div className="flex flex-col gap-2">
@@ -1350,9 +1292,7 @@ export function TemplateEditor({
                       label={label}
                       value={
                         Number(
-                          layout.canvas[
-                            key as keyof InvitationTemplateCanvas
-                          ],
+                          layout.canvas[key as keyof InvitationTemplateCanvas],
                         ) || 0
                       }
                       onChange={(value) =>
@@ -1415,15 +1355,9 @@ export function TemplateEditor({
               </div>
             )}
           </div>
-        </ResponsiveEditorPanel>
+        </aside>
 
-        <main
-          className={`relative isolate z-0 flex min-h-180 items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 min-[900px]:min-h-0 min-[900px]:overflow-y-auto custom-scrollbar ${
-            isFloatingPanelOpen
-              ? "max-[899px]:pointer-events-none max-[899px]:select-none"
-              : ""
-          }`}
-        >
+        <main className="relative isolate z-0 flex items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4 overflow-y-auto custom-scrollbar">
           <div
             ref={canvasRef}
             className="w-full max-w-107.5 flex-none"
@@ -1458,21 +1392,8 @@ export function TemplateEditor({
           </div>
         </main>
 
-        <ResponsiveEditorPanel
-          side="right"
-          isOpen={isInspectorPanelOpen}
-          isMobileViewport={isMobileViewport}
-          onClose={() => setIsInspectorPanelOpen(false)}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setIsInspectorPanelOpen(false)}
-            className="mb-2 h-10 w-full justify-start text-white hover:bg-white/10 hover:text-white min-[900px]:hidden"
-          >
-            <MoveLeftIcon className="size-4" />
-            Fermer
-          </Button>
+        {/* Desktop right panel */}
+        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 overflow-y-auto">
           <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
 
           {selectedElement ? (
@@ -1487,7 +1408,286 @@ export function TemplateEditor({
               Selectionnez un element du canvas pour modifier son style.
             </div>
           )}
-        </ResponsiveEditorPanel>
+        </aside>
+      </div>
+
+      {/* ── Mobile: canvas + inline tab panel (zero fixed/absolute overlays) ── */}
+      <div className="flex flex-col gap-4 min-[900px]:hidden">
+        {/* Canvas */}
+        <main className="relative isolate z-0 flex items-start justify-center rounded-2xl border border-white/10 bg-[#0b0b0b] p-4">
+          <div
+            ref={canvasRef}
+            className="w-full max-w-107.5 flex-none"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDrop}
+            onPointerDown={() => setSelectedId(null)}
+          >
+            <InvitationRenderer
+              templateData={layout}
+              guestData={PREVIEW_GUEST}
+              interactive
+              selectedElementId={selectedId}
+              onSelectElement={setSelectedId}
+              onPointerDownElement={(event, element) =>
+                startDrag(event, element, "move")
+              }
+              suppressInteractiveChrome={false}
+              renderResizeHandle={(element) =>
+                element.locked ? null : (
+                  <button
+                    type="button"
+                    aria-label="Redimensionner"
+                    className="absolute -bottom-2 -right-2 size-5 rounded-full border border-black bg-primary shadow-lg"
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                      startDrag(event, element, "resize");
+                    }}
+                  />
+                )
+              }
+            />
+          </div>
+        </main>
+
+        {/* Tab switcher — sticky, ne flotte PAS, reste dans le flux */}
+        <div className="sticky top-0 z-10 flex rounded-2xl border border-white/10 bg-[#0b0b0b] p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setIsToolsPanelOpen(true);
+              setIsInspectorPanelOpen(false);
+            }}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-all ${
+              isToolsPanelOpen
+                ? "bg-primary text-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Layers className="size-3.5" />
+            Outils
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsInspectorPanelOpen(true);
+              setIsToolsPanelOpen(false);
+            }}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-all ${
+              isInspectorPanelOpen
+                ? "bg-primary text-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <SquareDashedMousePointer className="size-3.5" />
+            Inspecteur
+          </button>
+        </div>
+
+        {/* Panel content — dans le flux normal, zéro overlay */}
+        {isToolsPanelOpen && (
+          <div className="rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
+            <PanelTitle icon={Layers} label="Outils" />
+
+            <div className="flex flex-col gap-2">
+              <ToolButton
+                icon={Type}
+                label="Texte"
+                onClick={() => addTool("text")}
+                dragType="text"
+              />
+              <ToolButton
+                icon={Link2}
+                label="Lien"
+                onClick={() => addTool("link")}
+                dragType="link"
+              />
+              <ToolButton
+                icon={QrCode}
+                label="QR Code"
+                onClick={() => addTool("qrcode")}
+                dragType="qrcode"
+              />
+              <ToolButton
+                icon={Square}
+                label="Cadre"
+                onClick={() => addTool("shape")}
+                dragType="shape"
+              />
+            </div>
+
+            <p className="pt-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Invité
+            </p>
+            <div className="flex flex-col gap-2">
+              <ToolButton
+                icon={Braces}
+                label="{{guest_name}}"
+                onClick={() => addTool("guest_name")}
+                dragType="guest_name"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{guest_table}}"
+                onClick={() => addTool("guest_table")}
+                dragType="guest_table"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{guest_seats}}"
+                onClick={() => addTool("guest_seats")}
+                dragType="guest_seats"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{guest_people_count}}"
+                onClick={() => addTool("guest_people_count")}
+                dragType="guest_people_count"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{guest_email}}"
+                onClick={() => addTool("guest_email")}
+                dragType="guest_email"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{guest_whatsapp}}"
+                onClick={() => addTool("guest_whatsapp")}
+                dragType="guest_whatsapp"
+              />
+            </div>
+
+            <p className="pt-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Événement
+            </p>
+            <div className="flex flex-col gap-2">
+              <ToolButton
+                icon={Braces}
+                label="{{event_name}}"
+                onClick={() => addTool("event_name")}
+                dragType="event_name"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_date}}"
+                onClick={() => addTool("event_date")}
+                dragType="event_date"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_duration}}"
+                onClick={() => addTool("event_duration")}
+                dragType="event_duration"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_location}}"
+                onClick={() => addTool("event_location")}
+                dragType="event_location"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_full_location}}"
+                onClick={() => addTool("event_full_location")}
+                dragType="event_full_location"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_description}}"
+                onClick={() => addTool("event_description")}
+                dragType="event_description"
+              />
+              <ToolButton
+                icon={Braces}
+                label="{{event_message}}"
+                onClick={() => addTool("event_message")}
+                dragType="event_message"
+              />
+            </div>
+
+            <div className="h-px bg-white/10" />
+
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => handleImageUpload(event.target.files?.[0])}
+            />
+            <input
+              ref={backgroundInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) =>
+                handleBackgroundUpload(event.target.files?.[0])
+              }
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isUploading}
+              onClick={() => imageInputRef.current?.click()}
+              className="h-12 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            >
+              {isUploading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ImagePlus />
+              )}
+              Image (WebP / SVG)
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+                onClick={() => backgroundInputRef.current?.click()}
+                className="h-12 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              >
+                <Palette />
+                Fond
+              </Button>
+              {layout.canvas.backgroundImageUrl && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    if (layout.canvas.backgroundImageUrl)
+                      deleteImage(layout.canvas.backgroundImageUrl);
+                    commitLayout((c) => ({
+                      ...c,
+                      canvas: { ...c.canvas, backgroundImageUrl: undefined },
+                    }));
+                  }}
+                  className="h-12 w-12 flex-none rounded-xl p-0"
+                  title="Supprimer le fond"
+                >
+                  <Trash2 className="size-5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isInspectorPanelOpen && (
+          <div className="rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
+            <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
+            {selectedElement ? (
+              <Inspector
+                element={selectedElement}
+                onChange={updateSelectedElement}
+                onDuplicate={duplicateSelectedElement}
+                onDelete={deleteSelectedElement}
+              />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm text-gray-500">
+                Selectionnez un element du canvas pour modifier son style.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
@@ -1519,12 +1719,12 @@ export function TemplateEditor({
                       type="number"
                       value={String(
                         field.scope === "guest"
-                          ? exportGuestData[
+                          ? (exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? ""
-                          : exportEventData[
+                            ] ?? "")
+                          : (exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? "",
+                            ] ?? ""),
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1540,12 +1740,12 @@ export function TemplateEditor({
                     <Input
                       value={String(
                         field.scope === "guest"
-                          ? exportGuestData[
+                          ? (exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? ""
-                          : exportEventData[
+                            ] ?? "")
+                          : (exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? "",
+                            ] ?? ""),
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1588,117 +1788,17 @@ export function TemplateEditor({
               disabled={isExportingImage}
               className="bg-primary font-black uppercase italic text-black hover:bg-white"
             >
-              {isExportingImage ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+              {isExportingImage ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ImagePlus />
+              )}
               Telecharger PNG HD
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
-  );
-}
-
-function ResponsiveEditorPanel({
-  side,
-  isOpen,
-  isMobileViewport,
-  onClose,
-  children,
-}: {
-  side: "left" | "right";
-  isOpen: boolean;
-  isMobileViewport: boolean;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const [mounted, setMounted] = useState(false);
-
-  // Attendre le montage côté client pour utiliser createPortal
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Bloquer le scroll du body quand le panneau mobile est ouvert
-  useEffect(() => {
-    if (!isMobileViewport) return;
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobileViewport, isOpen]);
-
-  if (isMobileViewport) {
-    // Rendu via portal directement dans document.body pour éviter les
-    // conflits de calques GPU Chromium causés par les CSS transforms
-    // des éléments du canvas éditeur (traînées visuelles sur mobile).
-    const overlay = isOpen ? (
-      <div
-        aria-modal="true"
-        role="dialog"
-        aria-label={side === "left" ? "Outils de l'editeur" : "Inspecteur"}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 9999,
-          display: "flex",
-          // Pas de transform ici — évite de créer un nouveau stacking context
-          // qui interférerait avec le compositing GPU de Chromium
-        }}
-      >
-        {/* Backdrop — clic pour fermer */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.85)",
-          }}
-          onClick={onClose}
-          aria-hidden="true"
-        />
-
-        {/* Panneau latéral */}
-        <aside
-          style={{
-            position: "relative",
-            zIndex: 1,
-            overflowY: "auto",
-            overscrollBehavior: "contain",
-            backgroundColor: "#050505",
-            padding: "1rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            ...(side === "left"
-              ? {
-                  width: "min(86vw, 320px)",
-                  borderRight: "1px solid rgba(255,255,255,0.1)",
-                  minHeight: "100%",
-                }
-              : {
-                  width: "min(88vw, 340px)",
-                  borderLeft: "1px solid rgba(255,255,255,0.1)",
-                  minHeight: "100%",
-                  marginLeft: "auto",
-                }),
-          }}
-        >
-          {children}
-        </aside>
-      </div>
-    ) : null;
-
-    if (!mounted) return null;
-    return createPortal(overlay, document.body);
-  }
-
-  return (
-    <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
-      {children}
-    </aside>
   );
 }
 
@@ -2410,7 +2510,9 @@ function Inspector({
                 </label>
                 <NumberInput
                   label="Opacite %"
-                  value={Math.round((element.filters.tintOpacity ?? 0.35) * 100)}
+                  value={Math.round(
+                    (element.filters.tintOpacity ?? 0.35) * 100,
+                  )}
                   onChange={(value) =>
                     updateImage((current) => ({
                       ...current,
