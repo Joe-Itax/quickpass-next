@@ -51,7 +51,7 @@ export function AdminSidebar({
     <Sidebar
       collapsible="icon"
       {...props}
-      className="border-r border-white/5 bg-black/40 backdrop-blur-xl z-100"
+      className="border-r border-white/5 bg-[#050505]/95 z-100"
     >
       <SidebarHeader className="py-4">
         <SidebarMenu>
