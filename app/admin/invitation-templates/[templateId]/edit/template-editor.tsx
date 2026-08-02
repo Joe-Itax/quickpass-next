@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -1610,6 +1611,13 @@ function ResponsiveEditorPanel({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  // Attendre le montage côté client pour utiliser createPortal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Bloquer le scroll du body quand le panneau mobile est ouvert
   useEffect(() => {
     if (!isMobileViewport) return;
@@ -1624,34 +1632,67 @@ function ResponsiveEditorPanel({
   }, [isMobileViewport, isOpen]);
 
   if (isMobileViewport) {
-    if (!isOpen) return null;
-    return (
+    // Rendu via portal directement dans document.body pour éviter les
+    // conflits de calques GPU Chromium causés par les CSS transforms
+    // des éléments du canvas éditeur (traînées visuelles sur mobile).
+    const overlay = isOpen ? (
       <div
         aria-modal="true"
         role="dialog"
         aria-label={side === "left" ? "Outils de l'editeur" : "Inspecteur"}
-        className="fixed inset-0 z-50 flex"
-        style={{ isolation: "isolate" }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          display: "flex",
+          // Pas de transform ici — évite de créer un nouveau stacking context
+          // qui interférerait avec le compositing GPU de Chromium
+        }}
       >
         {/* Backdrop — clic pour fermer */}
         <div
-          className="absolute inset-0 bg-black/85"
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.85)",
+          }}
           onClick={onClose}
           aria-hidden="true"
         />
 
         {/* Panneau latéral */}
         <aside
-          className={`relative z-10 min-h-full space-y-4 overflow-y-auto overscroll-contain bg-[#050505] p-4 ${
-            side === "left"
-              ? "w-[min(86vw,320px)] border-r border-white/10"
-              : "ml-auto w-[min(88vw,340px)] border-l border-white/10"
-          }`}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            backgroundColor: "#050505",
+            padding: "1rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+            ...(side === "left"
+              ? {
+                  width: "min(86vw, 320px)",
+                  borderRight: "1px solid rgba(255,255,255,0.1)",
+                  minHeight: "100%",
+                }
+              : {
+                  width: "min(88vw, 340px)",
+                  borderLeft: "1px solid rgba(255,255,255,0.1)",
+                  minHeight: "100%",
+                  marginLeft: "auto",
+                }),
+          }}
         >
           {children}
         </aside>
       </div>
-    );
+    ) : null;
+
+    if (!mounted) return null;
+    return createPortal(overlay, document.body);
   }
 
   return (
