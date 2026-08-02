@@ -748,7 +748,7 @@ export function TemplateEditor({
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/invitation-templates")}
-            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-white/5 hover:text-white"
+            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-[#161616] hover:text-white"
           >
             <MoveLeftIcon className="mr-2 h-4 w-4" />
             Retour
@@ -768,14 +768,14 @@ export function TemplateEditor({
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="h-11 w-72 rounded-xl border-white/10 bg-white/5 text-white"
+            className="h-11 w-72 rounded-xl border-white/10 bg-[#161616] text-white"
             placeholder="Nom du modele"
           />
           <Select
             value={category}
             onValueChange={(value) => setCategory(value as EditorCategory)}
           >
-            <SelectTrigger className="h-11 w-48 rounded-xl border-white/10 bg-white/5 text-white">
+            <SelectTrigger className="h-11 w-48 rounded-xl border-white/10 bg-[#161616] text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -786,7 +786,7 @@ export function TemplateEditor({
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 h-11">
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#161616] px-3 h-11">
             <span className="text-xs font-bold uppercase text-gray-400">
               Public
             </span>
@@ -807,7 +807,7 @@ export function TemplateEditor({
               }));
             }}
           >
-            <SelectTrigger className="h-11 w-44 rounded-xl border-white/10 bg-white/5 text-white">
+            <SelectTrigger className="h-11 w-44 rounded-xl border-white/10 bg-[#161616] text-white">
               <SelectValue placeholder="Format" />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -835,7 +835,7 @@ export function TemplateEditor({
                 onChange={(event) =>
                   updateCanvasDimension("width", Number(event.target.value))
                 }
-                className="h-11 w-24 rounded-xl border-white/10 bg-white/5 text-white"
+                className="h-11 w-24 rounded-xl border-white/10 bg-[#161616] text-white"
               />
             </label>
             <label className="space-y-1">
@@ -851,7 +851,7 @@ export function TemplateEditor({
                 onChange={(event) =>
                   updateCanvasDimension("height", Number(event.target.value))
                 }
-                className="h-11 w-24 rounded-xl border-white/10 bg-white/5 text-white"
+                className="h-11 w-24 rounded-xl border-white/10 bg-[#161616] text-white"
               />
             </label>
           </div>
@@ -859,7 +859,7 @@ export function TemplateEditor({
             type="button"
             variant="outline"
             onClick={() => setIsExportDialogOpen(true)}
-            className="h-11 rounded-xl border-white/10 bg-white/5 px-5 font-black uppercase italic text-white hover:bg-white/10 hover:text-white"
+            className="h-11 rounded-xl border-white/10 bg-[#161616] px-5 font-black uppercase italic text-white hover:bg-[#222222] hover:text-white"
           >
             <ImagePlus />
             Export HD
@@ -878,7 +878,7 @@ export function TemplateEditor({
       {/* ── Desktop: 3-column layout ───────────────────────────────────── */}
       <div className="hidden min-[900px]:grid min-h-[calc(100vh-140px)] h-[calc(100vh-140px)] grid-cols-[260px_minmax(0,1fr)_300px] overflow-hidden gap-5">
         {/* Desktop left panel */}
-        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 overflow-y-auto">
+        <aside className="invitation-editor-panel space-y-4 rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 overflow-y-auto">
           <PanelTitle icon={Layers} label="Outils" />
 
           <div className="flex flex-col gap-2">
@@ -1021,7 +1021,7 @@ export function TemplateEditor({
             variant="outline"
             disabled={isUploading}
             onClick={() => imageInputRef.current?.click()}
-            className="h-12 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-12 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             {isUploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
             Image (WebP / SVG)
@@ -1032,7 +1032,7 @@ export function TemplateEditor({
               variant="outline"
               disabled={isUploading}
               onClick={() => backgroundInputRef.current?.click()}
-              className="h-12 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              className="h-12 flex-1 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
             >
               <Palette />
               Fond
@@ -1063,7 +1063,7 @@ export function TemplateEditor({
 
           <div className="space-y-4 pt-4">
             {layout.canvas.backgroundImageUrl ? (
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                     Cadrage du fond
@@ -1177,7 +1177,7 @@ export function TemplateEditor({
               </div>
             ) : null}
 
-            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Zone de securite
@@ -1228,7 +1228,7 @@ export function TemplateEditor({
                     },
                   }))
                 }
-                className="h-11 rounded-xl border-white/10 bg-white/5 p-1"
+                className="h-11 rounded-xl border-white/10 bg-[#161616] p-1"
               />
             </div>
 
@@ -1350,7 +1350,7 @@ export function TemplateEditor({
                       },
                     }))
                   }
-                  className="h-11 rounded-xl border-white/10 bg-white/5 p-1"
+                  className="h-11 rounded-xl border-white/10 bg-[#161616] p-1"
                 />
               </div>
             )}
@@ -1393,7 +1393,7 @@ export function TemplateEditor({
         </main>
 
         {/* Desktop right panel */}
-        <aside className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 overflow-y-auto">
+        <aside className="invitation-editor-panel space-y-4 rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 overflow-y-auto">
           <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
 
           {selectedElement ? (
@@ -1457,7 +1457,7 @@ export function TemplateEditor({
               setIsToolsPanelOpen(true);
               setIsInspectorPanelOpen(false);
             }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-colors ${
               isToolsPanelOpen
                 ? "bg-primary text-black"
                 : "text-gray-400 hover:text-white"
@@ -1472,7 +1472,7 @@ export function TemplateEditor({
               setIsInspectorPanelOpen(true);
               setIsToolsPanelOpen(false);
             }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase italic tracking-widest transition-colors ${
               isInspectorPanelOpen
                 ? "bg-primary text-black"
                 : "text-gray-400 hover:text-white"
@@ -1485,7 +1485,7 @@ export function TemplateEditor({
 
         {/* Panel content — dans le flux normal, zéro overlay */}
         {isToolsPanelOpen && (
-          <div className="rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
+          <div className="invitation-editor-panel rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
             <PanelTitle icon={Layers} label="Outils" />
 
             <div className="flex flex-col gap-2">
@@ -1629,7 +1629,7 @@ export function TemplateEditor({
               variant="outline"
               disabled={isUploading}
               onClick={() => imageInputRef.current?.click()}
-              className="h-12 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              className="h-12 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
             >
               {isUploading ? (
                 <Loader2 className="animate-spin" />
@@ -1644,7 +1644,7 @@ export function TemplateEditor({
                 variant="outline"
                 disabled={isUploading}
                 onClick={() => backgroundInputRef.current?.click()}
-                className="h-12 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                className="h-12 flex-1 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
               >
                 <Palette />
                 Fond
@@ -1672,7 +1672,7 @@ export function TemplateEditor({
         )}
 
         {isInspectorPanelOpen && (
-          <div className="rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
+          <div className="invitation-editor-panel rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 space-y-4">
             <PanelTitle icon={SquareDashedMousePointer} label="Inspecteur" />
             {selectedElement ? (
               <Inspector
@@ -1701,7 +1701,7 @@ export function TemplateEditor({
           <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
             <div className="grid grid-cols-2 gap-3">
               {exportFields.length === 0 ? (
-                <div className="col-span-2 rounded-2xl border border-white/10 bg-white/3 p-4 text-sm text-gray-400">
+                <div className="col-span-2 rounded-2xl border border-white/10 bg-[#111111] p-4 text-sm text-gray-400">
                   Aucune variable texte detectee. Le QR reste exporte avec sa
                   valeur de preview.
                 </div>
@@ -1734,7 +1734,7 @@ export function TemplateEditor({
                           setExportEventData,
                         )
                       }
-                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+                      className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
                     />
                   ) : (
                     <Input
@@ -1755,7 +1755,7 @@ export function TemplateEditor({
                           setExportEventData,
                         )
                       }
-                      className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+                      className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
                     />
                   )}
                 </label>
@@ -1778,7 +1778,7 @@ export function TemplateEditor({
               type="button"
               variant="outline"
               onClick={() => setIsExportDialogOpen(false)}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              className="border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
             >
               Fermer
             </Button>
@@ -1957,7 +1957,7 @@ function Inspector({
                 zIndex: clamp(current.zIndex + 1, 0, 999),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <Layers className="size-4" />
             Plus haut
@@ -1971,7 +1971,7 @@ function Inspector({
                 zIndex: clamp(current.zIndex - 1, 0, 999),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <Layers className="size-4" />
             Plus bas
@@ -1985,7 +1985,7 @@ function Inspector({
                 zIndex: 0,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             Arriere
           </Button>
@@ -1998,7 +1998,7 @@ function Inspector({
                 zIndex: 999,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             Avant
           </Button>
@@ -2017,7 +2017,7 @@ function Inspector({
         className={`h-11 w-full rounded-xl border-white/10 ${
           element.locked
             ? "bg-primary text-black hover:bg-white"
-            : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
         }`}
       >
         {element.locked ? <Lock /> : <Unlock />}
@@ -2028,13 +2028,13 @@ function Inspector({
         type="button"
         variant="outline"
         onClick={onDuplicate}
-        className="h-11 w-full rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+        className="h-11 w-full rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
       >
         <Copy />
         Dupliquer
       </Button>
 
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             Ombre
@@ -2128,14 +2128,14 @@ function Inspector({
                     },
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
               />
             </label>
           </div>
         ) : null}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             Zone d&apos;opacite
@@ -2240,7 +2240,7 @@ function Inspector({
             variant="outline"
             title="Aligner a gauche"
             onClick={() => onChange((current) => ({ ...current, x: 0 }))}
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignLeft className="size-4" />
           </Button>
@@ -2254,7 +2254,7 @@ function Inspector({
                 x: (100 - current.width) / 2,
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignCenter className="size-4" />
           </Button>
@@ -2265,7 +2265,7 @@ function Inspector({
             onClick={() =>
               onChange((current) => ({ ...current, x: 100 - current.width }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignRight className="size-4" />
           </Button>
@@ -2282,7 +2282,7 @@ function Inspector({
             variant="outline"
             title="Aligner en haut"
             onClick={() => onChange((current) => ({ ...current, y: 0 }))}
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignVerticalJustifyStart className="size-4" />
           </Button>
@@ -2300,7 +2300,7 @@ function Inspector({
                 };
               })
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignVerticalJustifyCenter className="size-4" />
           </Button>
@@ -2314,7 +2314,7 @@ function Inspector({
                 y: Math.max(0, 100 - current.height),
               }))
             }
-            className="h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
           >
             <AlignVerticalJustifyEnd className="size-4" />
           </Button>
@@ -2335,7 +2335,7 @@ function Inspector({
               }))
             }
           >
-            <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
+            <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2465,7 +2465,7 @@ function Inspector({
               }
             />
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Recolorer
@@ -2505,7 +2505,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                   />
                 </label>
                 <NumberInput
@@ -2526,7 +2526,7 @@ function Inspector({
               </div>
             ) : null}
           </div>
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient image
@@ -2566,7 +2566,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                   />
                 </label>
                 <label className="space-y-1">
@@ -2585,7 +2585,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                   />
                 </label>
                 <NumberInput
@@ -2621,7 +2621,7 @@ function Inspector({
                     fgColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
               />
             </label>
             <label className="space-y-2">
@@ -2637,7 +2637,7 @@ function Inspector({
                     bgColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
               />
             </label>
           </div>
@@ -2656,7 +2656,7 @@ function Inspector({
                   }))
                 }
               >
-                <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
+                <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2667,7 +2667,7 @@ function Inspector({
                 </SelectContent>
               </Select>
             </label>
-            <label className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-bold uppercase text-gray-400">
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-[#161616] px-3 text-xs font-bold uppercase text-gray-400">
               Logo
               <Switch
                 checked={element.showLogo}
@@ -2696,7 +2696,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -2720,7 +2720,7 @@ function Inspector({
                     fillColor: event.target.value,
                   }))
                 }
-                className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
               />
             </label>
             <Button
@@ -2741,13 +2741,13 @@ function Inspector({
                   };
                 })
               }
-              className="self-end h-10 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              className="self-end h-10 rounded-xl border-white/10 bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
             >
               Cercle
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/3 p-3">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-[#111111] p-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Rayon coins
@@ -2827,7 +2827,7 @@ function Inspector({
                       gradientFrom: event.target.value,
                     }))
                   }
-                  className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                  className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                 />
               </label>
               <label className="space-y-2">
@@ -2843,7 +2843,7 @@ function Inspector({
                       gradientTo: event.target.value,
                     }))
                   }
-                  className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                  className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                 />
               </label>
               <NumberInput
@@ -2882,7 +2882,7 @@ function Inspector({
                   }))
                 }
                 placeholder="https://yambipass.com"
-                className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+                className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
               />
             </div>
           ) : null}
@@ -2934,7 +2934,7 @@ function Inspector({
               className={`h-10 rounded-xl border-white/10 ${
                 element.style.fontStyle === "italic"
                   ? "bg-primary text-black"
-                  : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
               }`}
             >
               <Italic className="size-4" />
@@ -2958,7 +2958,7 @@ function Inspector({
               className={`h-10 rounded-xl border-white/10 ${
                 element.style.textDecoration === "underline"
                   ? "bg-primary text-black"
-                  : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
               }`}
             >
               <Underline className="size-4" />
@@ -2983,7 +2983,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -3013,7 +3013,7 @@ function Inspector({
                 }))
               }
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/5 text-white">
+              <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-[#161616] text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#0f0f0f] text-white">
@@ -3043,11 +3043,11 @@ function Inspector({
                   style: { ...current.style, color: event.target.value },
                 }))
               }
-              className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+              className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
             />
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/3 p-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111111] p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Gradient texte
@@ -3083,7 +3083,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                   />
                 </label>
                 <label className="space-y-2">
@@ -3102,7 +3102,7 @@ function Inspector({
                         },
                       }))
                     }
-                    className="h-10 rounded-xl border-white/10 bg-white/5 p-1"
+                    className="h-10 rounded-xl border-white/10 bg-[#161616] p-1"
                   />
                 </label>
                 <NumberInput
@@ -3144,7 +3144,7 @@ function Inspector({
                 className={`h-10 rounded-xl border-white/10 ${
                   element.style.textAlign === value
                     ? "bg-primary text-black"
-                    : "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                    : "bg-[#161616] text-white hover:bg-[#222222] hover:text-white"
                 }`}
               >
                 <Icon />
@@ -3275,8 +3275,8 @@ function RichTextEditor({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
-      <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-black/30 p-2">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#161616]">
+      <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-[#0a0a0a] p-2">
         <Button
           type="button"
           variant="ghost"
@@ -3285,7 +3285,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("bold");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
         >
           <Bold className="size-4" />
         </Button>
@@ -3297,7 +3297,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("italic");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
         >
           <Italic className="size-4" />
         </Button>
@@ -3309,7 +3309,7 @@ function RichTextEditor({
             event.preventDefault();
             applyCommand("underline");
           }}
-          className="size-9 rounded-lg p-0 text-white hover:bg-white/10 hover:text-white"
+          className="size-9 rounded-lg p-0 text-white hover:bg-[#222222] hover:text-white"
         >
           <Underline className="size-4" />
         </Button>
@@ -3318,7 +3318,7 @@ function RichTextEditor({
           title="Couleur du texte selectionne"
           onPointerDown={saveSelection}
           onChange={(event) => applyColor(event.target.value)}
-          className="h-9 w-12 rounded-lg border-white/10 bg-white/5 p-1"
+          className="h-9 w-12 rounded-lg border-white/10 bg-[#161616] p-1"
         />
       </div>
       <div
@@ -3365,7 +3365,7 @@ function NumberInput({
         disabled={disabled}
         value={Number(value.toFixed(2))}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="h-10 rounded-xl border-white/10 bg-white/5 text-white"
+        className="h-10 rounded-xl border-white/10 bg-[#161616] text-white"
       />
     </label>
   );
@@ -3428,12 +3428,11 @@ function ToolButton({
   return (
     <button
       type="button"
-      draggable
       onClick={onClick}
       onDragStart={(event) =>
         event.dataTransfer.setData("application/x-yambipass-tool", dragType)
       }
-      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 text-left text-sm font-bold text-white transition hover:bg-white/10 hover:text-white hover:opacity-90 active:scale-95"
+      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-[#161616] px-4 text-left text-sm font-bold text-white transition-colors hover:bg-[#222222] hover:text-white"
     >
       <Icon className="size-4 text-primary" />
       {label}
