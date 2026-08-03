@@ -26,10 +26,21 @@ type TableFormData = {
 type AddTableProps = {
   eventId: number;
   onTableAdded?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 };
 
-export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
-  const [openDialog, setOpenDialog] = useState(false);
+export default function AddTable({
+  eventId,
+  onTableAdded,
+  open,
+  onOpenChange,
+  hideTrigger = false,
+}: AddTableProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = open ?? internalOpen;
+  const setDialogOpen = onOpenChange ?? setInternalOpen;
   const [formData, setFormData] = useState<TableFormData>({
     name: "",
     capacity: 6,
@@ -63,7 +74,7 @@ export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
       } as Table);
 
       setFormData({ name: "", capacity: 6 });
-      setOpenDialog(false);
+      setDialogOpen(false);
       onTableAdded?.();
     } catch (error) {
       console.error("Error creating table:", error);
@@ -78,8 +89,8 @@ export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
   };
 
   return (
-    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-      <DialogTrigger asChild>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!hideTrigger ? <DialogTrigger asChild>
         <Button
           variant="outline"
           className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
@@ -87,7 +98,7 @@ export default function AddTable({ eventId, onTableAdded }: AddTableProps) {
           <LayoutGrid className="size-4 mr-2 text-primary" />
           Nouvelle Table
         </Button>
-      </DialogTrigger>
+      </DialogTrigger> : null}
 
       <DialogContent className="sm:max-w-md bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
         {/* HEADER */}

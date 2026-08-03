@@ -27,8 +27,22 @@ interface ImportedGuest extends Partial<Invitation> {
   tableName?: string; // Le nom de la table à assigner
 }
 
-export default function ImportGuests({ eventId }: { eventId: number }) {
-  const [open, setOpen] = useState(false);
+type ImportGuestsProps = {
+  eventId: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+};
+
+export default function ImportGuests({
+  eventId,
+  open,
+  onOpenChange,
+  hideTrigger = false,
+}: ImportGuestsProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = open ?? internalOpen;
+  const setDialogOpen = onOpenChange ?? setInternalOpen;
   const [isReading, setIsReading] = useState(false);
   const [previewData, setPreviewData] = useState<ImportedGuest[]>([]);
 
@@ -113,7 +127,7 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
 
       toast.success("Importation et allocation des tables réussies !");
       setPreviewData([]);
-      setOpen(false);
+      setDialogOpen(false);
     } catch (e) {
       console.log("Error during massive import:", e);
       toast.error("L'importation a échoué.");
@@ -208,15 +222,15 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!hideTrigger ? <DialogTrigger asChild>
         <Button
           variant="outline"
           className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
         >
           <FileUp className="mr-2 size-4 text-primary" /> Import Excel
         </Button>
-      </DialogTrigger>
+      </DialogTrigger> : null}
 
       <DialogContent className="bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl sm:max-w-2xl">
         <DialogHeader className="bg-white/5 p-8 border-b border-white/5">
@@ -368,7 +382,7 @@ export default function ImportGuests({ eventId }: { eventId: number }) {
         <div className="p-8 bg-white/5 border-t border-white/5 flex items-center justify-end gap-3">
           <Button
             variant="ghost"
-            onClick={() => setOpen(false)}
+            onClick={() => setDialogOpen(false)}
             className="text-gray-500 font-bold uppercase text-[10px]"
           >
             Fermer

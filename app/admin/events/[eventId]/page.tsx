@@ -29,6 +29,12 @@ import {
   CheckCircle2,
   Table2,
   ListChecks,
+  Download,
+  LayoutGrid,
+  MoreHorizontal,
+  Settings2,
+  Upload,
+  UserPlus,
 } from "lucide-react";
 import { Event2 } from "@/types/types";
 import AddGuest from "./add-guest";
@@ -59,6 +65,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const formatDateTime = (dateStr: string) => {
   if (!dateStr) return "Date inconnue";
@@ -106,11 +121,121 @@ function StatCard({
   );
 }
 
+type EventActionsMenuProps = {
+  isExportingGuestStructure: boolean;
+  onEditEvent: () => void;
+  onAddGuest: () => void;
+  onImportGuests: () => void;
+  onOpenSpreadsheet: () => void;
+  onExportGuests: () => void;
+  onAddTable: () => void;
+  onDeleteEvent: () => void;
+};
+
+function EventActionsMenu({
+  isExportingGuestStructure,
+  onEditEvent,
+  onAddGuest,
+  onImportGuests,
+  onOpenSpreadsheet,
+  onExportGuests,
+  onAddTable,
+  onDeleteEvent,
+}: EventActionsMenuProps) {
+  const itemClassName =
+    "h-10 rounded-lg px-3 text-xs font-bold text-white focus:bg-white/10 focus:text-white";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-xl border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase italic tracking-widest text-white hover:bg-white/10 hover:text-primary"
+        >
+          <MoreHorizontal className="size-4 text-primary" />
+          Actions
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-72 rounded-xl border-white/10 bg-[#0c0c0c] p-2 text-white shadow-2xl"
+      >
+        <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+          Événement
+        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={onEditEvent} className={itemClassName}>
+            <Settings2 className="text-primary" />
+            Éditer les paramètres
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+
+        <DropdownMenuSeparator className="my-2 bg-white/10" />
+        <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+          Invités
+        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={onAddGuest} className={itemClassName}>
+            <UserPlus className="text-primary" />
+            Ajouter un invité
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onImportGuests} className={itemClassName}>
+            <Upload className="text-primary" />
+            Importer un fichier Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onOpenSpreadsheet} className={itemClassName}>
+            <FileSpreadsheet className="text-primary" />
+            Ouvrir le tableur
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={isExportingGuestStructure}
+            onSelect={onExportGuests}
+            className={itemClassName}
+          >
+            {isExportingGuestStructure ? (
+              <Loader2 className="animate-spin text-primary" />
+            ) : (
+              <Download className="text-primary" />
+            )}
+            Exporter les invités
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+
+        <DropdownMenuSeparator className="my-2 bg-white/10" />
+        <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+          Plan de table
+        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={onAddTable} className={itemClassName}>
+            <LayoutGrid className="text-primary" />
+            Créer une table
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+
+        <DropdownMenuSeparator className="my-2 bg-white/10" />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={onDeleteEvent}
+          className="h-10 rounded-lg px-3 text-xs font-bold"
+        >
+          <Trash2Icon />
+          Supprimer l&apos;événement
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export default function EventPage() {
   const { eventId } = useParams();
   const router = useRouter();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isModifyEventOpen, setIsModifyEventOpen] = useState(false);
+  const [isAddGuestOpen, setIsAddGuestOpen] = useState(false);
+  const [isImportGuestsOpen, setIsImportGuestsOpen] = useState(false);
+  const [isAddTableOpen, setIsAddTableOpen] = useState(false);
   const [isBroadcastingEmail, setIsBroadcastingEmail] = useState(false);
   const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
   const [isExportingStats, setIsExportingStats] = useState(false);
@@ -444,41 +569,44 @@ export default function EventPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <ModifyEvent event={event} />
-          <AddGuest eventId={event.id} />
-          <ImportGuests eventId={event.id} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push(`/admin/events/${event.id}/excel`)}
-            // className="rounded-xl border-white/10 bg-white/5 px-5 text-[10px] font-black uppercase italic text-white hover:bg-white/10 hover:text-white"
-            className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
-          >
-            <FileSpreadsheet className="size-4 mr-2 text-primary" />{" "}
-            Tableur
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleExportGuestStructure}
-            disabled={isExportingGuestStructure}
-            className="rounded-xl border-white/10 bg-white/5 font-black uppercase italic text-[10px] tracking-widest transition-all hover:bg-white/10 hover:text-primary"
-          >
-            {isExportingGuestStructure ? (
-              <Loader2 className="mr-2 size-4 animate-spin text-primary" />
-            ) : (
-              <FileSpreadsheet className="mr-2 size-4 text-primary" />
-            )}
-            Export invites
-          </Button>
-          <AddTable eventId={event.id} />
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="rounded-xl font-black uppercase italic text-[10px] px-5 border border-red-500/20 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
-          >
-            <Trash2Icon className="w-4 h-4 mr-2" /> Supprimer
-          </Button>
+          <EventActionsMenu
+            isExportingGuestStructure={isExportingGuestStructure}
+            onEditEvent={() => setIsModifyEventOpen(true)}
+            onAddGuest={() => setIsAddGuestOpen(true)}
+            onImportGuests={() => setIsImportGuestsOpen(true)}
+            onOpenSpreadsheet={() =>
+              router.push(`/admin/events/${event.id}/excel`)
+            }
+            onExportGuests={handleExportGuestStructure}
+            onAddTable={() => setIsAddTableOpen(true)}
+            onDeleteEvent={() => setIsDeleteDialogOpen(true)}
+          />
+          <ModifyEvent
+            event={event}
+            open={isModifyEventOpen}
+            onOpenChange={setIsModifyEventOpen}
+            onEventUpdated={refetch}
+            hideTrigger
+          />
+          <AddGuest
+            eventId={event.id}
+            open={isAddGuestOpen}
+            onOpenChange={setIsAddGuestOpen}
+            hideTrigger
+          />
+          <ImportGuests
+            eventId={event.id}
+            open={isImportGuestsOpen}
+            onOpenChange={setIsImportGuestsOpen}
+            hideTrigger
+          />
+          <AddTable
+            eventId={event.id}
+            open={isAddTableOpen}
+            onOpenChange={setIsAddTableOpen}
+            onTableAdded={refetch}
+            hideTrigger
+          />
         </div>
       </div>
 

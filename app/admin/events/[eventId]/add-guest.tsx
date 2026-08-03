@@ -37,8 +37,22 @@ import { cn } from "@/lib/utils";
 import AddTable from "./add-table";
 import { Input } from "@/components/ui/input";
 
-export default function AddGuest({ eventId }: { eventId: number }) {
-  const [openDialog, setOpenDialog] = useState(false);
+type AddGuestProps = {
+  eventId: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+};
+
+export default function AddGuest({
+  eventId,
+  open,
+  onOpenChange,
+  hideTrigger = false,
+}: AddGuestProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = open ?? internalOpen;
+  const setDialogOpen = onOpenChange ?? setInternalOpen;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     label: "",
@@ -172,7 +186,7 @@ export default function AddGuest({ eventId }: { eventId: number }) {
         tableAssignments: [],
       });
       setErrors({});
-      setOpenDialog(false);
+      setDialogOpen(false);
     } catch (err) {
       console.error(err);
     }
@@ -186,15 +200,15 @@ export default function AddGuest({ eventId }: { eventId: number }) {
   };
 
   return (
-    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-      <DialogTrigger asChild>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!hideTrigger ? <DialogTrigger asChild>
         <Button
           variant="outline"
           className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-primary font-black uppercase italic text-[10px] tracking-widest transition-all"
         >
           <PlusIcon className="mr-2 size-4 text-primary" /> Ajouter Invité
         </Button>
-      </DialogTrigger>
+      </DialogTrigger> : null}
 
       <DialogContent className="sm:max-w-2xl bg-[#0a0a0a] border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
         <DialogHeader className="bg-white/5 p-8 border-b border-white/5 flex flex-row justify-between items-center">
