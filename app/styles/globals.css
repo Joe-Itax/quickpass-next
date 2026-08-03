@@ -195,8 +195,18 @@
 
   /* Isole le panneau scrollable dans son propre contexte de composition
      pour éviter que les repaints internes ne contaminent le reste de la page */
+  .invitation-editor-mobile-overlay {
+    height: 100vh !important;
+    height: 100dvh !important;
+    height: 100svh !important;
+    max-height: 100dvh !important;
+  }
+
   .invitation-editor-mobile-overlay aside {
+    height: 100% !important;
+    min-height: 100% !important;
     contain: layout style;
     will-change: scroll-position;
+    background-color: #0a0a0a !important;
   }
 }
