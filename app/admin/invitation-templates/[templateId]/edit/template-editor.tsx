@@ -1643,7 +1643,7 @@ function ResponsiveEditorPanel({
         }}
       >
         <aside
-          className={`min-h-svh space-y-4 bg-[#050505] p-4 ${
+          className={`min-h-svh overflow-y-auto space-y-4 bg-[#050505] p-4 ${
             side === "left"
               ? "w-[min(86vw,320px)] border-r border-[#262626]"
               : "ml-auto w-[min(88vw,340px)] border-l border-[#262626]"
