@@ -138,7 +138,9 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    /* outline-transparent évite la création de couches GPU semi-transparentes
+       sur chaque élément interactif focusé sur Android Chrome */
+    @apply border-border outline-transparent;
   }
 
   html,
@@ -148,17 +150,14 @@
 
   button:not(:disabled),
   a[href] {
-    @apply transition-all;
+    /* transition-colors uniquement : évite d'animer transform/shadow
+       qui créent des compositor layers sur mobile Chromium */
+    @apply transition-colors;
   }
 
   button:not(:disabled):hover,
   a[href]:hover {
     @apply opacity-90;
-  }
-
-  button:not(:disabled):active,
-  a[href]:active {
-    @apply scale-95;
   }
 }
 
@@ -167,5 +166,37 @@
     .invitation-editor-mobile-overlay::backdrop {
       background-color: rgb(0 0 0 / 85%);
     }
+  }
+}
+
+/* ==========================================================================
+   CORRECTIFS ARTEFACTS GPU — CHROMIUM MOBILE (Chrome / Brave Android)
+   Cible uniquement l'éditeur d'invitation sur mobile
+   ========================================================================== */
+@media (max-width: 899px) {
+  /* Supprime les box-shadow et outline animés qui déclenchent des repaints
+     sur la pile GPU de Chromium pendant le scroll du panneau */
+  .invitation-editor-mobile-overlay input,
+  .invitation-editor-mobile-overlay button,
+  .invitation-editor-mobile-overlay [data-slot="select-trigger"],
+  .invitation-editor-mobile-overlay [data-slot="switch"] {
+    box-shadow: none !important;
+    outline: none !important;
+    /* Désactive l'effet de tap highlight natif Chrome qui cause
+       une re-rasterisation de la couche au touch */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* touch-action: manipulation désactive le zoom double-tap et
+     les gestes de drag natifs qui créent des preview layers corrompus */
+  .invitation-editor-mobile-overlay button {
+    touch-action: manipulation;
+  }
+
+  /* Isole le panneau scrollable dans son propre contexte de composition
+     pour éviter que les repaints internes ne contaminent le reste de la page */
+  .invitation-editor-mobile-overlay aside {
+    contain: layout style;
+    will-change: scroll-position;
   }
 }

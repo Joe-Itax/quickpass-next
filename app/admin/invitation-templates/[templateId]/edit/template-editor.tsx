@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   type ReactNode,
@@ -348,60 +348,60 @@ export function TemplateEditor({
               color: "#FFFFFF",
               textDecoration: "underline",
             })
-        : tool === "qrcode"
-          ? createQRCodeElement({
-              x: base.x,
-              y: base.y,
-              width: 30,
-              height: 30,
-            })
-          : tool === "shape"
-            ? createShapeElement({
+          : tool === "qrcode"
+            ? createQRCodeElement({
                 x: base.x,
                 y: base.y,
-                width: 34,
-                height: 34,
-                fillColor: "#FBBF24",
-                borderRadius: 0,
+                width: 30,
+                height: 30,
               })
-            : createTextElement({
-                type: "variable",
-                content:
-                  tool === "guest_name"
-                    ? "{{guest_name}}"
-                    : tool === "guest_table"
-                      ? "Table {{guest_table}}"
-                      : tool === "guest_people_count"
-                        ? "{{guest_people_count}} pers."
-                        : tool === "event_name"
-                          ? "{{event_name}}"
-                          : tool === "event_description"
-                            ? "{{event_description}}"
-                            : tool === "event_date"
-                              ? "{{event_date}}"
-                              : tool === "event_duration"
-                                ? "{{event_duration}} h"
-                                : tool === "event_location"
-                                  ? "{{event_location}}"
-                                  : tool === "event_full_location"
-                                    ? "{{event_full_location}}"
-                                    : tool === "event_message"
-                                      ? "{{event_message}}"
-                                      : tool === "guest_email"
-                                        ? "{{guest_email}}"
-                                        : tool === "guest_whatsapp"
-                                          ? "{{guest_whatsapp}}"
-                                          : tool === "guest_seats"
-                                            ? "{{guest_seats}} places"
-                                            : `{{${tool}}}`,
-                x: base.x,
-                y: base.y,
-                width: tool === "guest_name" ? 66 : 52,
-                height: 8,
-                fontSize: tool === "guest_name" ? 4.3 : 3.2,
-                color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
-                fontWeight: 800,
-              });
+            : tool === "shape"
+              ? createShapeElement({
+                  x: base.x,
+                  y: base.y,
+                  width: 34,
+                  height: 34,
+                  fillColor: "#FBBF24",
+                  borderRadius: 0,
+                })
+              : createTextElement({
+                  type: "variable",
+                  content:
+                    tool === "guest_name"
+                      ? "{{guest_name}}"
+                      : tool === "guest_table"
+                        ? "Table {{guest_table}}"
+                        : tool === "guest_people_count"
+                          ? "{{guest_people_count}} pers."
+                          : tool === "event_name"
+                            ? "{{event_name}}"
+                            : tool === "event_description"
+                              ? "{{event_description}}"
+                              : tool === "event_date"
+                                ? "{{event_date}}"
+                                : tool === "event_duration"
+                                  ? "{{event_duration}} h"
+                                  : tool === "event_location"
+                                    ? "{{event_location}}"
+                                    : tool === "event_full_location"
+                                      ? "{{event_full_location}}"
+                                      : tool === "event_message"
+                                        ? "{{event_message}}"
+                                        : tool === "guest_email"
+                                          ? "{{guest_email}}"
+                                          : tool === "guest_whatsapp"
+                                            ? "{{guest_whatsapp}}"
+                                            : tool === "guest_seats"
+                                              ? "{{guest_seats}} places"
+                                              : `{{${tool}}}`,
+                  x: base.x,
+                  y: base.y,
+                  width: tool === "guest_name" ? 66 : 52,
+                  height: 8,
+                  fontSize: tool === "guest_name" ? 4.3 : 3.2,
+                  color: tool === "guest_name" ? "#FBBF24" : "#E5E7EB",
+                  fontWeight: 800,
+                });
 
     pushElement(element);
   };
@@ -495,7 +495,9 @@ export function TemplateEditor({
 
     try {
       const isSvg = file.type === "image/svg+xml";
-      const fileToUpload = isSvg ? file : await compressImageToWebP(file, options);
+      const fileToUpload = isSvg
+        ? file
+        : await compressImageToWebP(file, options);
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
@@ -901,7 +903,7 @@ export function TemplateEditor({
             setIsInspectorPanelOpen(false);
             setIsToolsPanelOpen(true);
           }}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
         >
           <PanelLeft className="size-4" />
           Outils
@@ -913,7 +915,7 @@ export function TemplateEditor({
             setIsToolsPanelOpen(false);
             setIsInspectorPanelOpen(true);
           }}
-          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white active:scale-100"
+          className="h-11 flex-1 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
         >
           <PanelRight className="size-4" />
           Inspecteur
@@ -1349,9 +1351,7 @@ export function TemplateEditor({
                       label={label}
                       value={
                         Number(
-                          layout.canvas[
-                            key as keyof InvitationTemplateCanvas
-                          ],
+                          layout.canvas[key as keyof InvitationTemplateCanvas],
                         ) || 0
                       }
                       onChange={(value) =>
@@ -1518,12 +1518,12 @@ export function TemplateEditor({
                       type="number"
                       value={String(
                         field.scope === "guest"
-                          ? exportGuestData[
+                          ? (exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? ""
-                          : exportEventData[
+                            ] ?? "")
+                          : (exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? "",
+                            ] ?? ""),
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1539,12 +1539,12 @@ export function TemplateEditor({
                     <Input
                       value={String(
                         field.scope === "guest"
-                          ? exportGuestData[
+                          ? (exportGuestData[
                               field.key as keyof InvitationGuestData
-                            ] ?? ""
-                          : exportEventData[
+                            ] ?? "")
+                          : (exportEventData[
                               field.key as keyof typeof exportEventData
-                            ] ?? "",
+                            ] ?? ""),
                       )}
                       onChange={(event) =>
                         updateExportField(
@@ -1587,7 +1587,11 @@ export function TemplateEditor({
               disabled={isExportingImage}
               className="bg-primary font-black uppercase italic text-black hover:bg-white"
             >
-              {isExportingImage ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+              {isExportingImage ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ImagePlus />
+              )}
               Telecharger PNG HD
             </Button>
           </DialogFooter>
@@ -1652,7 +1656,7 @@ function ResponsiveEditorPanel({
   }
 
   return (
-    <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block">
+    <aside className="hidden space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 min-[900px]:block overflow-y-auto">
       {children}
     </aside>
   );
@@ -2366,7 +2370,9 @@ function Inspector({
                 </label>
                 <NumberInput
                   label="Opacite %"
-                  value={Math.round((element.filters.tintOpacity ?? 0.35) * 100)}
+                  value={Math.round(
+                    (element.filters.tintOpacity ?? 0.35) * 100,
+                  )}
                   onChange={(value) =>
                     updateImage((current) => ({
                       ...current,
@@ -3282,12 +3288,11 @@ function ToolButton({
   return (
     <button
       type="button"
-      draggable
       onClick={onClick}
       onDragStart={(event) =>
         event.dataTransfer.setData("application/x-yambipass-tool", dragType)
       }
-      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 text-left text-sm font-bold text-white transition hover:bg-white/10 hover:text-white hover:opacity-90 active:scale-95"
+      className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 text-left text-sm font-bold text-white transition-colors hover:bg-white/10 hover:text-white"
     >
       <Icon className="size-4 text-primary" />
       {label}
