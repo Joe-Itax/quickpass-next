@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@/lib/auth-client";
 import { useEvent } from "@/hooks/use-event";
 import { useParams, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +146,19 @@ function EventActionsMenu({
   const itemClassName =
     "h-10 rounded-lg px-3 text-xs font-bold text-white focus:bg-white/10 focus:text-white";
 
+  const { data: session, isPending, error, refetch } = authClient.useSession();
+  const user = session?.user;
+
+  if (isPending || error) {
+    return (
+      <DataStatusDisplay
+        isPending={isPending}
+        errorObject={error}
+        refetch={refetch}
+      />
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -184,7 +198,10 @@ function EventActionsMenu({
             <Upload className="text-primary" />
             Importer un fichier Excel
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onOpenSpreadsheet} className={itemClassName}>
+          <DropdownMenuItem
+            onSelect={onOpenSpreadsheet}
+            className={itemClassName}
+          >
             <FileSpreadsheet className="text-primary" />
             Ouvrir le tableur
           </DropdownMenuItem>
@@ -213,15 +230,19 @@ function EventActionsMenu({
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <DropdownMenuSeparator className="my-2 bg-white/10" />
-        <DropdownMenuItem
-          variant="destructive"
-          onSelect={onDeleteEvent}
-          className="h-10 rounded-lg px-3 text-xs font-bold"
-        >
-          <Trash2Icon />
-          Supprimer l&apos;événement
-        </DropdownMenuItem>
+        {user?.role === "ADMIN" && (
+          <>
+            <DropdownMenuSeparator className="my-2 bg-white/10" />
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={onDeleteEvent}
+              className="h-10 rounded-lg px-3 text-xs font-bold"
+            >
+              <Trash2Icon />
+              Supprimer l&apos;événement
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
