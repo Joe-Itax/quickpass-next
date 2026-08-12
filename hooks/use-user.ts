@@ -61,6 +61,7 @@ import { User } from "@/types/types";
 import { useNotification } from "./use-notification";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 interface GetUsersResponse {
   totalItems: number;
@@ -322,6 +323,48 @@ export function useUpdateUserMutation() {
         "error",
         error.message || "Erreur lors de la mise à jour de l'utilisateur"
       );
+    },
+  });
+}
+
+// Mettre à jour le profil de l'utilisateur connecté (nom, email, mot de passe)
+export interface UpdateMyProfilePayload {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
+export function useUpdateMyProfileMutation() {
+  const { show } = useNotification();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: UpdateMyProfilePayload) => {
+      const res = await fetch("/api/users/me", {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Erreur lors de la mise à jour du profil");
+      }
+      return data;
+    },
+    onSuccess: async (data) => {
+      show("success", data.message || "Profil mis à jour avec succès !");
+      // Forcer la mise à jour de la session dans Better Auth client
+      await authClient.getSession();
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+    },
+    onError: (error: Error) => {
+      show("error", error.message || "Erreur lors de la mise à jour du profil");
     },
   });
 }

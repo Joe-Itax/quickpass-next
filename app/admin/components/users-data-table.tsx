@@ -30,6 +30,7 @@ import {
   EllipsisIcon,
   FilterIcon,
   ListFilterIcon,
+  ShieldIcon,
   TrashIcon,
 } from "lucide-react";
 
@@ -98,26 +99,45 @@ import {
   useSearchUsersMutation,
   useUsersQuery,
 } from "@/hooks/use-user";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Comptes protégés exposés côté client via NEXT_PUBLIC_
+const PROTECTED_LIST = (process.env.NEXT_PUBLIC_PROTECTED_ACCOUNTS || "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+/**
+ * Détermine si un utilisateur est protégé (ne peut pas être désactivé/supprimé).
+ * On compare l'email et le nom (sans accents, en minuscules) avec la liste PROTECTED_LIST.
+ */
+function isProtectedUser(user: User): boolean {
+  const emailLower = user.email.toLowerCase();
+  const nameLower = (user.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return PROTECTED_LIST.some(
+    (entry) => entry === emailLower || nameLower.includes(entry)
+  );
+}
 
 const columns: ColumnDef<User>[] = [
   {
     id: "select",
     header: ({ table }) => {
-      // Déterminer le nombre de lignes actives sélectionnables
-      const activeRows = table
+      // Sélectionnables = lignes actives ET non protégées
+      const selectableRows = table
         .getRowModel()
-        .rows.filter((row) => row.original.isActive);
-      const allActiveRowsSelected =
-        activeRows.length > 0 && activeRows.every((row) => row.getIsSelected());
-      const someActiveRowsSelected = activeRows.some((row) =>
+        .rows.filter((row) => row.original.isActive && !isProtectedUser(row.original));
+      const allSelectableRowsSelected =
+        selectableRows.length > 0 && selectableRows.every((row) => row.getIsSelected());
+      const someSelectableRowsSelected = selectableRows.some((row) =>
         row.getIsSelected(),
       );
 
       // Déterminer l'état de la checkbox du header
       let headerCheckedState: boolean | "indeterminate";
-      if (allActiveRowsSelected) {
+      if (allSelectableRowsSelected) {
         headerCheckedState = true;
-      } else if (someActiveRowsSelected) {
+      } else if (someSelectableRowsSelected) {
         headerCheckedState = "indeterminate";
       } else {
         headerCheckedState = false;
@@ -128,17 +148,14 @@ const columns: ColumnDef<User>[] = [
           checked={headerCheckedState}
           onCheckedChange={(value) => {
             if (value === true) {
-              // Si l'utilisateur coche la case "Select All"
-              // Nous sélectionnons uniquement les lignes actives
-              activeRows.forEach((row) => {
+              // Sélectionner uniquement les lignes actives et non protégées
+              selectableRows.forEach((row) => {
                 row.toggleSelected(true);
               });
             } else if (value === false) {
-              // Si l'utilisateur décoche la case "Select All"
-              // Nous désélectionnons TOUTES les lignes (y compris celles qui étaient actives)
               table.toggleAllPageRowsSelected(false);
             } else if (value === "indeterminate") {
-              activeRows.forEach((row) => {
+              selectableRows.forEach((row) => {
                 row.toggleSelected(true);
               });
             }
@@ -147,14 +164,30 @@ const columns: ColumnDef<User>[] = [
         />
       );
     },
-    cell: ({ row }) =>
-      row.original.isActive ? (
+    cell: ({ row }) => {
+      // Les comptes protégés et inactifs ne peuvent pas être sélectionnés
+      if (!row.original.isActive || isProtectedUser(row.original)) {
+        return isProtectedUser(row.original) ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex justify-center">
+                <ShieldIcon size={14} className="text-amber-400 opacity-70" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Compte protégé — aucune action possible</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : null;
+      }
+      return (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
         />
-      ) : null,
+      );
+    },
     size: 28,
     enableSorting: false,
     enableHiding: false,
@@ -746,7 +779,11 @@ function RowActions({ row }: { row: Row<User> }) {
   const deactiveUsersMutation = useDeactivateUserMutation();
   const router = useRouter();
 
+  // Bloquer toute action sur les comptes protégés
+  const isProtected = isProtectedUser(row.original);
+
   const handleDeleteUsers = async () => {
+    if (isProtected) return;
     try {
       await deactiveUsersMutation.mutateAsync([row.original.id]);
     } catch (error) {
@@ -778,7 +815,16 @@ function RowActions({ row }: { row: Row<User> }) {
             <span>Voir les détails</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        {row.original.isActive ? (
+        {/* Les comptes protégés n'affichent aucune action de modification */}
+        {isProtected ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled className="text-amber-400 focus:text-amber-400 opacity-70">
+              <ShieldIcon size={14} className="mr-1" />
+              <span>Compte protégé</span>
+            </DropdownMenuItem>
+          </>
+        ) : row.original.isActive ? (
           <>
             <DropdownMenuSeparator />
             <AlertDialog>
