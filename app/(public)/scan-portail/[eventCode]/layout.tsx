@@ -9,12 +9,14 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useOfflineScan } from "@/hooks/use-offline-scan";
 
+import SessionStoppedDialog from "./session-stopped-dialog";
+
 export default function EventLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthorized } = useScanAuth();
+  const { isAuthorized, isSessionEnded, sessionEndedMessage } = useScanAuth();
   const { eventCode } = useParams() as { eventCode: string };
   const router = useRouter();
 
@@ -24,9 +26,11 @@ export default function EventLayout({
 
     // Si l'un des deux manque ou si l'event stocké ne correspond pas à l'URL
     if (!savedTerminal || !savedEvent || savedEvent !== eventCode) {
-      router.replace("/scan-portail");
+      if (!isSessionEnded) {
+        router.replace("/scan-portail");
+      }
     }
-  }, [eventCode, router]);
+  }, [eventCode, router, isSessionEnded]);
 
   const { prefetch, bundleReady } = useOfflineScan(eventCode as string);
   const { isError, error } = useEventByEventCode(eventCode as string);
@@ -44,6 +48,16 @@ export default function EventLayout({
       router.push("/");
     }
   }, [isError, error, router]);
+
+  // Si la session a été arrêtée par un administrateur -> afficher le dialogue d'alerte
+  if (isSessionEnded) {
+    return (
+      <SessionStoppedDialog
+        isOpen={true}
+        message={sessionEndedMessage}
+      />
+    );
+  }
 
   // Si l'EventCode n'est pas valide (erreur 404), rediriger vers la home
   if (isError && error?.message?.includes("404")) {

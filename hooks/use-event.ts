@@ -220,6 +220,7 @@ export function useEvent(eventId: number) {
       }
     },
     enabled: !!eventId,
+    refetchInterval: 3000,
     retry: false,
   });
 }
@@ -773,5 +774,6 @@ export function useEventsWithTerminals() {
   return useQuery({
     queryKey: ["events-with-terminals"],
     queryFn: () => fetch("/api/events/terminals").then((res) => res.json()),
+    refetchInterval: 3000,
   });
 }

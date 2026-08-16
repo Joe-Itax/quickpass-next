@@ -235,16 +235,20 @@ model EventStats {
 //          TERMINAL
 // ----------------------------
 model Terminal {
-  id        Int       @id @default(autoincrement())
-  name      String
-  code      String    @unique
-  eventId   Int
-  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  isActive  Boolean   @default(true) // Pour désactivation manuelle
-  deletedAt DateTime? // Soft delete
-  logs      ScanLog[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               Int       @id @default(autoincrement())
+  name             String
+  code             String    @unique
+  eventId          Int
+  event            Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  isActive         Boolean   @default(true) // Pour désactivation manuelle
+  deletedAt        DateTime? // Soft delete
+  isSessionActive  Boolean   @default(false)
+  sessionToken     String?   @unique
+  sessionStartedAt DateTime?
+  lastActiveAt     DateTime?
+  logs             ScanLog[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 // ----------------------------

@@ -36,6 +36,7 @@ import {
   Settings2,
   Upload,
   UserPlus,
+  PowerOff,
 } from "lucide-react";
 import { Event2 } from "@/types/types";
 import AddGuest from "./add-guest";
@@ -45,6 +46,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import DeleteEvent from "./delete-event";
 import QuickAddTerminal from "./quick-add-terminal";
+import ModifyTerminal from "@/app/admin/terminals/modify-terminal";
+import DeleteTerminal from "@/app/admin/terminals/delete-terminal";
 import { useState, useMemo, useRef } from "react";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import Link from "next/link";
@@ -269,6 +272,20 @@ export default function EventPage() {
     "unsent",
   );
   const bulkExportRef = useRef<HTMLDivElement>(null);
+
+  const [selectedTerminal, setSelectedTerminal] = useState<{
+    id: number;
+    name: string;
+    code?: string;
+    isActive: boolean;
+  } | null>(null);
+  const [isModifyTerminalOpen, setIsModifyTerminalOpen] = useState(false);
+
+  const [terminalToDelete, setTerminalToDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  const [isDeleteTerminalOpen, setIsDeleteTerminalOpen] = useState(false);
 
   const {
     data: dataEvent,
@@ -959,39 +976,133 @@ export default function EventPage() {
             <CardHeader className="bg-white/5 border-b border-white/5 p-6">
               <CardTitle className="text-sm font-black uppercase italic text-primary flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Cpu size={18} /> Terminaux
+                  <Cpu size={18} /> Terminaux ({event.terminals?.length || 0})
                 </div>
                 <QuickAddTerminal eventId={event.id} />
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-3">
-              {event.terminals?.map((terminal) => (
-                <div
-                  key={terminal.id}
-                  className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "size-10 rounded-xl flex items-center justify-center",
-                        terminal.isActive
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "bg-red-500/10 text-red-500",
-                      )}
-                    >
-                      <MonitorSmartphone size={20} />
+              {event.terminals?.map((terminal) => {
+                const isSessionActive = (terminal as unknown as { isSessionActive?: boolean }).isSessionActive;
+                return (
+                  <div
+                    key={terminal.id}
+                    className="p-3 rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between group hover:border-white/10 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "size-10 rounded-xl flex items-center justify-center border",
+                          terminal.isActive
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : "bg-red-500/10 text-red-500 border-red-500/20",
+                        )}
+                      >
+                        <MonitorSmartphone size={20} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black uppercase italic text-white group-hover:text-primary">
+                          {terminal.name}
+                        </span>
+                        <span className="text-[9px] text-gray-500 font-mono tracking-wider">
+                          {terminal.code}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-black uppercase italic text-white group-hover:text-primary">
-                        {terminal.name}
+
+                    <div className="flex items-center gap-2">
+                      {/* Badge Session Active */}
+                      <span
+                        className={cn(
+                          "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border flex items-center gap-1",
+                          isSessionActive
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                            : "bg-white/5 border-white/10 text-gray-500",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            isSessionActive ? "bg-emerald-400 animate-pulse" : "bg-gray-500",
+                          )}
+                        />
+                        {isSessionActive ? "Session Active" : "Inactif"}
                       </span>
-                      <span className="text-[10px] text-gray-500 font-mono">
-                        {terminal.code}
-                      </span>
+
+                      {/* Dropdown Menu d'actions du terminal */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                          >
+                            <MoreHorizontal size={14} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-[#0f0f0f] border-white/10 rounded-2xl p-2 w-48 text-white"
+                        >
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedTerminal({
+                                id: terminal.id,
+                                name: terminal.name,
+                                code: terminal.code,
+                                isActive: terminal.isActive,
+                              });
+                              setIsModifyTerminalOpen(true);
+                            }}
+                            className="rounded-xl text-[10px] font-black uppercase italic cursor-pointer focus:bg-white/10 focus:text-white"
+                          >
+                            <Settings2 className="size-3.5 mr-2 text-primary" />
+                            Configurer
+                          </DropdownMenuItem>
+
+                          {isSessionActive && (
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(
+                                    `/api/events/terminals/${terminal.id}/stop-session`,
+                                    { method: "POST" },
+                                  );
+                                  if (!res.ok) throw new Error();
+                                  toast.success("Session du terminal arrêtée.");
+                                  refetch();
+                                } catch {
+                                  toast.error("Erreur lors de l'arrêt de la session.");
+                                }
+                              }}
+                              className="rounded-xl text-[10px] font-black uppercase italic cursor-pointer text-orange-400 focus:bg-orange-500/10 focus:text-orange-300"
+                            >
+                              <PowerOff className="size-3.5 mr-2" />
+                              Arrêter la session
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator className="bg-white/10" />
+
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setTerminalToDelete({
+                                id: terminal.id,
+                                name: terminal.name,
+                              });
+                              setIsDeleteTerminalOpen(true);
+                            }}
+                            className="rounded-xl text-[10px] font-black uppercase italic cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-400"
+                          >
+                            <Trash2Icon className="size-3.5 mr-2" />
+                            Révoquer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -1051,6 +1162,23 @@ export default function EventPage() {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       />
+
+      {selectedTerminal && (
+        <ModifyTerminal
+          terminal={selectedTerminal}
+          open={isModifyTerminalOpen}
+          onOpenChange={setIsModifyTerminalOpen}
+        />
+      )}
+
+      {terminalToDelete && (
+        <DeleteTerminal
+          terminalId={terminalToDelete.id}
+          terminalName={terminalToDelete.name}
+          open={isDeleteTerminalOpen}
+          onOpenChange={setIsDeleteTerminalOpen}
+        />
+      )}
 
       {isExportingInvitations ? (
         <BulkInvitationExportHost event={event} containerRef={bulkExportRef} />

@@ -17,14 +17,28 @@ export function useRealtimeList(onUpdate: () => void) {
         "postgres_changes",
         { event: "*", schema: "public", table: "Event" },
         () => {
-          console.log("[REALTIME] Update triggered");
-          callbackRef.current(); // On appelle la ref
+          console.log("[REALTIME] Event update triggered");
+          callbackRef.current();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Terminal" },
+        () => {
+          console.log("[REALTIME] Terminal update triggered");
+          callbackRef.current();
         },
       )
       .subscribe();
 
+    // Ping local de secours (toutes les 3s)
+    const pollInterval = setInterval(() => {
+      callbackRef.current();
+    }, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []); // Dépendances vides : on ne s'abonne qu'UNE SEULE FOIS au montage
 }

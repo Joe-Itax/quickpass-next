@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings2, Save, X, Power, Monitor } from "lucide-react";
+import { toast } from "sonner";
+import { Settings2, Save, X, Power, Monitor, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ModifyTerminalProps {
-  terminal: { id: number; name: string; isActive: boolean };
+  terminal: { id: number; name: string; code?: string; isActive: boolean };
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -27,6 +28,7 @@ export default function ModifyTerminal({
   onOpenChange,
 }: ModifyTerminalProps) {
   const [name, setName] = useState(terminal.name);
+  const [code, setCode] = useState(terminal.code || "");
   const [isActive, setIsActive] = useState(terminal.isActive);
   const queryClient = useQueryClient();
 
@@ -34,14 +36,23 @@ export default function ModifyTerminal({
     mutationFn: async () => {
       const res = await fetch(`/api/events/terminals/${terminal.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name, isActive }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, code, isActive }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Erreur lors de la modification du terminal");
+      }
+      return res.json();
     },
     onSuccess: () => {
+      toast.success("Terminal configuré avec succès !");
       queryClient.invalidateQueries({ queryKey: ["events-with-terminals"] });
       queryClient.invalidateQueries({ queryKey: ["event"] });
       onOpenChange(false);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Impossible de modifier le terminal");
     },
   });
 
@@ -63,7 +74,7 @@ export default function ModifyTerminal({
           </div>
         </DialogHeader>
 
-        <div className="p-8 space-y-8">
+        <div className="p-8 space-y-6">
           {/* INPUT NOM */}
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">
@@ -77,7 +88,26 @@ export default function ModifyTerminal({
                 placeholder="Nom du terminal..."
               />
               <Monitor
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20"
+                size={18}
+              />
+            </div>
+          </div>
+
+          {/* INPUT CODE TERMINAL */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-gray-500 ml-1 tracking-widest">
+              Code du Terminal (Identifiant unique)
+            </Label>
+            <div className="relative">
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full h-14 px-5 pr-10 rounded-2xl bg-white/5 border border-white/10 text-primary font-mono font-bold focus:border-primary focus:outline-none transition-all"
+                placeholder="ex: entree-nord_x82f"
+              />
+              <Hash
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40"
                 size={18}
               />
             </div>
@@ -132,7 +162,7 @@ export default function ModifyTerminal({
           </DialogClose>
           <Button
             onClick={() => mutate()}
-            disabled={isPending || !name}
+            disabled={isPending || !name.trim() || !code.trim()}
             className={cn(
               "rounded-2xl font-black uppercase italic text-xs px-10 h-12 transition-all",
               "bg-primary shadow-[0_0_20px_rgba(253,182,35,0.3)] hover:scale-105 active:scale-95",

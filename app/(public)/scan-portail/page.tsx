@@ -30,17 +30,24 @@ export default function ScanPortalPage() {
     const checkSavedAccess = async () => {
       const savedEvent = localStorage.getItem("eventCode");
       const savedTerminal = localStorage.getItem("terminalCode");
+      const savedToken = localStorage.getItem("terminalSessionToken");
 
       if (savedEvent && savedTerminal) {
         try {
           const res = await fetch("/api/events/validate-access", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               eventCode: savedEvent,
               terminalCode: savedTerminal,
+              sessionToken: savedToken,
             }),
           });
+          const data = await res.json();
           if (res.ok) {
+            if (data.sessionToken) {
+              localStorage.setItem("terminalSessionToken", data.sessionToken);
+            }
             router.replace(`/scan-portail/${savedEvent}`);
             return;
           }
@@ -93,6 +100,9 @@ export default function ScanPortalPage() {
         localStorage.setItem("terminalCode", tc);
         localStorage.setItem("eventName", data.eventName);
         localStorage.setItem("terminalName", data.terminalName || tc);
+        if (data.sessionToken) {
+          localStorage.setItem("terminalSessionToken", data.sessionToken);
+        }
 
         await saveTerminalSession({
           eventCode: ec,
@@ -111,7 +121,6 @@ export default function ScanPortalPage() {
 
         router.push(`/scan-portail/${ec}`);
       } else {
-        const data = await res.json();
         setErrorMsg(data.error || "Codes invalides.");
       }
     } catch (err) {

@@ -111,8 +111,21 @@ export default function ScanPage() {
     };
   }, [eventCode]);
 
-  const confirmLogout = () => {
-    ["eventCode", "terminalCode", "eventName", "terminalName"].forEach((k) =>
+  const confirmLogout = async () => {
+    const tc = localStorage.getItem("terminalCode");
+    const token = localStorage.getItem("terminalSessionToken");
+
+    try {
+      await fetch("/api/events/logout-terminal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ terminalCode: tc, sessionToken: token }),
+      });
+    } catch (err) {
+      console.warn("Erreur logout terminal:", err);
+    }
+
+    ["eventCode", "terminalCode", "eventName", "terminalName", "terminalSessionToken"].forEach((k) =>
       localStorage.removeItem(k),
     );
     router.push("/scan-portail");

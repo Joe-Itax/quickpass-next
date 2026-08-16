@@ -26,6 +26,78 @@ export async function POST(req: NextRequest, context: EventContext) {
       );
     }
 
+    // Helper pour ignorer les lignes de consignes/notes d'explication
+    const isIgnoredRow = (rawText: string) => {
+      if (!rawText) return false;
+      const lower = String(rawText).trim().toLowerCase();
+      return (
+        lower.startsWith("note") ||
+        lower.startsWith("instruction") ||
+        lower.startsWith("consigne") ||
+        lower.startsWith("remarque") ||
+        lower.includes("col a") ||
+        lower.includes("col b") ||
+        lower.includes("obligatoire")
+      );
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const validGuests = guests.filter((g: any) => g?.label && !isIgnoredRow(g.label));
+
+    if (validGuests.length === 0) {
+      return NextResponse.json(
+        { error: "Aucun invité valide trouvé dans la liste" },
+        { status: 400 },
+      );
+    }
+
+    // Validation stricte aux normes du système
+    const validationErrors: string[] = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validGuests.forEach((g: any, index: number) => {
+      const row = index + 2; // Numéro de ligne Excel correspondant
+      if (!g.label || typeof g.label !== "string" || !g.label.trim()) {
+        validationErrors.push(
+          `Ligne ${row}, Colonne A (Nom) : Le nom de l'invité est obligatoire.`,
+        );
+      }
+      if (g.peopleCount !== undefined && g.peopleCount !== null) {
+        const count = Number(g.peopleCount);
+        if (isNaN(count) || !Number.isInteger(count) || count < 1) {
+          validationErrors.push(
+            `Ligne ${row}, Colonne B (PAX) : Le nombre de places '${g.peopleCount}' doit être un nombre entier positif au moins égal à 1.`,
+          );
+        }
+      }
+      if (g.email && typeof g.email === "string" && g.email.trim()) {
+        const emailTrimmed = g.email.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+          validationErrors.push(
+            `Ligne ${row}, Colonne C (Email) : L'adresse email '${g.email}' est invalide.`,
+          );
+        }
+      }
+      if (g.whatsapp && typeof g.whatsapp === "string" && g.whatsapp.trim()) {
+        const cleanWhatsapp = g.whatsapp.replace(/\s+/g, "");
+        if (!/^\+?[0-9().-]{7,24}$/.test(cleanWhatsapp)) {
+          validationErrors.push(
+            `Ligne ${row}, Colonne D (WhatsApp) : Le numéro de téléphone '${g.whatsapp}' est invalide (au moins 7 chiffres).`,
+          );
+        }
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Fichier/données non conformes aux normes du système",
+          errors: validationErrors,
+        },
+        { status: 422 },
+      );
+    }
+
     const result = await prisma.$transaction(
       async (tx) => {
         // ----- 1. Préparer les tables existantes -----
@@ -64,7 +136,7 @@ export async function POST(req: NextRequest, context: EventContext) {
         // ----- 2. Créer les tables manquantes -----
         const uniqueTableNames = [
           ...new Set(
-            guests
+            validGuests
               .filter((g: { tableName: string }) => g.tableName)
               .map((g: { tableName: string }) => g.tableName),
           ),
@@ -91,7 +163,7 @@ export async function POST(req: NextRequest, context: EventContext) {
         // ----- 3. Création des invités en BULK (1 seule requête) -----
         let totalNewPeople = 0;
 
-        const guestsDataToCreate = guests.map((g) => ({
+        const guestsDataToCreate = validGuests.map((g) => ({
           label: g.label,
           peopleCount: g.peopleCount || 1,
           email: g.email || null,
@@ -140,8 +212,8 @@ export async function POST(req: NextRequest, context: EventContext) {
           seatsAssigned: number;
         }[] = [];
 
-        for (let i = 0; i < guests.length; i++) {
-          const guest = guests[i];
+        for (let i = 0; i < validGuests.length; i++) {
+          const guest = validGuests[i];
           const inv = createdInvitations[i];
 
           totalNewPeople += guest.peopleCount || 1;

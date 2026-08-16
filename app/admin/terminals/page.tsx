@@ -28,11 +28,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useRealtimeList } from "@/hooks/use-realtime-list";
 
+import { toast } from "sonner";
+import { LogOut } from "lucide-react";
+
 interface Terminal {
   id: number;
   name: string;
   code: string;
   isActive: boolean;
+  isSessionActive?: boolean;
   deletedAt: Date | null;
 }
 
@@ -53,6 +57,9 @@ export default function TerminalsPage() {
   const [terminalToDelete, setTerminalToDelete] = useState<Terminal | null>(
     null,
   );
+  const [stoppingSessionId, setStoppingSessionId] = useState<number | null>(
+    null,
+  );
 
   const {
     data: events,
@@ -63,6 +70,31 @@ export default function TerminalsPage() {
   } = useEventsWithTerminals();
 
   useRealtimeList(refetch);
+
+  const handleStopSession = async (terminalId: number) => {
+    setStoppingSessionId(terminalId);
+    try {
+      const res = await fetch(
+        `/api/events/terminals/${terminalId}/stop-session`,
+        {
+          method: "POST",
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors de l'arrêt de la session");
+      }
+      toast.success("Session du terminal arrêtée avec succès.");
+      await refetch();
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err instanceof Error ? err.message : "Erreur lors de l'arrêt.",
+      );
+    } finally {
+      setStoppingSessionId(null);
+    }
+  };
 
   const filteredEvents = useMemo(() => {
     if (!events) return [];
@@ -195,7 +227,7 @@ export default function TerminalsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-[#0f0f0f] border-white/10 rounded-2xl min-w-40"
+                          className="bg-[#0f0f0f] border-white/10 rounded-2xl min-w-44"
                         >
                           <DropdownMenuItem
                             className="gap-3 py-3 px-4 focus:bg-primary focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
@@ -207,6 +239,18 @@ export default function TerminalsPage() {
                             <Settings2 size={14} className="text-white" />{" "}
                             Configurer
                           </DropdownMenuItem>
+
+                          {terminal.isSessionActive && (
+                            <DropdownMenuItem
+                              disabled={stoppingSessionId === terminal.id}
+                              className="gap-3 py-3 px-4 text-orange-400 focus:bg-orange-500 focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
+                              onClick={() => handleStopSession(terminal.id)}
+                            >
+                              <LogOut size={14} className="text-orange-400" />{" "}
+                              Arrêter la session
+                            </DropdownMenuItem>
+                          )}
+
                           <DropdownMenuItem
                             className="gap-3 py-3 px-4 text-red-500 focus:bg-red-500 focus:text-white cursor-pointer font-bold uppercase italic text-[10px] transition-colors"
                             onClick={() => {
@@ -220,41 +264,61 @@ export default function TerminalsPage() {
                       </DropdownMenu>
                     </div>
 
-                    <div className="mt-6 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={cn(
-                            "size-1.5 rounded-full animate-pulse",
-                            terminal.deletedAt
-                              ? "bg-red-500"
+                    <div className="mt-6 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              "size-1.5 rounded-full animate-pulse",
+                              terminal.deletedAt
+                                ? "bg-red-500"
+                                : terminal.isActive
+                                  ? "bg-emerald-500"
+                                  : "bg-yellow-500",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[9px] font-black uppercase tracking-widest",
+                              terminal.deletedAt
+                                ? "text-red-500"
+                                : terminal.isActive
+                                  ? "text-emerald-500"
+                                  : "text-yellow-500",
+                            )}
+                          >
+                            {terminal.deletedAt
+                              ? "Archivé"
                               : terminal.isActive
-                                ? "bg-emerald-500"
-                                : "bg-yellow-500",
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "text-[9px] font-black uppercase tracking-widest",
-                            terminal.deletedAt
-                              ? "text-red-500"
-                              : terminal.isActive
-                                ? "text-emerald-500"
-                                : "text-yellow-500",
-                          )}
-                        >
-                          {terminal.deletedAt
-                            ? "Archivé"
-                            : terminal.isActive
-                              ? "Opérationnel"
-                              : "Hors-Ligne"}
-                        </span>
-                      </div>
-
-                      {terminal.isActive && !terminal.deletedAt && (
-                        <div className="text-[8px] font-bold text-gray-600 uppercase border border-white/5 px-2 py-1 rounded-md">
-                          Ready to scan
+                                ? "Opérationnel"
+                                : "Hors-Ligne"}
+                          </span>
                         </div>
-                      )}
+
+                        {/* Session status badge */}
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/5 bg-white/3">
+                          <span
+                            className={cn(
+                              "size-2 rounded-full",
+                              terminal.isSessionActive
+                                ? "bg-emerald-400 animate-ping"
+                                : "bg-gray-600",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[9px] font-black uppercase tracking-widest",
+                              terminal.isSessionActive
+                                ? "text-emerald-400"
+                                : "text-gray-500",
+                            )}
+                          >
+                            {terminal.isSessionActive
+                              ? "Session Active"
+                              : "Aucune session"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}

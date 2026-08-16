@@ -12,14 +12,48 @@ export async function PATCH(req: NextRequest, context: TerminalContext) {
   try {
     const params = await context.params;
     const id = Number(params.terminalId);
-    const { name, isActive } = await req.json();
+    const { name, code, isActive } = await req.json();
+
+    const updateData: {
+      name?: string;
+      code?: string;
+      isActive?: boolean;
+      isSessionActive?: boolean;
+      sessionToken?: null;
+    } = {};
+
+    if (name) updateData.name = name.trim();
+
+    if (code) {
+      const trimmedCode = code.trim();
+      // Vérifier si le code est déjà utilisé par un autre terminal
+      const existing = await prisma.terminal.findFirst({
+        where: {
+          code: trimmedCode,
+          id: { not: id },
+        },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { error: "Ce code terminal est déjà utilisé par un autre terminal." },
+          { status: 400 },
+        );
+      }
+      updateData.code = trimmedCode;
+    }
+
+    if (typeof isActive === "boolean") {
+      updateData.isActive = isActive;
+      // Si le terminal est désactivé, sa session (si active) s'arrête illico
+      if (isActive === false) {
+        updateData.isSessionActive = false;
+        updateData.sessionToken = null;
+      }
+    }
 
     const updated = await prisma.terminal.update({
       where: { id },
-      data: {
-        name,
-        isActive,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updated);
@@ -40,6 +74,8 @@ export async function DELETE(req: NextRequest, context: TerminalContext) {
       data: {
         deletedAt: new Date(),
         isActive: false,
+        isSessionActive: false,
+        sessionToken: null,
       },
     });
 

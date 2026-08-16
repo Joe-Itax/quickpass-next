@@ -95,8 +95,14 @@ export function useRealtimeSync({
 
     channel.subscribe();
 
+    // Ping local de secours (toutes les 3s) pour garantir la fraîcheur des données
+    const pollInterval = setInterval(() => {
+      onUpdateRef.current();
+    }, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [eventId, eventCode]);
 }
