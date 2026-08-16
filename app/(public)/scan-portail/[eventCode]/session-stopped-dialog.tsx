@@ -63,7 +63,7 @@ export default function SessionStoppedDialog({
                 </h3>
                 <p className="text-gray-300 text-xs font-bold leading-relaxed px-2">
                   {message ||
-                    "La session de ce terminal a été fermée par un administrateur depuis la plateforme de gestion."}
+                    "La session de ce terminal a été arrêtée. Veuillez contacter le gestionnaire de cet événement ou un administrateur."}
                 </p>
                 <p className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider pt-1">
                   Accès aux scans temporairement suspendu

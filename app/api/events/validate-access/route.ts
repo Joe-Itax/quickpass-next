@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Ce terminal a été désactivé par un administrateur.",
+            "La session de ce terminal a été arrêtée. Veuillez contacter le gestionnaire de cet événement ou un administrateur.",
           sessionEnded: true,
         },
         { status: 403 },
@@ -77,11 +77,11 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Si la session a été arrêtée par un administrateur ou révoquée
+      // Si la session a été arrêtée
       return NextResponse.json(
         {
           error:
-            "La session de ce terminal a été arrêtée par un administrateur.",
+            "La session de ce terminal a été arrêtée. Veuillez contacter le gestionnaire de cet événement ou un administrateur.",
           sessionEnded: true,
         },
         { status: 401 },

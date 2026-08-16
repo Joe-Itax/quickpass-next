@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guards";
+import { requireEventAccess } from "@/lib/auth-guards";
 
 interface TerminalContext {
   params: Promise<{
@@ -9,9 +9,6 @@ interface TerminalContext {
 }
 
 export async function POST(req: NextRequest, context: TerminalContext) {
-  const admin = await requireAdmin(req);
-  if (!admin || admin instanceof NextResponse) return admin;
-
   try {
     const params = await context.params;
     const terminalId = Number(params.terminalId);
@@ -25,6 +22,7 @@ export async function POST(req: NextRequest, context: TerminalContext) {
 
     const terminal = await prisma.terminal.findUnique({
       where: { id: terminalId },
+      select: { id: true, eventId: true },
     });
 
     if (!terminal) {
@@ -33,6 +31,10 @@ export async function POST(req: NextRequest, context: TerminalContext) {
         { status: 404 },
       );
     }
+
+    // Vérifie que l'utilisateur est soit ADMIN, soit un USER affecté à cet événement
+    const userAccess = await requireEventAccess(req, terminal.eventId);
+    if (userAccess instanceof NextResponse) return userAccess;
 
     await prisma.terminal.update({
       where: { id: terminalId },
