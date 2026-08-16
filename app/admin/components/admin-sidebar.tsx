@@ -47,6 +47,13 @@ export function AdminSidebar({
   const user = session?.user;
   const { state } = useSidebar();
 
+  const filteredNavMain = data.navMain.filter((item) => {
+    if (item.url === "/admin/users") {
+      return user?.role === "ADMIN";
+    }
+    return true;
+  });
+
   return (
     <Sidebar
       collapsible="icon"
@@ -90,7 +97,7 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="px-">
-        <NavMain items={data.navMain} userRole={user?.role || ""} />
+        <NavMain items={filteredNavMain} userRole={user?.role || ""} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
 

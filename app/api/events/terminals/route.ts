@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateTerminalCode } from "@/lib/generate-terminal-code";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth, requireEventAccess } from "@/lib/auth-guards";
 
 export async function GET(req: NextRequest) {
   const user = await requireAuth(req);
@@ -12,15 +12,22 @@ export async function GET(req: NextRequest) {
   try {
     const events = await prisma.event.findMany({
       where: {
-        terminals: isAdmin ? { some: {} } : { some: { deletedAt: null } },
+        deletedAt: null,
+        status: { not: "CANCELLED" },
+        // Si admin -> tous les événements avec terminaux.
+        // Si user normal -> seulement les événements auxquels l'utilisateur est assigné !
+        ...(isAdmin
+          ? { terminals: { some: {} } }
+          : {
+              assignments: { some: { userId: user.id } },
+              terminals: { some: { deletedAt: null } },
+            }),
       },
       include: {
         terminals: {
-          where: isAdmin
-            ? {} // Admin voit tout
-            : { deletedAt: null },
+          where: isAdmin ? {} : { deletedAt: null },
           orderBy: [
-            { deletedAt: "desc" }, // Archivés en dernier
+            { deletedAt: "desc" },
             { createdAt: "desc" },
           ],
         },
@@ -51,13 +58,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const numericEventId = Number(eventId);
+
+    // Vérifier que l'utilisateur est soit ADMIN, soit affecté à cet événement !
+    const access = await requireEventAccess(req, numericEventId);
+    if (access instanceof NextResponse) return access;
+
     const terminalCode = generateTerminalCode(name);
 
     const terminal = await prisma.terminal.create({
       data: {
-        name,
+        name: name.trim(),
         code: terminalCode,
-        eventId: Number(eventId),
+        eventId: numericEventId,
       },
     });
 
@@ -65,7 +78,7 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     if (error instanceof Object && "code" in error && error.code === "P2002") {
       return NextResponse.json(
-        { error: "Un terminal avec ce nom existe déjà pour cet event" },
+        { error: "Un terminal avec ce nom existe déjà pour cet événement" },
         { status: 400 },
       );
     }
