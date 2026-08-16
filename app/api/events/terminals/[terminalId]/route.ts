@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, context: TerminalContext) {
 
     const terminal = await prisma.terminal.findUnique({
       where: { id },
-      select: { id: true, eventId: true },
+      select: { id: true, eventId: true, code: true },
     });
 
     if (!terminal) {
@@ -56,6 +56,12 @@ export async function PATCH(req: NextRequest, context: TerminalContext) {
         );
       }
       updateData.code = trimmedCode;
+
+      // Si le code du terminal a changé, réinitialiser la session active
+      if (trimmedCode !== terminal.code) {
+        updateData.isSessionActive = false;
+        updateData.sessionToken = null;
+      }
     }
 
     if (typeof isActive === "boolean") {

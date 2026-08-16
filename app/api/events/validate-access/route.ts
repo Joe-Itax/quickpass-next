@@ -34,6 +34,17 @@ export async function POST(req: NextRequest) {
     });
 
     if (!terminal) {
+      if (sessionToken) {
+        return NextResponse.json(
+          {
+            error:
+              "Le code ou la configuration de ce terminal a été modifié. Veuillez contacter le gestionnaire de cet événement ou un administrateur.",
+            sessionEnded: true,
+          },
+          { status: 401 },
+        );
+      }
+
       return NextResponse.json(
         { error: "Accès refusé : terminal invalide ou événement suspendu" },
         { status: 404 },
